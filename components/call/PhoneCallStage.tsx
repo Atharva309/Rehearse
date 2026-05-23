@@ -113,9 +113,9 @@ export function PhoneCallStage({
 
   if (phase === "scoring") {
     return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center bg-call-background text-white rounded-xl">
-        <div className="w-10 h-10 border-2 border-gray-600 border-t-green-500 rounded-full animate-spin" />
-        <p className="mt-4 text-sm text-gray-300">Scoring your conversation…</p>
+      <div className="call-screen-root flex flex-col items-center justify-center">
+        <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
+        <p className="mt-4 text-sm text-white/70">Scoring your conversation…</p>
       </div>
     );
   }
@@ -135,9 +135,9 @@ export function PhoneCallStage({
 
   if (phase === "connecting") {
     return (
-      <div className="min-h-[560px] rounded-xl bg-call-background text-white flex flex-col items-center justify-center">
-        <div className="w-10 h-10 border-2 border-gray-600 border-t-green-500 rounded-full animate-spin" />
-        <p className="mt-4 text-sm text-gray-300">Calling {simulation.persona_name}…</p>
+      <div className="call-screen-root flex flex-col items-center justify-center">
+        <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
+        <p className="mt-4 text-sm text-white/70">Calling {simulation.persona_name}…</p>
       </div>
     );
   }
@@ -155,6 +155,7 @@ export function PhoneCallStage({
         <PhoneCallLayout
           stage="prospecting"
           personaName={simulation.persona_name}
+          personaRole={simulation.persona_role}
           formattedTimer={videoCall.formattedTimer}
           waveformLevels={levels}
           userTranscripts={voice.userTranscripts}

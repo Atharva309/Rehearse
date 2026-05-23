@@ -73,8 +73,11 @@ export default async function SimulationCompletePage({
   );
 
   return (
-    <div className="max-w-5xl w-full">
-      <PipelineProgress items={pipelineItems} allComplete />
+    <div className="w-full">
+      <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[100vw] px-4 sm:px-8 mb-6">
+        <PipelineProgress items={pipelineItems} allComplete />
+      </div>
+      <div className="max-w-3xl">
 
       <h1 className="text-2xl font-bold text-text-primary">Results</h1>
       <p className="text-sm text-text-secondary mt-1">
@@ -133,6 +136,7 @@ export default async function SimulationCompletePage({
       >
         Back to Dashboard
       </Link>
+      </div>
     </div>
   );
 }

@@ -98,6 +98,21 @@ export const PUBLIC_ROUTES = ["/login", "/register"] as const;
 export const DEFAULT_OPENING_GREETING =
   "Yeah? I've got customers—what do you need?";
 
+// ── Stitch UI layout ──────────────────────────────────────────────────────────
+
+export const CALL_OVERLAY_INSET_PX = 24;
+export const CALL_CONTROL_BAR_BOTTOM_PX = 80;
+export const CALL_TRANSCRIPT_MAX_HEIGHT_PX = 128;
+export const PHONE_INITIALS_SIZE_PX = 96;
+export const PHONE_WAVEFORM_BAR_COUNT = 24;
+export const PHONE_WAVEFORM_MAX_HEIGHT_PX = 56;
+export const PHONE_WAVEFORM_MIN_HEIGHT_PX = 8;
+export const PIPELINE_CELL_MIN_HEIGHT_PX = 80;
+export const PIPELINE_GRID_MIN_WIDTH_PX = 720;
+export const PIPELINE_LABEL_INSET_LEFT_PX = 56;
+export const PIP_BORDER_RADIUS_PX = 12;
+export const AUTH_BRAND_PANEL_PERCENT = 42;
+
 /** Appended to persona system prompts on voice stages — reduces interruptions. */
 export const PERSONA_LISTENING_RULES =
   "CRITICAL RULE: Let the student finish speaking completely before you respond. Never interrupt mid-sentence. Wait for a clear pause. Keep replies to 2-3 short sentences.";

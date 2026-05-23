@@ -49,13 +49,13 @@ export default async function TeacherDashboardPage(): Promise<React.ReactElement
         </p>
       ) : (
         <div className="mt-8 card-surface overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-surface text-left text-text-secondary border-b border-border">
+          <table className="w-full text-sm stitch-table">
+            <thead>
               <tr>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium">Persona</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
+                <th>Title</th>
+                <th>Persona</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>

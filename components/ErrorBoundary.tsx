@@ -33,14 +33,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="border border-red-200 bg-red-50 text-red-800 rounded-lg p-6">
-          <p className="font-semibold">
+        <div className="card-surface border-error/30 bg-error/5 p-6">
+          <p className="font-semibold text-text-primary">
             Something went wrong{this.props.stageName ? ` in ${this.props.stageName}` : ""}.
           </p>
-          <p className="text-sm mt-2">{this.state.message}</p>
+          <p className="text-sm text-text-secondary mt-2">{this.state.message}</p>
           <button
             type="button"
-            className="mt-4 px-4 py-2 border border-red-300 rounded text-sm"
+            className="mt-4 px-4 py-2 border border-border rounded-md text-sm font-medium text-text-primary hover:bg-surface"
             onClick={() => this.setState({ hasError: false, message: "" })}
           >
             Try again

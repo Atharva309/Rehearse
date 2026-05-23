@@ -1,11 +1,12 @@
 /**
  * CallTranscript.tsx
- * Dark-themed scrolling transcript for video and phone call stages.
+ * Bottom transcript strip for active calls (Stitch design).
  */
 
 "use client";
 
 import { useEffect, useRef } from "react";
+import { CALL_TRANSCRIPT_MAX_HEIGHT_PX } from "@/lib/constants";
 
 type CallTranscriptProps = {
   userText: string;
@@ -14,12 +15,12 @@ type CallTranscriptProps = {
 };
 
 /**
- * Renders student (left) and persona (right) bubbles on a dark call UI.
+ * Scrollable transcript bubbles inside the bottom call strip.
  */
 export function CallTranscript({
   userText,
   personaText,
-  personaLabel = "Dana",
+  personaLabel = "Persona",
 }: CallTranscriptProps): React.ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -35,25 +36,32 @@ export function CallTranscript({
   return (
     <div
       ref={scrollRef}
-      className="max-h-32 overflow-y-auto rounded-lg bg-black/50 border border-gray-800 px-4 py-3"
+      className="overflow-y-auto rounded-lg bg-black/40 border border-white/10 px-4 py-3"
+      style={{ maxHeight: CALL_TRANSCRIPT_MAX_HEIGHT_PX }}
     >
       <div className="flex flex-col gap-2 text-sm">
         {userText.length > 0 && (
           <div className="flex justify-start">
-            <span className="text-gray-300 bg-gray-800/90 px-3 py-2 rounded-2xl rounded-tl-sm max-w-[85%]">
+            <span className="text-white/90 bg-white/10 px-3 py-2 rounded-2xl rounded-tl-sm max-w-[85%]">
+              <span className="text-[10px] uppercase text-white/40 block mb-0.5">You</span>
               {userText}
             </span>
           </div>
         )}
         {personaText.length > 0 && (
           <div className="flex justify-end">
-            <span className="text-blue-100 bg-blue-950/80 border border-blue-900/50 px-3 py-2 rounded-2xl rounded-tr-sm max-w-[85%]">
+            <span className="text-white bg-accent/30 border border-accent/40 px-3 py-2 rounded-2xl rounded-tr-sm max-w-[85%]">
+              <span className="text-[10px] uppercase text-white/50 block mb-0.5">
+                {personaLabel}
+              </span>
               {personaText}
             </span>
           </div>
         )}
         {!hasContent && (
-          <p className="text-center text-gray-500 text-xs italic">Live transcript will appear here…</p>
+          <p className="text-center text-white/40 text-xs italic">
+            Live transcript will appear here…
+          </p>
         )}
       </div>
     </div>

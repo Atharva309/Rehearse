@@ -150,6 +150,26 @@ export function SimulationForm({
         </div>
 
         <div className="space-y-6">
+          <section className="card-surface p-6 border-l-4 border-l-gold">
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-3">
+              Live preview
+            </p>
+            <h3 className="text-lg font-bold text-text-primary">{title || "Simulation title"}</h3>
+            <p className="text-sm text-text-secondary mt-2">
+              <span className="font-semibold text-text-primary">{personaName}</span>
+              {" · "}
+              {personaRole}
+            </p>
+            <p className="text-sm text-text-secondary mt-3 line-clamp-4">
+              {productContext || "Product context will appear here as you type."}
+            </p>
+            {description.length > 0 && (
+              <p className="text-xs text-text-secondary mt-3 pt-3 border-t border-border">
+                {description}
+              </p>
+            )}
+          </section>
+
           <section className="card-surface p-6 space-y-4">
             <h2 className="font-semibold text-text-primary text-lg border-b border-border pb-2">
               Scenario

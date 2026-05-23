@@ -1,6 +1,6 @@
 /**
  * EndCallModal.tsx
- * Confirmation dialog before ending a live call and moving to scoring.
+ * Confirmation dialog before ending a live call (Stitch dark modal).
  */
 
 "use client";
@@ -21,31 +21,31 @@ export function EndCallModal({
 }: EndCallModalProps): React.ReactElement {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="end-call-title"
     >
-      <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
-        <h2 id="end-call-title" className="text-lg font-semibold text-white">
+      <div className="card-surface bg-call-background border-white/10 p-6 max-w-md w-full shadow-2xl text-white">
+        <h2 id="end-call-title" className="text-lg font-semibold">
           End this call?
         </h2>
-        <p className="text-sm text-gray-400 mt-2">
-          Your conversation with {personaName} will be scored. You cannot return to this call
-          after ending it.
+        <p className="text-sm text-white/60 mt-2">
+          Your conversation with {personaName} will be scored. You cannot return to this call after
+          ending it.
         </p>
         <div className="flex gap-3 mt-6 justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-gray-300 border border-gray-600 rounded hover:bg-gray-800"
+            className="px-4 py-2 text-sm text-white/80 border border-white/20 rounded-md hover:bg-white/5"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded hover:bg-red-700"
+            className="px-4 py-2 text-sm font-semibold bg-error text-white rounded-md hover:opacity-90"
           >
             End call
           </button>

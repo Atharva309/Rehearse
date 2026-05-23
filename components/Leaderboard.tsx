@@ -26,13 +26,13 @@ export function Leaderboard({
   }
 
   return (
-    <table className="w-full text-sm card-surface overflow-hidden">
-      <thead className="bg-surface text-left text-text-secondary border-b border-border">
+    <table className="w-full text-sm card-surface overflow-hidden stitch-table">
+      <thead>
         <tr>
-          <th className="px-4 py-3 font-medium">Rank</th>
-          <th className="px-4 py-3 font-medium">Student</th>
-          <th className="px-4 py-3 font-medium">Score</th>
-          <th className="px-4 py-3 font-medium">Grade</th>
+          <th>Rank</th>
+          <th>Student</th>
+          <th>Score</th>
+          <th>Grade</th>
         </tr>
       </thead>
       <tbody>

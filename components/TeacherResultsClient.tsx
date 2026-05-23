@@ -39,26 +39,18 @@ export function TeacherResultsClient({
 
   return (
     <div>
-      <div className="flex gap-6 border-b border-border mb-6">
+      <div className="flex gap-8 border-b border-border mb-6">
         <button
           type="button"
           onClick={() => setTab("attempts")}
-          className={`pb-2 text-sm font-medium ${
-            tab === "attempts"
-              ? "border-b-2 border-accent text-text-primary"
-              : "text-text-secondary"
-          }`}
+          className={`pb-3 text-sm ${tab === "attempts" ? "stitch-tab-active" : "stitch-tab-inactive"}`}
         >
-          Attempts
+          Student Attempts
         </button>
         <button
           type="button"
           onClick={() => setTab("leaderboard")}
-          className={`pb-2 text-sm font-medium ${
-            tab === "leaderboard"
-              ? "border-b-2 border-accent text-text-primary"
-              : "text-text-secondary"
-          }`}
+          className={`pb-3 text-sm ${tab === "leaderboard" ? "stitch-tab-active" : "stitch-tab-inactive"}`}
         >
           Leaderboard
         </button>
@@ -72,10 +64,10 @@ export function TeacherResultsClient({
         </p>
       ) : (
         <div className="card-surface overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-surface text-left text-text-secondary border-b border-border">
+          <table className="w-full text-sm stitch-table">
+            <thead>
               <tr>
-                <th className="px-4 py-3 font-medium">Student</th>
+                <th>Student</th>
                 <th className="px-4 py-3 font-medium">Started</th>
                 <th className="px-4 py-3 font-medium">Score</th>
                 <th className="px-4 py-3 font-medium">Grade</th>

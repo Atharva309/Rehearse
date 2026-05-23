@@ -1,17 +1,27 @@
 /**
  * PhoneCallLayout.tsx
- * Active prospecting call: waveform visualisation, transcript, mute + end controls.
+ * Full-screen prospecting phone call UI (Stitch design).
  */
 
 "use client";
 
+import { CallControlPill } from "@/components/ui/CallControlPill";
+import { PersonaInitials } from "@/components/ui/PersonaInitials";
 import { CallTranscript } from "@/components/call/CallTranscript";
+import {
+  CALL_CONTROL_BAR_BOTTOM_PX,
+  CALL_OVERLAY_INSET_PX,
+  PHONE_WAVEFORM_BAR_COUNT,
+  PHONE_WAVEFORM_MAX_HEIGHT_PX,
+  PHONE_WAVEFORM_MIN_HEIGHT_PX,
+} from "@/lib/constants";
 import { getStageCallLabel } from "@/lib/stages";
 import type { SimulationStage } from "@/types";
 
 type PhoneCallLayoutProps = {
   stage: SimulationStage;
   personaName: string;
+  personaRole: string;
   formattedTimer: string;
   waveformLevels: number[];
   userTranscripts: string;
@@ -21,12 +31,18 @@ type PhoneCallLayoutProps = {
   onEndCall: () => void;
 };
 
+const phoneStyle = {
+  "--call-inset": `${CALL_OVERLAY_INSET_PX}px`,
+  "--call-controls-bottom": `${CALL_CONTROL_BAR_BOTTOM_PX}px`,
+} as React.CSSProperties;
+
 /**
- * Full-screen phone UI while the prospecting voice session is live.
+ * Active audio-only call: initials, waveform, timer, transcript strip, control pill.
  */
 export function PhoneCallLayout({
   stage,
   personaName,
+  personaRole,
   formattedTimer,
   waveformLevels,
   userTranscripts,
@@ -36,58 +52,50 @@ export function PhoneCallLayout({
   onEndCall,
 }: PhoneCallLayoutProps): React.ReactElement {
   const stageLabel = getStageCallLabel(stage);
+  const bars =
+    waveformLevels.length >= PHONE_WAVEFORM_BAR_COUNT
+      ? waveformLevels
+      : [
+          ...waveformLevels,
+          ...Array(PHONE_WAVEFORM_BAR_COUNT - waveformLevels.length).fill(0),
+        ];
 
   return (
-    <div className="relative min-h-[560px] rounded-xl overflow-hidden bg-call-background text-white flex flex-col">
-      <div className="flex justify-between items-center px-4 py-3">
-        <span className="text-sm font-medium text-gray-300">{stageLabel}</span>
-        <span className="text-sm font-mono text-gray-500 tabular-nums">{formattedTimer}</span>
-      </div>
+    <div className="call-screen-root" style={phoneStyle}>
+      <span className="call-stage-badge">{stageLabel}</span>
+      <span className="call-timer-badge">{formattedTimer}</span>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center text-2xl mb-4">
-          📞
-        </div>
-        <p className="text-lg font-semibold">{personaName}</p>
-        <p className="text-xs text-gray-500 mt-1">On call</p>
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-6 pb-48">
+        <PersonaInitials name={personaName} />
+        <p className="mt-6 text-xl font-semibold">{personaName}</p>
+        <p className="text-sm text-white/60 mt-1">{personaRole}</p>
+        <p className="text-xs text-success mt-2 font-medium uppercase tracking-wider">On call</p>
 
-        <div className="flex items-end justify-center gap-1 h-16 mt-10 w-full max-w-xs">
-          {waveformLevels.map((level, index) => (
+        <div
+          className="flex items-end justify-center gap-1 mt-12 w-full max-w-xs"
+          style={{ height: PHONE_WAVEFORM_MAX_HEIGHT_PX + PHONE_WAVEFORM_MIN_HEIGHT_PX }}
+          aria-hidden
+        >
+          {bars.slice(0, PHONE_WAVEFORM_BAR_COUNT).map((level, index) => (
             <div
-              key={`bar-${index}`}
-              className="w-1.5 rounded-full bg-green-500 transition-all duration-75"
-              style={{ height: `${Math.round(level * 56) + 8}px` }}
+              key={`wave-${index}`}
+              className="w-1.5 rounded-full bg-success transition-all duration-75"
+              style={{
+                height: `${Math.round(level * PHONE_WAVEFORM_MAX_HEIGHT_PX) + PHONE_WAVEFORM_MIN_HEIGHT_PX}px`,
+              }}
             />
           ))}
         </div>
       </div>
 
-      <div className="px-4 pb-4 space-y-3">
+      <CallControlPill isMuted={isMuted} onToggleMute={onToggleMute} onEndCall={onEndCall} />
+
+      <div className="call-transcript-strip">
         <CallTranscript
           userText={userTranscripts}
           personaText={personaTranscripts}
           personaLabel={personaName}
         />
-        <div className="flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={onToggleMute}
-            className={`px-4 py-2.5 rounded-lg text-sm font-medium border ${
-              isMuted
-                ? "bg-red-900/50 border-red-700 text-red-200"
-                : "bg-gray-800 border-gray-600 text-gray-200"
-            }`}
-          >
-            {isMuted ? "🔇 Unmute" : "🎤 Mute"}
-          </button>
-          <button
-            type="button"
-            onClick={onEndCall}
-            className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white"
-          >
-            📞 End Call
-          </button>
-        </div>
       </div>
     </div>
   );

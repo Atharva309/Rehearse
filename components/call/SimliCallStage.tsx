@@ -184,9 +184,9 @@ export function SimliCallStage({
 
   if (phase === "scoring") {
     return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center bg-call-background text-white rounded-xl">
-        <div className="w-10 h-10 border-2 border-gray-600 border-t-green-500 rounded-full animate-spin" />
-        <p className="mt-4 text-sm text-gray-300">Scoring your conversation…</p>
+      <div className="call-screen-root flex flex-col items-center justify-center">
+        <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
+        <p className="mt-4 text-sm text-white/70">Scoring your conversation…</p>
       </div>
     );
   }
@@ -207,8 +207,10 @@ export function SimliCallStage({
   if (phase === "lobby") {
     return (
       <>
-        {connectError && (
-          <p className="text-sm text-red-500 mb-3">{connectError}</p>
+        {connectError.length > 0 && (
+          <p className="fixed top-20 left-1/2 -translate-x-1/2 z-[55] text-sm text-error bg-page px-4 py-2 rounded-md shadow">
+            {connectError}
+          </p>
         )}
         <CallLobby
           personaName={simulation.persona_name}
@@ -226,21 +228,21 @@ export function SimliCallStage({
   }
 
   return (
-    <div className="relative min-h-[560px] rounded-xl overflow-hidden bg-call-background text-white">
+    <div className="call-screen-root">
       {mountSimli && (
         <div
-          className={`absolute inset-0 z-0 ${
+          className={`absolute inset-0 z-0 w-full h-full ${
             phase === "connecting" ? "opacity-0" : "opacity-100"
-          } [&>div]:!max-w-none [&>div]:!w-full [&>div]:!h-full [&>div]:!aspect-auto [&>div]:!rounded-none [&>div]:!shadow-none [&_video]:!h-full [&_video]:!w-full [&_video]:object-cover`}
+          } [&>div]:!max-w-none [&>div]:!w-full [&>div]:!h-full [&>div]:!aspect-auto [&>div]:!rounded-none [&>div]:!shadow-none [&_video]:!absolute [&_video]:!inset-0 [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover`}
         >
           <Avatar ref={voice.avatarRef} />
         </div>
       )}
 
       {phase === "connecting" && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-call-background/90">
-          <div className="w-10 h-10 border-2 border-gray-600 border-t-green-500 rounded-full animate-spin" />
-          <p className="mt-4 text-sm text-gray-300">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-call-background">
+          <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
+          <p className="mt-4 text-sm text-white/70">
             Connecting to {simulation.persona_name}…
           </p>
         </div>
@@ -270,8 +272,8 @@ export function SimliCallStage({
             onToggleCamera={videoCall.toggleCamera}
             onEndCall={() => setShowEndModal(true)}
           />
-          {scoreError && (
-            <p className="absolute bottom-2 left-4 z-30 text-sm text-red-400">{scoreError}</p>
+          {scoreError.length > 0 && (
+            <p className="absolute bottom-2 left-4 z-30 text-sm text-error">{scoreError}</p>
           )}
         </>
       )}

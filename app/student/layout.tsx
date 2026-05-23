@@ -20,7 +20,7 @@ export default async function StudentLayout({
   return (
     <>
       <AppHeader userName={profile.full_name} homeHref="/student/dashboard" />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">{children}</div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 min-h-[calc(100vh-4rem)]">{children}</div>
     </>
   );
 }

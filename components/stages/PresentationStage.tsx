@@ -80,25 +80,28 @@ export function PresentationStage({
       canAdvance={score !== undefined}
       onAdvance={() => onComplete("objections")}
     >
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-text-secondary">
         Write your pitch to {simulation.persona_name} based on what you learned in Discovery.
       </p>
       <div className="grid md:grid-cols-2 gap-6">
         <div>
+          <label className="block text-sm font-medium text-text-primary mb-2">Your pitch</label>
           <textarea
-            className="w-full border border-gray-200 rounded-lg p-4 text-sm min-h-[280px]"
-            placeholder="Your pitch..."
+            className="input-field min-h-[280px]"
+            placeholder="Your pitch…"
             value={pitch}
             onChange={(e) => setPitch(e.target.value)}
             disabled={score !== undefined}
           />
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-text-secondary mt-2">
             {wordCount} words (min {PRESENTATION_MIN_WORDS})
           </p>
         </div>
-        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 text-sm text-gray-700">
-          <p className="font-medium text-gray-900 mb-2">Discovery notes</p>
-          <pre className="whitespace-pre-wrap font-sans text-xs">{discoveryNotes || "No discovery transcript yet."}</pre>
+        <div className="card-surface p-4 bg-surface">
+          <p className="font-semibold text-text-primary text-sm mb-2">Discovery notes</p>
+          <pre className="whitespace-pre-wrap font-sans text-xs text-text-secondary leading-relaxed">
+            {discoveryNotes || "No discovery transcript yet."}
+          </pre>
         </div>
       </div>
       {score === undefined && (
@@ -106,7 +109,7 @@ export function PresentationStage({
           type="button"
           onClick={() => void handleSubmit()}
           disabled={isLoading || wordCount < PRESENTATION_MIN_WORDS}
-          className="px-5 py-2.5 bg-gray-900 text-white text-sm rounded disabled:opacity-50"
+          className="btn-primary disabled:opacity-50 w-full sm:w-auto"
         >
           Submit pitch
         </button>
