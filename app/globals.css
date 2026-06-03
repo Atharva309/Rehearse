@@ -75,52 +75,42 @@ body {
 
   /* ── Call UI (contained below pipeline, not full viewport) ─── */
   .call-container-root {
-    @apply relative w-full flex flex-col bg-call-background text-white rounded-lg;
-    padding: var(--call-container-padding, 16px);
-    height: var(--call-box-height, calc(100dvh - 280px));
-    min-height: 560px;
-    flex: 1 1 auto;
+    @apply relative w-full overflow-hidden rounded-xl bg-call-background text-white;
   }
 
   .call-stage-slot {
-    @apply relative flex flex-col flex-1 w-full min-h-0 h-full;
+    @apply relative flex h-full min-h-0 w-full flex-1 flex-col;
   }
 
   .call-stage-min-h {
-    @apply flex flex-col flex-1 w-full min-h-0 h-full;
+    @apply flex h-full min-h-0 w-full flex-1 flex-col;
   }
 
   .call-screen-root {
-    @apply relative flex flex-col flex-1 w-full min-h-0 h-full bg-call-background text-white rounded-lg;
+    @apply relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-call-background text-white;
   }
 
-  /* Framed persona video — see CallLayout.tsx exports */
+  /* Persona video fills the call box; crop keeps face in frame */
   .call-persona-video-frame {
-    @apply relative h-full w-full overflow-hidden;
+    @apply absolute inset-0 overflow-hidden;
   }
 
   .call-persona-video {
     @apply block h-full w-full object-cover;
-    object-position: center 22%;
+    object-position: center 12%;
     transform: translateZ(0);
     backface-visibility: hidden;
   }
 
   .call-persona-video-gradient {
-    @apply absolute inset-0 pointer-events-none;
-    background: linear-gradient(to bottom, transparent 88%, rgb(0 0 0 / 0.2) 100%);
+    @apply pointer-events-none absolute inset-x-0 bottom-0 h-24;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.35), transparent);
   }
 
-  /* Video call bottom dock — compact strip at the very bottom */
+  /* Video call bottom dock — solid strip, no tall fade over the avatar */
   .call-video-bottom-dock {
-    @apply absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center gap-2 px-3 pb-3 pt-2;
-    background: linear-gradient(
-      to top,
-      rgb(10 10 10 / 0.98) 0%,
-      rgb(10 10 10 / 0.85) 70%,
-      transparent 100%
-    );
-    max-height: var(--call-video-dock-h, 118px);
+    @apply absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-1.5 px-3 pb-3 pt-2;
+    background: rgb(10 10 10 / 0.92);
   }
 
   .stage-content-fade {

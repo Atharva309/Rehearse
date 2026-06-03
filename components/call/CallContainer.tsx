@@ -1,36 +1,26 @@
 /**
  * CallContainer.tsx
- * Contained call area below the pipeline — not full viewport takeover.
+ * Contained call area below the pipeline — fills remaining viewport height.
  */
 
 "use client";
-
-import {
-  APP_NAVBAR_HEIGHT_PX,
-  CALL_CONTAINER_PADDING_PX,
-  PIPELINE_SECTION_HEIGHT_PX,
-} from "@/lib/constants";
 
 type CallContainerProps = {
   children: React.ReactNode;
 };
 
-/** Space above call box: header, page padding, back link, pipeline (approx). */
-const CALL_CHROME_OFFSET_PX =
-  APP_NAVBAR_HEIGHT_PX + PIPELINE_SECTION_HEIGHT_PX + 120;
-
-const containerStyle = {
-  "--call-container-padding": `${CALL_CONTAINER_PADDING_PX}px`,
-  "--call-chrome-offset": `${CALL_CHROME_OFFSET_PX}px`,
-  "--call-box-height": `max(560px, calc(100dvh - var(--call-chrome-offset)))`,
-} as React.CSSProperties;
+/** Explicit call box height — leaves room for navbar, back link, and pipeline. */
+export const CALL_BOX_HEIGHT_CSS = "calc(100dvh - 14rem)";
 
 /**
  * Dark call region filling space below navbar + pipeline.
  */
 export function CallContainer({ children }: CallContainerProps): React.ReactElement {
   return (
-    <div className="call-container-root mx-6 mb-6 flex-1 min-h-0" style={containerStyle}>
+    <div
+      className="call-container-root mt-4 flex min-h-[520px] flex-1 flex-col"
+      style={{ height: CALL_BOX_HEIGHT_CSS, minHeight: 520 }}
+    >
       <div className="call-stage-slot">{children}</div>
     </div>
   );

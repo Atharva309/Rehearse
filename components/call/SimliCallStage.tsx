@@ -297,7 +297,7 @@ export function SimliCallStage({
   }
 
   return (
-    <div className="call-screen-root overflow-visible flex flex-col flex-1 min-h-0 h-full">
+    <div className="call-screen-root relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       {topBanner}
 
       {connectError.length > 0 && (

@@ -142,7 +142,11 @@ export function SimulationRunner({
 
   return (
     <div
-      className={`w-full px-6 ${isCallStage ? "flex flex-col min-h-[calc(100vh-4rem)]" : ""}`}
+      className={
+        isCallStage
+          ? "flex min-h-0 w-full flex-1 flex-col"
+          : "w-full px-6"
+      }
     >
       <BackButton label="Back to Dashboard" href="/student/dashboard" />
 

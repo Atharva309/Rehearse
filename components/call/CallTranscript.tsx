@@ -36,7 +36,7 @@ export function CallTranscript({
 
   const hasContent = userText.length > 0 || personaText.length > 0;
 
-  const maxHeight = compact ? 72 : CALL_TRANSCRIPT_MAX_HEIGHT_PX;
+  const maxHeight = compact ? 56 : CALL_TRANSCRIPT_MAX_HEIGHT_PX;
 
   return (
     <div

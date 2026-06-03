@@ -50,7 +50,7 @@ const callStyle = {
   "--call-video-dock-h": `${CALL_VIDEO_BOTTOM_DOCK_PX}px`,
 } as React.CSSProperties;
 
-const END_CALL_ICON_CLASS = "block h-5 w-5 shrink-0";
+const END_CALL_ICON_CLASS = "block h-[18px] w-[18px] shrink-0";
 
 function MicIcon(): React.ReactElement {
   return (
@@ -137,7 +137,7 @@ function VideoCallControlPill({
   onEndCall,
 }: VideoCallControlPillProps): React.ReactElement {
   return (
-    <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-black/70 px-2.5 py-1.5 shadow-xl backdrop-blur-md">
+    <div className="pointer-events-auto flex shrink-0 items-center gap-2 overflow-visible rounded-full border border-white/10 bg-black/70 px-2.5 py-1.5 shadow-xl backdrop-blur-md">
       <button
         type="button"
         onClick={onToggleMute}
@@ -161,7 +161,7 @@ function VideoCallControlPill({
         type="button"
         onClick={onEndCall}
         aria-label="End call"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-500 p-0 leading-none text-white transition-colors hover:bg-red-600"
+        className="flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-full bg-red-600 p-0 leading-[0] text-white transition-colors hover:bg-red-700"
       >
         <PhoneEndIcon className={END_CALL_ICON_CLASS} />
       </button>
@@ -189,7 +189,7 @@ export function CallLayout({
   onEndCall,
 }: CallLayoutProps): React.ReactElement {
   const pipClass =
-    "pointer-events-auto absolute bottom-4 right-4 z-[25] h-28 w-36 rounded-xl border-2 border-white/20 object-cover shadow-lg scale-x-[-1]";
+    "pointer-events-auto absolute right-4 top-[4.5rem] z-[25] h-24 w-32 rounded-xl border-2 border-white/20 object-cover shadow-lg scale-x-[-1]";
 
   return (
     <div
