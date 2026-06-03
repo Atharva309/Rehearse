@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { EndCallModal } from "@/components/call/EndCallModal";
 import { PhoneCallLayout } from "@/components/call/PhoneCallLayout";
 import { PhoneCallLobby } from "@/components/call/PhoneCallLobby";
-import { ScoreBadge } from "@/components/ScoreBadge";
+import { StageScoreReveal } from "@/components/StageScoreReveal";
 import { CALL_SCORE_DELAY_MS } from "@/lib/constants";
 import { useAudioWaveform } from "@/hooks/useAudioWaveform";
 import { useProspectingVoice } from "@/hooks/useProspectingVoice";
@@ -62,6 +62,7 @@ export function PhoneCallStage({
     personaRole: simulation.persona_role,
     personaSystemPrompt: simulation.persona_system_prompt,
     productContext: simulation.product_context,
+    productName: simulation.title,
   };
 
   const handleJoinCall = useCallback(async (): Promise<void> => {
@@ -126,13 +127,16 @@ export function PhoneCallStage({
 
   if (phase === "scored" && score !== undefined && feedback) {
     return (
-      <div className="space-y-6 card-surface p-6">
-        <ScoreBadge score={score} />
-        <p className="text-sm text-text-secondary leading-relaxed">{feedback}</p>
-        {scoreError && <p className="text-sm text-error">{scoreError}</p>}
-        <button type="button" onClick={onAdvance} className="btn-accent">
-          Next Stage
-        </button>
+      <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-call-background">
+        <div className="stage-content-card max-w-lg w-full">
+          <StageScoreReveal
+            score={score}
+            feedback={feedback}
+            advanceLabel="Next Stage →"
+            onAdvance={onAdvance}
+          />
+          {scoreError.length > 0 && <p className="text-sm text-error mt-4">{scoreError}</p>}
+        </div>
       </div>
     );
   }

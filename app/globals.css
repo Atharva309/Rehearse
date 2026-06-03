@@ -38,7 +38,7 @@ body {
   }
 
   .btn-primary {
-    @apply px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity;
+    @apply px-6 py-3 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity;
   }
 
   .btn-accent {
@@ -75,13 +75,37 @@ body {
 
   /* ── Call UI (contained below pipeline, not full viewport) ─── */
   .call-container-root {
-    @apply relative w-full bg-call-background text-white overflow-hidden rounded-lg;
+    @apply relative w-full bg-call-background text-white;
+    padding: var(--call-container-padding, 16px);
+    overflow: visible;
     height: calc(100vh - var(--navbar-h, 64px) - var(--pipeline-h, 140px) - 3rem);
     min-height: 420px;
   }
 
   .call-screen-root {
-    @apply relative w-full h-full bg-call-background text-white overflow-hidden;
+    @apply relative w-full h-full bg-call-background text-white overflow-hidden rounded-lg;
+  }
+
+  .stage-content-fade {
+    animation: stageFadeIn 200ms ease-out;
+  }
+
+  @keyframes stageFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .simulation-pipeline-bar {
+    @apply border-b border-border shadow-sm mb-0;
+  }
+
+  .stage-content-card {
+    @apply bg-page border border-border rounded-xl p-8;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 
   .call-stage-badge {

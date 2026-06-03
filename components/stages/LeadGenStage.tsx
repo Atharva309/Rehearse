@@ -6,6 +6,7 @@
 "use client";
 
 import { useState } from "react";
+import { StageCard } from "@/components/StageCard";
 import { StageShell } from "@/components/StageShell";
 import { completeStage, fetchStageScore } from "@/lib/attempt-actions";
 import type { Simulation, SimulationStage } from "@/types";
@@ -37,6 +38,7 @@ export function LeadGenStage({
     personaRole: simulation.persona_role,
     personaSystemPrompt: simulation.persona_system_prompt,
     productContext: simulation.product_context,
+    productName: simulation.title,
   };
 
   const handleSubmit = async (): Promise<void> => {
@@ -65,65 +67,70 @@ export function LeadGenStage({
   };
 
   return (
-    <StageShell
-      score={score}
-      feedback={feedback}
-      isLoading={isLoading}
-      error={error}
-      canAdvance={score !== undefined}
-      onAdvance={() => onComplete("prospecting")}
+    <StageCard
+      title="Lead Generation"
+      subtitle="Qualify your prospect before the first call."
     >
-      <div className="card-surface p-5 border-l-4 border-l-accent">
-        <h2 className="font-semibold text-text-primary">Prospect profile</h2>
-        <p className="text-sm text-text-secondary mt-2">
-          <strong className="text-text-primary">{simulation.persona_name}</strong> —{" "}
-          {simulation.persona_role}
-        </p>
-        <p className="text-sm text-text-secondary mt-2">{simulation.product_context}</p>
-      </div>
+      <StageShell
+        score={score}
+        feedback={feedback}
+        isLoading={isLoading}
+        error={error}
+        canAdvance={score !== undefined}
+        onAdvance={() => onComplete("prospecting")}
+      >
+        <div className="p-5 border border-border rounded-lg bg-surface border-l-4 border-l-accent mb-6">
+          <h3 className="font-semibold text-text-primary">Prospect profile</h3>
+          <p className="text-sm text-text-secondary mt-2">
+            <strong className="text-text-primary">{simulation.persona_name}</strong> —{" "}
+            {simulation.persona_role}
+          </p>
+          <p className="text-sm text-text-secondary mt-2">{simulation.product_context}</p>
+        </div>
 
-      <div className="space-y-4">
-        <label className="block text-sm font-medium text-text-primary">
-          Is this prospect a good fit? Why?
-          <textarea
-            className="input-field mt-1"
-            rows={3}
-            value={fit}
-            onChange={(e) => setFit(e.target.value)}
-            disabled={score !== undefined}
-          />
-        </label>
-        <label className="block text-sm font-medium text-text-primary">
-          What pain points do they likely have?
-          <textarea
-            className="input-field mt-1"
-            rows={3}
-            value={painPoints}
-            onChange={(e) => setPainPoints(e.target.value)}
-            disabled={score !== undefined}
-          />
-        </label>
-        <label className="block text-sm font-medium text-text-primary">
-          What is your opening approach?
-          <textarea
-            className="input-field mt-1"
-            rows={3}
-            value={openingApproach}
-            onChange={(e) => setOpeningApproach(e.target.value)}
-            disabled={score !== undefined}
-          />
-        </label>
-        {score === undefined && (
-          <button
-            type="button"
-            onClick={() => void handleSubmit()}
-            disabled={isLoading || !fit || !painPoints || !openingApproach}
-            className="btn-primary disabled:opacity-50"
-          >
-            Submit answers
-          </button>
-        )}
-      </div>
-    </StageShell>
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-text-primary">
+            Is this prospect a good fit? Why?
+            <textarea
+              className="input-field mt-1"
+              rows={3}
+              value={fit}
+              onChange={(e) => setFit(e.target.value)}
+              disabled={score !== undefined}
+            />
+          </label>
+          <label className="block text-sm font-medium text-text-primary">
+            What pain points do they likely have?
+            <textarea
+              className="input-field mt-1"
+              rows={3}
+              value={painPoints}
+              onChange={(e) => setPainPoints(e.target.value)}
+              disabled={score !== undefined}
+            />
+          </label>
+          <label className="block text-sm font-medium text-text-primary">
+            What is your opening approach?
+            <textarea
+              className="input-field mt-1"
+              rows={3}
+              value={openingApproach}
+              onChange={(e) => setOpeningApproach(e.target.value)}
+              disabled={score !== undefined}
+            />
+          </label>
+          {score === undefined && (
+            <button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={isLoading || !fit || !painPoints || !openingApproach}
+              className="btn-primary disabled:opacity-50"
+            >
+              Submit answers
+            </button>
+          )}
+        </div>
+      </StageShell>
+    </StageCard>
   );
 }

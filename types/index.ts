@@ -162,15 +162,6 @@ export type TtsResponseBody = {
   cdurations: number[];
 };
 
-export type ScoreRequestBody = {
-  stage: SimulationStage;
-  transcript?: string;
-  pitchText?: string;
-  studentAnswers?: LeadGenAnswers;
-  simulationContext: SimulationContext;
-  runningTotalScore?: number;
-};
-
 export type LeadGenAnswers = {
   fit: string;
   painPoints: string;
@@ -182,6 +173,31 @@ export type SimulationContext = {
   personaRole: string;
   personaSystemPrompt: string;
   productContext: string;
+  productName?: string;
+};
+
+/** Inputs for building a stage-specific GPT scoring prompt. */
+export type ScoringContext = {
+  stage: SimulationStage;
+  personaName: string;
+  personaRole: string;
+  productName: string;
+  productContext: string;
+  transcript?: string;
+  pitchText?: string;
+  studentAnswers?: string;
+  leadGenAnswers?: LeadGenAnswers;
+  priorStagesSummary?: string;
+};
+
+export type ScoreRequestBody = {
+  stage: SimulationStage;
+  transcript?: string;
+  pitchText?: string;
+  studentAnswers?: LeadGenAnswers;
+  simulationContext: SimulationContext;
+  runningTotalScore?: number;
+  priorStagesSummary?: string;
 };
 
 export type ScoreResponseBody = {

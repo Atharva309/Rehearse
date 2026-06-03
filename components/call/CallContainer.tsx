@@ -7,6 +7,7 @@
 
 import {
   APP_NAVBAR_HEIGHT_PX,
+  CALL_CONTAINER_PADDING_PX,
   PIPELINE_SECTION_HEIGHT_PX,
 } from "@/lib/constants";
 
@@ -17,6 +18,7 @@ type CallContainerProps = {
 const containerStyle = {
   "--navbar-h": `${APP_NAVBAR_HEIGHT_PX}px`,
   "--pipeline-h": `${PIPELINE_SECTION_HEIGHT_PX}px`,
+  "--call-container-padding": `${CALL_CONTAINER_PADDING_PX}px`,
 } as React.CSSProperties;
 
 /**
@@ -24,7 +26,7 @@ const containerStyle = {
  */
 export function CallContainer({ children }: CallContainerProps): React.ReactElement {
   return (
-    <div className="call-container-root" style={containerStyle}>
+    <div className="call-container-root mx-6 mb-6" style={containerStyle}>
       {children}
     </div>
   );

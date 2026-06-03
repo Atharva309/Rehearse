@@ -126,6 +126,8 @@ export default async function SimulationCompletePage({
                         <span className={`font-semibold ${toneTextClass(tone!)}`}>
                           {row.score}/100
                         </span>
+                      ) : stage === "close" ? (
+                        <span className="font-semibold text-error">Not scored</span>
                       ) : (
                         "—"
                       )}

@@ -28,3 +28,14 @@ export function scoreToGrade(totalScore: number): string {
 export function scorePercent(totalScore: number): number {
   return Math.round((totalScore / MAX_TOTAL_SCORE) * 100);
 }
+
+/**
+ * Letter grade for a single stage score (0–100).
+ */
+export function stageScoreToLetter(score: number): string {
+  if (score >= 86) return "A";
+  if (score >= 70) return "B";
+  if (score >= 50) return "C";
+  if (score >= 30) return "D";
+  return "F";
+}

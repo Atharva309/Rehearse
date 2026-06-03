@@ -83,71 +83,73 @@ export function SimulationRunner({
 
   const stageContent = (
     <ErrorBoundary stageName={stage}>
-      {stage === "lead_gen" && (
-        <LeadGenStage
-          simulation={simulation}
-          attemptId={attempt.id}
-          onComplete={handleStageComplete}
-        />
-      )}
-      {stage === "prospecting" && (
-        <ProspectingStage
-          simulation={simulation}
-          attemptId={attempt.id}
-          onComplete={handleStageComplete}
-        />
-      )}
-      {stage === "discovery" && (
-        <DiscoveryStage
-          simulation={simulation}
-          attemptId={attempt.id}
-          runningTotalScore={runningTotal}
-          onComplete={handleStageComplete}
-        />
-      )}
-      {stage === "presentation" && (
-        <PresentationStage
-          simulation={simulation}
-          attemptId={attempt.id}
-          discoveryNotes={discoveryTranscript}
-          runningTotalScore={runningTotal}
-          onComplete={handleStageComplete}
-        />
-      )}
-      {stage === "objections" && (
-        <ObjectionsStage
-          simulation={simulation}
-          attemptId={attempt.id}
-          pitchText={pitchText}
-          runningTotalScore={runningTotal}
-          onComplete={handleStageComplete}
-        />
-      )}
-      {stage === "close" && (
-        <CloseStage
-          simulation={simulation}
-          attemptId={attempt.id}
-          stageScores={stageScores}
-          runningTotalScore={runningTotal}
-          onComplete={handleSimulationComplete}
-        />
-      )}
-      {stage === "results" && (
-        <p className="text-text-secondary">Redirecting to results...</p>
-      )}
+      <div key={stage} className="stage-content-fade">
+        {stage === "lead_gen" && (
+          <LeadGenStage
+            simulation={simulation}
+            attemptId={attempt.id}
+            onComplete={handleStageComplete}
+          />
+        )}
+        {stage === "prospecting" && (
+          <ProspectingStage
+            simulation={simulation}
+            attemptId={attempt.id}
+            onComplete={handleStageComplete}
+          />
+        )}
+        {stage === "discovery" && (
+          <DiscoveryStage
+            simulation={simulation}
+            attemptId={attempt.id}
+            runningTotalScore={runningTotal}
+            onComplete={handleStageComplete}
+          />
+        )}
+        {stage === "presentation" && (
+          <PresentationStage
+            simulation={simulation}
+            attemptId={attempt.id}
+            discoveryNotes={discoveryTranscript}
+            runningTotalScore={runningTotal}
+            onComplete={handleStageComplete}
+          />
+        )}
+        {stage === "objections" && (
+          <ObjectionsStage
+            simulation={simulation}
+            attemptId={attempt.id}
+            pitchText={pitchText}
+            runningTotalScore={runningTotal}
+            onComplete={handleStageComplete}
+          />
+        )}
+        {stage === "close" && (
+          <CloseStage
+            simulation={simulation}
+            attemptId={attempt.id}
+            stageScores={stageScores}
+            runningTotalScore={runningTotal}
+            onComplete={handleSimulationComplete}
+          />
+        )}
+        {stage === "results" && (
+          <p className="text-text-secondary">Redirecting to results...</p>
+        )}
+      </div>
     </ErrorBoundary>
   );
 
   return (
-    <div className={`w-full ${isCallStage ? "overflow-hidden" : ""}`}>
+    <div className={`w-full px-6 ${isCallStage ? "overflow-hidden" : ""}`}>
       <BackButton label="Back to Dashboard" href="/student/dashboard" />
 
-      <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[100vw] px-4 sm:px-8 mb-4">
+      <div className="mt-6 simulation-pipeline-bar rounded-t-lg overflow-hidden">
         <PipelineProgress items={progress} />
       </div>
 
       {!isCallStage && (
-        <header className="max-w-3xl mb-6">
+        <header className="px-8 pt-6 pb-2 max-w-4xl">
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">
             {simulation.title}
           </h1>
@@ -160,7 +162,7 @@ export function SimulationRunner({
       {isCallStage ? (
         <CallContainer>{stageContent}</CallContainer>
       ) : (
-        <div className="max-w-3xl">{stageContent}</div>
+        <div className="px-8 py-8 max-w-4xl">{stageContent}</div>
       )}
     </div>
   );

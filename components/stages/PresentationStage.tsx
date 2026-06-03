@@ -6,6 +6,7 @@
 "use client";
 
 import { useState } from "react";
+import { StageCard } from "@/components/StageCard";
 import { StageShell } from "@/components/StageShell";
 import { PRESENTATION_MIN_WORDS } from "@/lib/constants";
 import { completeStage, fetchStageScore } from "@/lib/attempt-actions";
@@ -48,6 +49,7 @@ export function PresentationStage({
     personaRole: simulation.persona_role,
     personaSystemPrompt: simulation.persona_system_prompt,
     productContext: simulation.product_context,
+    productName: simulation.title,
   };
 
   const handleSubmit = async (): Promise<void> => {
@@ -60,6 +62,9 @@ export function PresentationStage({
         transcript: discoveryNotes,
         simulationContext: context,
         runningTotalScore,
+        priorStagesSummary: discoveryNotes
+          ? `Discovery transcript:\n${discoveryNotes}`
+          : undefined,
       });
       setScore(result.score);
       setFeedback(result.feedback);
@@ -72,48 +77,50 @@ export function PresentationStage({
   };
 
   return (
-    <StageShell
-      score={score}
-      feedback={feedback}
-      isLoading={isLoading}
-      error={error}
-      canAdvance={score !== undefined}
-      onAdvance={() => onComplete("objections")}
+    <StageCard
+      title="Presentation"
+      subtitle={`Write your pitch to ${simulation.persona_name} using discovery insights.`}
     >
-      <p className="text-sm text-text-secondary">
-        Write your pitch to {simulation.persona_name} based on what you learned in Discovery.
-      </p>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-text-primary mb-2">Your pitch</label>
-          <textarea
-            className="input-field min-h-[280px]"
-            placeholder="Your pitch…"
-            value={pitch}
-            onChange={(e) => setPitch(e.target.value)}
-            disabled={score !== undefined}
-          />
-          <p className="text-xs text-text-secondary mt-2">
-            {wordCount} words (min {PRESENTATION_MIN_WORDS})
-          </p>
+      <StageShell
+        score={score}
+        feedback={feedback}
+        isLoading={isLoading}
+        error={error}
+        canAdvance={score !== undefined}
+        onAdvance={() => onComplete("objections")}
+      >
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-2">Your pitch</label>
+            <textarea
+              className="input-field min-h-[280px]"
+              placeholder="Your pitch…"
+              value={pitch}
+              onChange={(e) => setPitch(e.target.value)}
+              disabled={score !== undefined}
+            />
+            <p className="text-xs text-text-secondary mt-2">
+              {wordCount} words (min {PRESENTATION_MIN_WORDS})
+            </p>
+          </div>
+          <div className="p-4 border border-border rounded-lg bg-surface">
+            <p className="font-semibold text-text-primary text-sm mb-2">Discovery notes</p>
+            <pre className="whitespace-pre-wrap font-sans text-xs text-text-secondary leading-relaxed">
+              {discoveryNotes || "No discovery transcript yet."}
+            </pre>
+          </div>
         </div>
-        <div className="card-surface p-4 bg-surface">
-          <p className="font-semibold text-text-primary text-sm mb-2">Discovery notes</p>
-          <pre className="whitespace-pre-wrap font-sans text-xs text-text-secondary leading-relaxed">
-            {discoveryNotes || "No discovery transcript yet."}
-          </pre>
-        </div>
-      </div>
-      {score === undefined && (
-        <button
-          type="button"
-          onClick={() => void handleSubmit()}
-          disabled={isLoading || wordCount < PRESENTATION_MIN_WORDS}
-          className="btn-primary disabled:opacity-50 w-full sm:w-auto"
-        >
-          Submit pitch
-        </button>
-      )}
-    </StageShell>
+        {score === undefined && (
+          <button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={isLoading || wordCount < PRESENTATION_MIN_WORDS}
+            className="btn-primary disabled:opacity-50 w-full sm:w-auto mt-6"
+          >
+            Submit pitch
+          </button>
+        )}
+      </StageShell>
+    </StageCard>
   );
 }

@@ -50,3 +50,14 @@ export function formatStageScore(score: number | undefined): string {
   if (score === undefined) return "—";
   return `${score}/${MAX_STAGE_SCORE}`;
 }
+
+/**
+ * Tailwind classes for letter grade pills on score reveal.
+ */
+export function letterGradePillClass(grade: string): string {
+  if (grade === "A") return "bg-gold/20 text-primary border border-gold/40";
+  if (grade === "B") return "bg-accent/15 text-accent border border-accent/40";
+  if (grade === "C") return "bg-surface text-text-secondary border border-border";
+  if (grade === "D") return "bg-amber-100 text-amber-800 border border-amber-300";
+  return "bg-error/10 text-error border border-error/30";
+}

@@ -6,7 +6,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ScoreBadge } from "@/components/ScoreBadge";
+import { StageScoreReveal } from "@/components/StageScoreReveal";
 import { useToast } from "@/hooks/useToast";
 
 type StageShellProps = {
@@ -30,7 +30,7 @@ export function StageShell({
   isLoading = false,
   error,
   canAdvance = false,
-  advanceLabel = "Next Stage",
+  advanceLabel = "Next Stage →",
   onAdvance,
 }: StageShellProps): React.ReactElement {
   const { showToast } = useToast();
@@ -50,27 +50,24 @@ export function StageShell({
   }, [error, showToast]);
 
   return (
-    <div className="flex flex-col gap-6 flex-1 card-surface p-6">
+    <>
       {children}
       {isLoading && (
-        <p className="text-sm text-text-secondary animate-pulse">Scoring your work…</p>
+        <p className="text-sm text-text-secondary animate-pulse mt-6">Scoring your work…</p>
       )}
       {error && (
-        <p className="text-sm text-error border border-error/30 bg-error/5 rounded-md p-3">
+        <p className="text-sm text-error border border-error/30 bg-error/5 rounded-md p-3 mt-4">
           {error}
         </p>
       )}
       {score !== undefined && feedback && (
-        <div className="border-t border-border pt-6 space-y-4">
-          <ScoreBadge score={score} />
-          <p className="text-sm text-text-secondary leading-relaxed">{feedback}</p>
-          {canAdvance && onAdvance && (
-            <button type="button" onClick={onAdvance} className="btn-accent">
-              {advanceLabel}
-            </button>
-          )}
-        </div>
+        <StageScoreReveal
+          score={score}
+          feedback={feedback}
+          advanceLabel={advanceLabel}
+          onAdvance={canAdvance && onAdvance ? onAdvance : undefined}
+        />
       )}
-    </div>
+    </>
   );
 }

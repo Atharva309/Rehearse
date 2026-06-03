@@ -12,7 +12,7 @@ import { Avatar } from "@/components/Avatar";
 import { CallLayout } from "@/components/call/CallLayout";
 import { CallLobby } from "@/components/call/CallLobby";
 import { EndCallModal } from "@/components/call/EndCallModal";
-import { ScoreBadge } from "@/components/ScoreBadge";
+import { StageScoreReveal } from "@/components/StageScoreReveal";
 import { resumePlaybackContext } from "@/lib/audio-playback";
 import { completeStage, fetchStageScore } from "@/lib/attempt-actions";
 import { CALL_SCORE_DELAY_MS, SIMLI_CONNECT_TIMEOUT_MS } from "@/lib/constants";
@@ -32,6 +32,7 @@ type SimliCallStageProps = {
   scoreStage: "discovery" | "objections" | "close";
   runningTotalScore?: number;
   scoreTranscriptExtra?: string;
+  priorStagesSummary?: string;
   advanceLabel: string;
   onAdvance: () => void;
 };
@@ -48,6 +49,7 @@ export function SimliCallStage({
   scoreStage,
   runningTotalScore = 0,
   scoreTranscriptExtra = "",
+  priorStagesSummary,
   advanceLabel,
   onAdvance,
 }: SimliCallStageProps): React.ReactElement {
@@ -146,11 +148,13 @@ export function SimliCallStage({
       const result = await fetchStageScore({
         stage: scoreStage,
         transcript: fullTranscript,
+        priorStagesSummary,
         simulationContext: {
           personaName: simulation.persona_name,
           personaRole: simulation.persona_role,
           personaSystemPrompt: simulation.persona_system_prompt,
           productContext: simulation.product_context,
+          productName: simulation.title,
         },
         runningTotalScore,
       });
@@ -171,7 +175,15 @@ export function SimliCallStage({
       setPhase("active");
       setMountSimli(true);
     }
-  }, [scoreTranscriptExtra, scoreStage, runningTotalScore, attemptId, simulation]);
+  }, [
+    scoreTranscriptExtra,
+    priorStagesSummary,
+    scoreStage,
+    runningTotalScore,
+    attemptId,
+    simulation,
+    showToast,
+  ]);
 
   const handleConfirmEndCall = useCallback((): void => {
     setShowEndModal(false);
@@ -196,13 +208,16 @@ export function SimliCallStage({
 
   if (phase === "scored" && score !== undefined && feedback) {
     return (
-      <div className="space-y-6 card-surface p-6">
-        <ScoreBadge score={score} />
-        <p className="text-sm text-text-secondary leading-relaxed">{feedback}</p>
-        {scoreError && <p className="text-sm text-error">{scoreError}</p>}
-        <button type="button" onClick={onAdvance} className="btn-accent">
-          {advanceLabel}
-        </button>
+      <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-call-background">
+        <div className="stage-content-card max-w-lg w-full">
+          <StageScoreReveal
+            score={score}
+            feedback={feedback}
+            advanceLabel={advanceLabel}
+            onAdvance={onAdvance}
+          />
+          {scoreError.length > 0 && <p className="text-sm text-error mt-4">{scoreError}</p>}
+        </div>
       </div>
     );
   }

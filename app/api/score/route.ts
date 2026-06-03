@@ -6,14 +6,54 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { MAX_SCORE_TOKENS } from "@/lib/constants";
-import { buildScoringSystemPrompt, buildScoringUserMessage } from "@/lib/scoring";
-import type { ScoreRequestBody, ScoreResponseBody } from "@/types";
+import {
+  buildScoringPrompt,
+  formatLeadGenAnswers,
+  parseScoringResponse,
+} from "@/lib/scoring";
+import type { ScoreRequestBody, ScoreResponseBody, ScoringContext } from "@/types";
 
 /**
  * Creates OpenAI client at request time (build-safe without env at compile).
  */
 function createOpenAiClient(apiKey: string): OpenAI {
   return new OpenAI({ apiKey });
+}
+
+/**
+ * Maps API request body to ScoringContext for prompt building.
+ */
+function toScoringContext(body: ScoreRequestBody): ScoringContext {
+  const { simulationContext, stage } = body;
+  return {
+    stage,
+    personaName: simulationContext.personaName,
+    personaRole: simulationContext.personaRole,
+    productName: simulationContext.productName?.trim() || "the product",
+    productContext: simulationContext.productContext,
+    transcript: body.transcript,
+    pitchText: body.pitchText,
+    studentAnswers: body.studentAnswers
+      ? formatLeadGenAnswers(body.studentAnswers)
+      : undefined,
+    priorStagesSummary: body.priorStagesSummary,
+  };
+}
+
+/**
+ * Calls GPT-4o once with the scoring prompt.
+ */
+async function requestScore(
+  openai: OpenAI,
+  prompt: string
+): Promise<string> {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    max_tokens: MAX_SCORE_TOKENS,
+    response_format: { type: "json_object" },
+    messages: [{ role: "user", content: prompt }],
+  });
+  return response.choices[0]?.message?.content ?? "{}";
 }
 
 /**
@@ -33,30 +73,32 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "stage and simulationContext are required." }, { status: 400 });
     }
 
+    console.log("[/api/score] scoring stage:", stage);
+
     const openai = createOpenAiClient(apiKey);
-    const userMessage = buildScoringUserMessage(stage, simulationContext, {
-      transcript: body.transcript,
-      pitchText: body.pitchText,
-      studentAnswers: body.studentAnswers,
-      runningTotalScore: body.runningTotalScore,
-    });
+    const context = toScoringContext(body);
+    const prompt = buildScoringPrompt(stage, context);
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      max_tokens: MAX_SCORE_TOKENS,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: buildScoringSystemPrompt(stage) },
-        { role: "user", content: userMessage },
-      ],
-    });
+    let raw = await requestScore(openai, prompt);
+    let parsed = parseScoringResponse(raw);
 
-    const raw = response.choices[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(raw) as { score?: number; feedback?: string };
-    const score = Math.min(100, Math.max(0, Math.round(parsed.score ?? 0)));
-    const feedback = parsed.feedback ?? "No feedback generated.";
+    if (!parsed) {
+      raw = await requestScore(openai, prompt);
+      parsed = parseScoringResponse(raw);
+    }
 
-    const payload: ScoreResponseBody = { score, feedback };
+    if (!parsed) {
+      const fallback: ScoreResponseBody = {
+        score: 0,
+        feedback: "Scoring failed. Please try again.",
+      };
+      return NextResponse.json(fallback);
+    }
+
+    const payload: ScoreResponseBody = {
+      score: parsed.score,
+      feedback: parsed.feedback,
+    };
     return NextResponse.json(payload);
   } catch (error) {
     console.error("Score route error:", error);

@@ -5,7 +5,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { SimulationStartLink } from "@/components/SimulationStartLink";
 import { TOTAL_STAGES_COUNT } from "@/lib/constants";
 import type { Simulation } from "@/types";
 
@@ -56,9 +56,11 @@ export function SimulationCard({
         </div>
       )}
 
-      <Link href={href} className="mt-auto inline-flex justify-center btn-primary">
-        {actionLabel}
-      </Link>
+      <SimulationStartLink
+        href={href}
+        label={actionLabel}
+        simulationTitle={simulation.title}
+      />
     </article>
   );
 }

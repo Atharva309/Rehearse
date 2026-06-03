@@ -100,7 +100,10 @@ export const DEFAULT_OPENING_GREETING =
 
 // ── Stitch UI layout ──────────────────────────────────────────────────────────
 
-export const CALL_OVERLAY_INSET_PX = 24;
+export const CALL_OVERLAY_INSET_PX = 16;
+export const CALL_CONTAINER_PADDING_PX = 16;
+export const SIMULATION_ENTRY_LOADER_MS = 500;
+export const STAGE_TRANSITION_MS = 200;
 export const CALL_CONTROL_BAR_BOTTOM_PX = 80;
 export const CALL_TRANSCRIPT_MAX_HEIGHT_PX = 128;
 export const PHONE_INITIALS_SIZE_PX = 96;

@@ -67,11 +67,13 @@ export async function fetchStageScore(payload: {
   transcript?: string;
   pitchText?: string;
   studentAnswers?: { fit: string; painPoints: string; openingApproach: string };
+  priorStagesSummary?: string;
   simulationContext: {
     personaName: string;
     personaRole: string;
     personaSystemPrompt: string;
     productContext: string;
+    productName?: string;
   };
   runningTotalScore?: number;
 }): Promise<{ score: number; feedback: string }> {
