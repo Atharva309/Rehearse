@@ -90,21 +90,22 @@ body {
     @apply relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-call-background text-white;
   }
 
-  /* Persona video fills the call box; crop keeps face in frame */
+  /* Persona video sits above the bottom dock — face centered in that area */
   .call-persona-video-frame {
-    @apply absolute inset-0 overflow-hidden;
+    @apply absolute inset-x-0 top-0 overflow-hidden;
+    bottom: var(--call-video-dock-h, 152px);
   }
 
   .call-persona-video {
     @apply block h-full w-full object-cover;
-    object-position: center 12%;
+    object-position: center 42%;
     transform: translateZ(0);
     backface-visibility: hidden;
   }
 
   .call-persona-video-gradient {
-    @apply pointer-events-none absolute inset-x-0 bottom-0 h-24;
-    background: linear-gradient(to top, rgb(0 0 0 / 0.35), transparent);
+    @apply pointer-events-none absolute inset-x-0 bottom-0 h-16;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.25), transparent);
   }
 
   /* Video call bottom dock — solid strip, no tall fade over the avatar */

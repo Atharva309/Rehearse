@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/useToast";
 import { Avatar } from "@/components/Avatar";
-import { CallLayout } from "@/components/call/CallLayout";
+import { CallLayout, CALL_VIDEO_BOTTOM_DOCK_PX } from "@/components/call/CallLayout";
 import { CallLobby } from "@/components/call/CallLobby";
 import { EndCallModal } from "@/components/call/EndCallModal";
 import { StageScoreReveal } from "@/components/StageScoreReveal";
@@ -307,7 +307,7 @@ export function SimliCallStage({
       )}
 
       {mountSimli && (
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0" style={{ "--call-video-dock-h": `${CALL_VIDEO_BOTTOM_DOCK_PX}px` } as React.CSSProperties}>
           <Avatar ref={voice.avatarRef} />
         </div>
       )}

@@ -36,12 +36,12 @@ export function CallTranscript({
 
   const hasContent = userText.length > 0 || personaText.length > 0;
 
-  const maxHeight = compact ? 56 : CALL_TRANSCRIPT_MAX_HEIGHT_PX;
+  const maxHeight = compact ? 48 : CALL_TRANSCRIPT_MAX_HEIGHT_PX;
 
   return (
     <div
       ref={scrollRef}
-      className="overflow-y-auto rounded-lg bg-black/50 border border-white/10 px-4 py-3"
+      className="overflow-y-auto rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-xs"
       style={{ maxHeight }}
     >
       <div className="flex flex-col gap-2 text-sm">

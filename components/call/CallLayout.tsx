@@ -25,8 +25,8 @@ export const CALL_PERSONA_VIDEO_CLASS = "call-persona-video";
 /** Bottom gradient on the persona video for transcript blend. */
 export const CALL_PERSONA_VIDEO_GRADIENT_CLASS = "call-persona-video-gradient";
 
-/** Height reserved at bottom for video-call controls + transcript dock. */
-export const CALL_VIDEO_BOTTOM_DOCK_PX = 118;
+/** Height reserved at bottom so persona video stays above controls + transcript. */
+export const CALL_VIDEO_BOTTOM_DOCK_PX = 152;
 
 type CallLayoutProps = {
   stageLabel: string;
