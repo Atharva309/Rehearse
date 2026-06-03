@@ -5,7 +5,7 @@
 
 "use client";
 
-import { CALL_STAGE_MIN_HEIGHT_CLASS } from "@/components/call/CallLayout";
+import { CALL_STAGE_MIN_HEIGHT_CLASS, CALL_STAGE_MIN_HEIGHT_VH } from "@/components/call/CallLayout";
 import { PhoneCallStage } from "@/components/call/PhoneCallStage";
 import type { Simulation, SimulationStage } from "@/types";
 
@@ -24,7 +24,10 @@ export function ProspectingStage({
   onComplete,
 }: ProspectingStageProps): React.ReactElement {
   return (
-    <div className={`${CALL_STAGE_MIN_HEIGHT_CLASS} flex flex-col flex-1 min-h-0 h-full`}>
+    <div
+      className={`${CALL_STAGE_MIN_HEIGHT_CLASS} flex flex-col flex-1 min-h-0 h-full`}
+      style={{ minHeight: `${CALL_STAGE_MIN_HEIGHT_VH}vh` }}
+    >
       <PhoneCallStage
         simulation={simulation}
         attemptId={attemptId}

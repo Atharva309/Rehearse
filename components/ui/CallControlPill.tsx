@@ -7,6 +7,8 @@
 
 import { CameraIcon, MicIcon, MicMutedIcon, PhoneEndIcon } from "@/components/ui/CallIcons";
 
+const ICON_CLASS = "w-[18px] h-[18px] shrink-0";
+
 type CallControlPillProps = {
   isMuted: boolean;
   onToggleMute: () => void;
@@ -35,9 +37,9 @@ export function CallControlPill({
         type="button"
         onClick={onToggleMute}
         aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
-        className={`call-control-btn ${isMuted ? "call-control-btn-muted" : "call-control-btn-default"}`}
+        className={`call-control-btn flex items-center justify-center ${isMuted ? "call-control-btn-muted" : "call-control-btn-default"}`}
       >
-        {isMuted ? <MicMutedIcon /> : <MicIcon />}
+        {isMuted ? <MicMutedIcon className={ICON_CLASS} /> : <MicIcon className={ICON_CLASS} />}
       </button>
 
       {showCamera && onToggleCamera && (
@@ -46,9 +48,9 @@ export function CallControlPill({
           onClick={onToggleCamera}
           disabled={isCameraDisabled}
           aria-label={isCameraOff ? "Turn camera on" : "Turn camera off"}
-          className="call-control-btn call-control-btn-default disabled:opacity-40"
+          className="call-control-btn call-control-btn-default flex items-center justify-center disabled:opacity-40"
         >
-          <CameraIcon />
+          <CameraIcon className={ICON_CLASS} />
         </button>
       )}
 
@@ -56,9 +58,9 @@ export function CallControlPill({
         type="button"
         onClick={onEndCall}
         aria-label="End call"
-        className="call-control-btn call-control-btn-end gap-2"
+        className="call-control-btn-end"
       >
-        <PhoneEndIcon />
+        <PhoneEndIcon className={ICON_CLASS} />
         <span>End</span>
       </button>
     </div>

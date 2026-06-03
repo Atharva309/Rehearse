@@ -11,13 +11,13 @@ import { CallTranscript } from "@/components/call/CallTranscript";
 import {
   CALL_CONTROL_BAR_BOTTOM_PX,
   CALL_OVERLAY_INSET_PX,
-  PIP_BORDER_RADIUS_PX,
-  PIP_HEIGHT_PX,
-  PIP_WIDTH_PX,
 } from "@/lib/constants";
 
 /** Minimum height for phone and video call containers (pipeline stays visible above). */
 export const CALL_STAGE_MIN_HEIGHT_CLASS = "call-stage-min-h";
+
+/** Viewport height fraction for call containers — must stay below 100vh. */
+export const CALL_STAGE_MIN_HEIGHT_VH = 85;
 
 /** Centered persona video frame — 75% × 85% with dark border around it. */
 export const CALL_PERSONA_VIDEO_FRAME_CLASS = "call-persona-video-frame";
@@ -47,10 +47,10 @@ type CallLayoutProps = {
 const callStyle = {
   "--call-inset": `${CALL_OVERLAY_INSET_PX}px`,
   "--call-controls-bottom": `${CALL_CONTROL_BAR_BOTTOM_PX}px`,
-  "--pip-width": `${PIP_WIDTH_PX}px`,
-  "--pip-height": `${PIP_HEIGHT_PX}px`,
-  "--pip-radius": `${PIP_BORDER_RADIUS_PX}px`,
 } as React.CSSProperties;
+
+const pipVideoClass =
+  "absolute bottom-6 right-6 z-20 w-48 h-36 rounded-xl object-cover border-2 border-white/20 shadow-lg pointer-events-auto scale-x-[-1]";
 
 /**
  * Stitch video-call chrome: badge, timer, PiP, floating controls, bottom transcript.
@@ -73,32 +73,33 @@ export function CallLayout({
   return (
     <div
       className={`absolute inset-0 z-10 pointer-events-none flex flex-col ${CALL_STAGE_MIN_HEIGHT_CLASS}`}
-      style={callStyle}
+      style={{ ...callStyle, minHeight: `${CALL_STAGE_MIN_HEIGHT_VH}vh` }}
     >
       <span className="call-stage-badge pointer-events-auto">{stageLabel}</span>
       <span className="call-timer-badge pointer-events-auto">{formattedTimer}</span>
 
       {showStudentPip && (
-        <div className="call-pip pointer-events-auto">
+        <>
           <video
             ref={studentVideoRef}
-            className={`w-full h-full object-cover scale-x-[-1] ${isCameraOff ? "opacity-0" : "opacity-100"}`}
             autoPlay
-            playsInline
             muted
+            playsInline
+            className={`${pipVideoClass} ${isCameraOff ? "opacity-0" : "opacity-100"}`}
           />
           {isCameraOff && (
-            <div className="absolute inset-0 flex items-center justify-center bg-call-background text-xs text-white/50">
+            <div
+              className={`${pipVideoClass} flex items-center justify-center bg-call-background text-xs text-white/50 opacity-100`}
+            >
               Camera off
             </div>
           )}
-        </div>
+        </>
       )}
 
       {cameraUnavailable && !showStudentPip && (
         <div
-          className="call-pip flex items-center justify-center text-xs text-white/50 pointer-events-auto"
-          style={{ width: PIP_WIDTH_PX, height: PIP_HEIGHT_PX }}
+          className={`${pipVideoClass} flex items-center justify-center text-xs text-white/50 opacity-100`}
         >
           Camera unavailable
         </div>
