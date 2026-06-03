@@ -11,6 +11,7 @@ import { EndCallModal } from "@/components/call/EndCallModal";
 import { PhoneCallLayout } from "@/components/call/PhoneCallLayout";
 import { PhoneCallLobby } from "@/components/call/PhoneCallLobby";
 import { StageScoreReveal } from "@/components/StageScoreReveal";
+import { resumePlaybackContext } from "@/lib/audio-playback";
 import { CALL_SCORE_DELAY_MS } from "@/lib/constants";
 import { useAudioWaveform } from "@/hooks/useAudioWaveform";
 import { useProspectingVoice } from "@/hooks/useProspectingVoice";
@@ -55,7 +56,9 @@ export function PhoneCallStage({
     isMutedRef: videoCall.isMutedRef,
   });
 
-  const { levels } = useAudioWaveform(phase === "active" ? videoCall.audioStream : null);
+  const { levels } = useAudioWaveform(
+    phase === "active" ? videoCall.getAudioStream() : null
+  );
 
   const context = {
     personaName: simulation.persona_name,
@@ -65,16 +68,27 @@ export function PhoneCallStage({
     productName: simulation.title,
   };
 
-  const handleJoinCall = useCallback(async (): Promise<void> => {
-    if (!videoCall.canJoin || !videoCall.audioStream) return;
-    setPhase("connecting");
-    try {
-      await voice.startCall(videoCall.audioStream);
-      videoCall.startTimer();
-      setPhase("active");
-    } catch {
-      setPhase("lobby");
+  const handleJoinCall = useCallback((): void => {
+    if (!videoCall.canJoin) {
+      return;
     }
+
+    void (async (): Promise<void> => {
+      setPhase("connecting");
+      try {
+        await resumePlaybackContext();
+        const audioStream = videoCall.getAudioStream();
+        if (!audioStream) {
+          setPhase("lobby");
+          return;
+        }
+        await voice.startCall(audioStream);
+        videoCall.startTimer();
+        setPhase("active");
+      } catch {
+        setPhase("lobby");
+      }
+    })();
   }, [videoCall, voice]);
 
   const runScoring = useCallback(async (): Promise<void> => {
@@ -106,7 +120,7 @@ export function PhoneCallStage({
       setScoreError(err instanceof Error ? err.message : "Scoring failed");
       setPhase("active");
     }
-  }, [voice, attemptId, context]);
+  }, [voice, attemptId, context, showToast]);
 
   const handleConfirmEndCall = useCallback((): void => {
     setShowEndModal(false);
@@ -183,7 +197,7 @@ export function PhoneCallStage({
       permissionError={videoCall.permissionError}
       canJoin={videoCall.canJoin}
       isPermissionPending={videoCall.permissionState === "pending"}
-      onJoinCall={() => void handleJoinCall()}
+      onJoinCall={handleJoinCall}
     />
   );
 }

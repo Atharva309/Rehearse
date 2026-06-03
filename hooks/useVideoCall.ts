@@ -25,8 +25,12 @@ export type UseVideoCallReturn = {
   cameraUnavailable: boolean;
   /** Audio-only stream for Deepgram MediaRecorder — never attach to a video element. */
   audioStream: MediaStream | null;
+  /** Stable ref to the audio-only stream (use in join handlers to avoid stale React state). */
+  getAudioStream: () => MediaStream | null;
   /** Callback ref — assigns video-only stream to PiP when the element mounts. */
   studentVideoRef: React.RefCallback<HTMLVideoElement | null>;
+  /** Re-bind PiP and call play() — invoke synchronously from Join / Start Call click. */
+  primeUserGesture: () => Promise<void>;
   isMutedRef: React.MutableRefObject<boolean>;
   elapsedSeconds: number;
   formattedTimer: string;
@@ -68,14 +72,26 @@ export function useVideoCall(options: UseVideoCallOptions = {}): UseVideoCallRet
   /**
    * Binds the video-only preview stream to whichever PiP element is mounted.
    */
-  const attachVideoPreview = useCallback((): void => {
+  const attachVideoPreview = useCallback(async (): Promise<void> => {
     const video = videoElementRef.current;
     const preview = videoPreviewStreamRef.current;
-    if (video && preview) {
-      if (video.srcObject !== preview) {
-        video.srcObject = preview;
-      }
-      void video.play().catch(() => {});
+    if (!video || !preview) {
+      return;
+    }
+
+    if (video.srcObject !== preview) {
+      video.srcObject = preview;
+    }
+    video.muted = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+
+    try {
+      await video.play();
+    } catch {
+      /* Autoplay may fail until user gesture — primeUserGesture retries from click handler */
     }
   }, []);
 
@@ -83,14 +99,20 @@ export function useVideoCall(options: UseVideoCallOptions = {}): UseVideoCallRet
     (node: HTMLVideoElement | null): void => {
       videoElementRef.current = node;
       if (node) {
-        attachVideoPreview();
+        void attachVideoPreview();
       }
     },
     [attachVideoPreview]
   );
 
+  const primeUserGesture = useCallback(async (): Promise<void> => {
+    await attachVideoPreview();
+  }, [attachVideoPreview]);
+
+  const getAudioStream = useCallback((): MediaStream | null => audioStreamRef.current, []);
+
   useEffect(() => {
-    attachVideoPreview();
+    void attachVideoPreview();
   }, [hasVideoPreview, attachVideoPreview]);
 
   useEffect(() => {
@@ -123,7 +145,7 @@ export function useVideoCall(options: UseVideoCallOptions = {}): UseVideoCallRet
           const videoOnly = new MediaStream([videoTrack]);
           videoPreviewStreamRef.current = videoOnly;
           setHasVideoPreview(true);
-          attachVideoPreview();
+          await attachVideoPreview();
         } else if (withVideo) {
           setCameraUnavailable(true);
         }
@@ -243,7 +265,9 @@ export function useVideoCall(options: UseVideoCallOptions = {}): UseVideoCallRet
     isCameraOff,
     cameraUnavailable,
     audioStream,
+    getAudioStream,
     studentVideoRef,
+    primeUserGesture,
     isMutedRef,
     elapsedSeconds,
     formattedTimer: formatElapsed(elapsedSeconds),

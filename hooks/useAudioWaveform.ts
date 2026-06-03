@@ -39,43 +39,58 @@ export function useAudioWaveform(
     let audioContext: AudioContext | null = null;
     let analyser: AnalyserNode | null = null;
     let source: MediaStreamAudioSourceNode | null = null;
+    let cancelled = false;
 
-    try {
-      audioContext = new AudioContext();
-      analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-    } catch {
-      return;
-    }
-
-    const bufferLength = analyser.frequencyBinCount;
-    const data = new Uint8Array(bufferLength);
-
-    const tick = (): void => {
-      if (!analyser) return;
-      analyser.getByteFrequencyData(data);
-
-      const bucketSize = Math.max(1, Math.floor(bufferLength / barCount));
-      const next = Array.from({ length: barCount }, (_, i) => {
-        const start = i * bucketSize;
-        const end = Math.min(start + bucketSize, bufferLength);
-        let sum = 0;
-        for (let j = start; j < end; j++) {
-          sum += data[j];
+    const start = async (): Promise<void> => {
+      try {
+        audioContext = new AudioContext();
+        if (audioContext.state === "suspended") {
+          await audioContext.resume();
         }
-        const avg = sum / (end - start);
-        return Math.max(0.08, avg / 255);
-      });
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+      } catch {
+        return;
+      }
 
-      setLevels(next);
+      if (cancelled || !analyser) {
+        return;
+      }
+
+      const bufferLength = analyser.frequencyBinCount;
+      const data = new Uint8Array(bufferLength);
+
+      const tick = (): void => {
+        if (cancelled || !analyser) {
+          return;
+        }
+        analyser.getByteFrequencyData(data);
+
+        const bucketSize = Math.max(1, Math.floor(bufferLength / barCount));
+        const next = Array.from({ length: barCount }, (_, i) => {
+          const startIdx = i * bucketSize;
+          const end = Math.min(startIdx + bucketSize, bufferLength);
+          let sum = 0;
+          for (let j = startIdx; j < end; j++) {
+            sum += data[j];
+          }
+          const avg = sum / (end - startIdx);
+          return Math.max(0.08, avg / 255);
+        });
+
+        setLevels(next);
+        rafRef.current = requestAnimationFrame(tick);
+      };
+
       rafRef.current = requestAnimationFrame(tick);
     };
 
-    rafRef.current = requestAnimationFrame(tick);
+    void start();
 
     return () => {
+      cancelled = true;
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }

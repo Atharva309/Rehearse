@@ -200,6 +200,7 @@ export function useProspectingVoice(config: ProspectingVoiceConfig): Prospecting
           endpointing: VOICE_ENDPOINTING_MS,
           utterance_end_ms: VOICE_UTTERANCE_END_MS,
         });
+        deepgramConnectionRef.current = connection;
 
         const mimeType = pickMediaRecorderMimeType();
         const mediaRecorder = mimeType
@@ -211,17 +212,8 @@ export function useProspectingVoice(config: ProspectingVoiceConfig): Prospecting
           if (e.data.size > 0) connection.send(e.data);
         };
         mediaRecorderRef.current = mediaRecorder;
-        deepgramConnectionRef.current = connection;
 
         const greeting = configRef.current.openingGreeting ?? DEFAULT_OPENING_GREETING;
-
-        connection.onOpen(() => {
-          if (mediaRecorder.state === "inactive") {
-            mediaRecorder.start(MEDIA_RECORDER_TIMESLICE_MS);
-          }
-          setStatusText("Connected — listen, then speak.");
-          void playTts(greeting);
-        });
 
         connection.onTranscript((sentence: string, meta): void => {
           if (!canAcceptStudentSpeech()) return;
@@ -234,6 +226,18 @@ export function useProspectingVoice(config: ProspectingVoiceConfig): Prospecting
           if (meta.isFinal || meta.isSpeechFinal) {
             utteranceBufferRef.current?.pushFragment(sentence, meta.isSpeechFinal);
           }
+        });
+
+        connection.onError(() => {
+          setStatusText("Speech service error — check Deepgram API key.");
+        });
+
+        connection.onOpen(() => {
+          if (mediaRecorder.state === "inactive") {
+            mediaRecorder.start(MEDIA_RECORDER_TIMESLICE_MS);
+          }
+          setStatusText("Connected — listen, then speak.");
+          void playTts(greeting);
         });
       } catch (err) {
         setStatusText("Could not start call.");

@@ -227,6 +227,7 @@ export function useSimulationVoiceSession(
           endpointing: VOICE_ENDPOINTING_MS,
           utterance_end_ms: VOICE_UTTERANCE_END_MS,
         });
+        deepgramConnectionRef.current = connection;
 
         const mimeType = pickMediaRecorderMimeType();
         const mediaRecorder = mimeType
@@ -238,17 +239,8 @@ export function useSimulationVoiceSession(
           if (event.data.size > 0) connection.send(event.data);
         };
         mediaRecorderRef.current = mediaRecorder;
-        deepgramConnectionRef.current = connection;
 
         const greeting = configRef.current.openingGreeting ?? DEFAULT_OPENING_GREETING;
-
-        connection.onOpen(() => {
-          if (mediaRecorder.state === "inactive") {
-            mediaRecorder.start(MEDIA_RECORDER_TIMESLICE_MS);
-          }
-          setStatusText("Live — wait for persona to finish, then speak.");
-          void speakFromApi(greeting);
-        });
 
         connection.onTranscript((sentence: string, meta): void => {
           if (!canAcceptStudentSpeech()) return;
@@ -265,6 +257,14 @@ export function useSimulationVoiceSession(
 
         connection.onError(() => {
           setStatusText("Speech service error — check Deepgram API key.");
+        });
+
+        connection.onOpen(() => {
+          if (mediaRecorder.state === "inactive") {
+            mediaRecorder.start(MEDIA_RECORDER_TIMESLICE_MS);
+          }
+          setStatusText("Live — wait for persona to finish, then speak.");
+          void speakFromApi(greeting);
         });
       } catch (err) {
         console.error(err);

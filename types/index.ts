@@ -80,6 +80,8 @@ export type LeaderboardEntry = {
 
 /** Imperative handle exposed by Avatar for TTS playback and interruption. */
 export interface AvatarRef {
+  /** Starts Simli WebRTC — call from a user gesture (Join Call). */
+  startSession: () => Promise<boolean>;
   speakAudio: (data: SpeakAudioPayload) => Promise<void>;
   resumeAudioContext: () => void;
   stopSpeaking: () => void;
@@ -120,6 +122,7 @@ export type DeepgramTranscriptMeta = {
 export interface DeepgramConnection {
   send: (data: Blob | ArrayBuffer) => void;
   close: () => void;
+  getReadyState: () => number;
   onTranscript: (callback: (transcript: string, meta: DeepgramTranscriptMeta) => void) => void;
   onOpen: (callback: () => void) => void;
   onClose: (callback: () => void) => void;

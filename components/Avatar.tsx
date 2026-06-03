@@ -1,6 +1,6 @@
 /**
  * Avatar.tsx
- * Simli WebRTC video avatar: session init, TTS decode, PCM worker, sendAudioData.
+ * Simli WebRTC video avatar: session init on user gesture, TTS decode, PCM worker, sendAudioData.
  * Exposes AvatarRef via forwardRef for useVoiceSession orchestration.
  */
 
@@ -8,6 +8,7 @@
 
 import React, {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
@@ -158,10 +159,13 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 /**
  * Best-effort autoplay for WebRTC video (Safari often needs a user gesture first).
  */
-function kickVideoPlay(video: HTMLVideoElement): void {
+function kickMediaPlayback(video: HTMLVideoElement, audio: HTMLAudioElement | null): void {
+  video.muted = true;
   void video.play().catch(() => {});
-  if (video.srcObject) {
-    void video.play().catch(() => {});
+  if (audio) {
+    audio.muted = false;
+    audio.volume = 1;
+    void audio.play().catch(() => {});
   }
 }
 
@@ -172,9 +176,12 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
   const decodeAudioContextRef = useRef<AudioContext | null>(null);
   const pcmWorkerRef = useRef<Worker | null>(null);
   const speakAbortRef = useRef(false);
+  const isReadyRef = useRef(false);
+  const sessionStartingRef = useRef(false);
 
   const [isReady, setIsReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   /**
    * Returns or creates the decode AudioContext at SAMPLE_RATE_HZ.
@@ -197,6 +204,136 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
     return next;
   };
 
+  const stopSession = useCallback(async (): Promise<void> => {
+    setIsReady(false);
+    isReadyRef.current = false;
+    setIsConnecting(false);
+
+    const client = simliRef.current;
+    simliRef.current = null;
+    await client?.stop().catch(() => {});
+  }, []);
+
+  const startSession = useCallback(async (): Promise<boolean> => {
+    if (isReadyRef.current && simliRef.current) {
+      return true;
+    }
+    if (sessionStartingRef.current) {
+      const start = Date.now();
+      while (sessionStartingRef.current && Date.now() - start < SIMLI_CONNECT_TIMEOUT_MS) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 200));
+      }
+      return isReadyRef.current && simliRef.current !== null;
+    }
+
+    const video = videoRef.current;
+    const audio = audioRef.current;
+    if (!video || !audio) {
+      setInitError("Video elements not ready. Try Join Call again.");
+      return false;
+    }
+
+    sessionStartingRef.current = true;
+    setIsConnecting(true);
+    setInitError(null);
+
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_SIMLI_API_KEY;
+      const faceId = process.env.NEXT_PUBLIC_SIMLI_FACE_ID;
+
+      if (!apiKey || !faceId) {
+        setInitError(
+          "Add NEXT_PUBLIC_SIMLI_API_KEY and NEXT_PUBLIC_SIMLI_FACE_ID to .env.local."
+        );
+        return false;
+      }
+
+      await stopSession();
+
+      const tokenRes = await generateSimliSessionToken({
+        apiKey,
+        config: {
+          faceId,
+          handleSilence: true,
+          maxSessionLength: SIMLI_MAX_SESSION_LENGTH_SEC,
+          maxIdleTime: SIMLI_MAX_IDLE_TIME_SEC,
+        },
+      });
+
+      const sessionToken = tokenRes?.session_token;
+      if (typeof sessionToken !== "string" || sessionToken.length === 0) {
+        throw new Error(
+          "Simli token response missing session_token — check API key and face ID."
+        );
+      }
+
+      const iceServers = await generateIceServers(apiKey);
+
+      const client = new SimliClient(
+        sessionToken,
+        video,
+        audio,
+        iceServers,
+        LogLevel.ERROR,
+        "livekit",
+        "websockets",
+        "wss://api.simli.ai"
+      );
+
+      client.on("error", (detail: unknown) => {
+        console.error("Simli:", detail);
+      });
+
+      simliRef.current = client;
+      kickMediaPlayback(video, audio);
+
+      await withTimeout(
+        client.start(),
+        SIMLI_CONNECT_TIMEOUT_MS,
+        `Simli did not connect within ${SIMLI_CONNECT_TIMEOUT_MS / 1000}s. Try Chrome, disable VPN/ad-block on api.simli.ai, confirm your face ID and API key, then reload.`
+      );
+
+      kickMediaPlayback(video, audio);
+
+      await new Promise<void>((resolve) => {
+        let settled = false;
+        const done = (): void => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          resolve();
+        };
+        client.on("ack", done);
+        setTimeout(done, POST_CONNECT_ACK_WAIT_MS);
+      });
+
+      kickMediaPlayback(video, audio);
+      requestAnimationFrame(() => kickMediaPlayback(video, audio));
+
+      isReadyRef.current = true;
+      setIsReady(true);
+      return true;
+    } catch (connectError) {
+      console.error("Simli session failed:", connectError);
+      await stopSession();
+
+      const msg =
+        connectError instanceof Error
+          ? connectError.message
+          : "Could not connect to Simli.";
+      const hint =
+        msg.includes("CONNECTION TIMED OUT") || msg.includes("timed out")
+          ? `${msg} If this persists, try another network or browser (Safari sometimes blocks WebRTC until a user gesture — tap Join Call first).`
+          : msg;
+      setInitError(hint);
+      return false;
+    } finally {
+      sessionStartingRef.current = false;
+      setIsConnecting(false);
+    }
+  }, [stopSession]);
+
   // ── Video inline playback (mobile Safari) ───────────────────────────────────
 
   useLayoutEffect(() => {
@@ -206,7 +343,19 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
     }
     el.setAttribute("playsinline", "");
     el.setAttribute("webkit-playsinline", "");
+    el.muted = true;
   }, []);
+
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+    const video = videoRef.current;
+    const audio = audioRef.current;
+    if (video) {
+      kickMediaPlayback(video, audio);
+    }
+  }, [isReady]);
 
   // ── PCM worker lifecycle ────────────────────────────────────────────────────
 
@@ -219,153 +368,28 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
     };
   }, []);
 
-  // ── Simli init: token + WebRTC ──────────────────────────────────────────────
-
   useEffect(() => {
-    const video = videoRef.current;
-    const audio = audioRef.current;
-    if (!video || !audio) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const initSimli = async (): Promise<void> => {
-      const apiKey = process.env.NEXT_PUBLIC_SIMLI_API_KEY;
-      const faceId = process.env.NEXT_PUBLIC_SIMLI_FACE_ID;
-
-      if (!apiKey || !faceId) {
-        setInitError(
-          "Add NEXT_PUBLIC_SIMLI_API_KEY and NEXT_PUBLIC_SIMLI_FACE_ID to .env.local."
-        );
-        return;
-      }
-
-      try {
-        const tokenRes = await generateSimliSessionToken({
-          apiKey,
-          config: {
-            faceId,
-            handleSilence: true,
-            maxSessionLength: SIMLI_MAX_SESSION_LENGTH_SEC,
-            maxIdleTime: SIMLI_MAX_IDLE_TIME_SEC,
-          },
-        });
-
-        const sessionToken = tokenRes?.session_token;
-        if (typeof sessionToken !== "string" || sessionToken.length === 0) {
-          throw new Error(
-            "Simli token response missing session_token — check API key and face ID."
-          );
-        }
-
-        const iceServers = await generateIceServers(apiKey);
-
-        const client = new SimliClient(
-          sessionToken,
-          video,
-          audio,
-          iceServers,
-          LogLevel.ERROR,
-          "livekit",
-          "websockets",
-          "wss://api.simli.ai"
-        );
-
-        client.on("error", (detail: unknown) => {
-          console.error("Simli:", detail);
-        });
-
-        if (cancelled) {
-          await client.stop().catch(() => {});
-          return;
-        }
-
-        simliRef.current = client;
-        kickVideoPlay(video);
-
-        await withTimeout(
-          client.start(),
-          SIMLI_CONNECT_TIMEOUT_MS,
-          `Simli did not connect within ${SIMLI_CONNECT_TIMEOUT_MS / 1000}s. Try Chrome, disable VPN/ad-block on api.simli.ai, confirm your face ID and API key, then reload.`
-        );
-
-        if (cancelled) {
-          await client.stop().catch(() => {});
-          return;
-        }
-
-        kickVideoPlay(video);
-
-        await new Promise<void>((resolve) => {
-          let settled = false;
-          const done = (): void => {
-            if (settled) {
-              return;
-            }
-            settled = true;
-            resolve();
-          };
-          client.on("ack", done);
-          setTimeout(done, POST_CONNECT_ACK_WAIT_MS);
-        });
-
-        if (cancelled) {
-          await client.stop().catch(() => {});
-          return;
-        }
-
-        kickVideoPlay(video);
-        requestAnimationFrame(() => kickVideoPlay(video));
-        requestAnimationFrame(() => requestAnimationFrame(() => kickVideoPlay(video)));
-
-        setIsReady(true);
-      } catch (connectError) {
-        console.error("Simli session failed:", connectError);
-        if (cancelled) {
-          return;
-        }
-
-        const msg =
-          connectError instanceof Error
-            ? connectError.message
-            : "Could not connect to Simli.";
-        const hint =
-          msg.includes("CONNECTION TIMED OUT") || msg.includes("timed out")
-            ? `${msg} If this persists, try another network or browser (Safari sometimes blocks WebRTC until a user gesture — tap “Start call” first).`
-            : msg;
-        setInitError(hint);
-      }
-    };
-
-    void initSimli();
-
     return () => {
-      cancelled = true;
-      setIsReady(false);
-
-      const client = simliRef.current;
-      simliRef.current = null;
-      void client?.stop().catch(() => {});
-
+      void stopSession();
       const ctx = decodeAudioContextRef.current;
       decodeAudioContextRef.current = null;
       void ctx?.close().catch(() => {});
     };
-  }, []);
-
-  // ── Imperative API for useVoiceSession ──────────────────────────────────────
-
-  const isReadyRef = useRef(false);
-  useEffect(() => {
-    isReadyRef.current = isReady;
-  }, [isReady]);
+  }, [stopSession]);
 
   useImperativeHandle(
     ref,
     (): AvatarRef => ({
+      startSession,
       isReady: (): boolean => isReadyRef.current,
       waitUntilReady: async (maxMs = SIMLI_CONNECT_TIMEOUT_MS): Promise<boolean> => {
+        if (isReadyRef.current && simliRef.current) {
+          return true;
+        }
+        const started = await startSession();
+        if (started) {
+          return true;
+        }
         const start = Date.now();
         while (Date.now() - start < maxMs) {
           if (isReadyRef.current && simliRef.current) {
@@ -376,15 +400,15 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
         return isReadyRef.current && simliRef.current !== null;
       },
       resumeAudioContext: (): void => {
-        const ctx = decodeAudioContextRef.current;
-        if (ctx?.state === "suspended") {
+        const ctx = decodeAudioContextRef.current ?? ensureDecodeAudioContext();
+        if (ctx.state === "suspended") {
           void ctx.resume();
         }
         const video = videoRef.current;
+        const audio = audioRef.current;
         if (video) {
-          kickVideoPlay(video);
+          kickMediaPlayback(video, audio);
         }
-        void audioRef.current?.play().catch(() => {});
       },
       stopSpeaking: (): void => {
         speakAbortRef.current = true;
@@ -397,7 +421,7 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
       speakAudio: async ({ audio }: SpeakAudioPayload): Promise<void> => {
         const client = simliRef.current;
         const worker = pcmWorkerRef.current;
-        if (!client || !isReady || !worker) {
+        if (!client || !isReadyRef.current || !worker) {
           return;
         }
 
@@ -430,21 +454,22 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
         }
       },
     }),
-    [isReady]
+    [isReady, startSession]
   );
 
-  const showOverlay = !isReady || initError !== null;
+  const showOverlay = initError !== null || isConnecting || !isReady;
 
   return (
-    <div className="w-full max-w-sm aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-b from-gray-800 to-black relative">
+    <div className="w-full h-full relative bg-call-background">
       {showOverlay && (
         <div className="absolute inset-0 z-10 grid place-items-center bg-black/60 px-4 text-center text-sm text-gray-300">
-          {initError ?? "Connecting to Simli..."}
+          {initError ??
+            (isConnecting ? "Connecting to Simli…" : "Tap Join Call to connect the avatar.")}
         </div>
       )}
       <video
         ref={videoRef}
-        className="h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover"
         autoPlay
         playsInline
         muted

@@ -106,6 +106,7 @@ export function createDeepgramConnection(options: DeepgramStreamOptions = {}): D
     close: () => {
       ws.close();
     },
+    getReadyState: () => ws.readyState,
     onTranscript: (callback) => {
       transcriptCallback = callback;
     },

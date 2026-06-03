@@ -15,11 +15,11 @@ import { EndCallModal } from "@/components/call/EndCallModal";
 import { StageScoreReveal } from "@/components/StageScoreReveal";
 import { resumePlaybackContext } from "@/lib/audio-playback";
 import { completeStage, fetchStageScore } from "@/lib/attempt-actions";
-import { CALL_SCORE_DELAY_MS, SIMLI_CONNECT_TIMEOUT_MS } from "@/lib/constants";
+import { CALL_SCORE_DELAY_MS } from "@/lib/constants";
 import { getStageCallLabel } from "@/lib/stages";
 import { useSimulationVoiceSession } from "@/hooks/useSimulationVoiceSession";
 import { useVideoCall } from "@/hooks/useVideoCall";
-import type { Simulation, SimulationStage } from "@/types";
+import type { AvatarRef, Simulation, SimulationStage } from "@/types";
 
 type CallPhase = "lobby" | "connecting" | "active" | "scoring" | "scored";
 
@@ -36,6 +36,24 @@ type SimliCallStageProps = {
   advanceLabel: string;
   onAdvance: () => void;
 };
+
+/**
+ * Waits until Avatar ref is attached to a mounted video element.
+ */
+async function waitForAvatarRef(
+  getRef: () => AvatarRef | null,
+  maxMs = 5000
+): Promise<AvatarRef | null> {
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    const avatar = getRef();
+    if (avatar) {
+      return avatar;
+    }
+    await new Promise<void>((r) => setTimeout(r, 100));
+  }
+  return getRef();
+}
 
 /**
  * Shared video-call flow for all Simli-powered simulation stages.
@@ -77,30 +95,44 @@ export function SimliCallStage({
   const stageLabel = getStageCallLabel(stage);
 
   const handleJoinCall = useCallback((): void => {
-    if (!videoCall.canJoin || !videoCall.audioStream) return;
+    if (!videoCall.canJoin) {
+      return;
+    }
+
     setConnectError("");
     connectStartedRef.current = false;
-    void resumePlaybackContext();
-    setMountSimli(true);
-    setPhase("connecting");
-  }, [videoCall.canJoin, videoCall.audioStream]);
+
+    void (async (): Promise<void> => {
+      await resumePlaybackContext();
+      await videoCall.primeUserGesture();
+      setMountSimli(true);
+      setPhase("connecting");
+    })();
+  }, [videoCall.canJoin, videoCall.primeUserGesture]);
 
   useEffect(() => {
-    if (phase !== "connecting" || !mountSimli || connectStartedRef.current) return;
+    if (phase !== "connecting" || !mountSimli || connectStartedRef.current) {
+      return;
+    }
 
     const run = async (): Promise<void> => {
       connectStartedRef.current = true;
 
-      let waited = 0;
-      while (!voiceRef.current.avatarRef.current && waited < 5000) {
-        await new Promise<void>((r) => setTimeout(r, 200));
-        waited += 200;
+      const avatar = await waitForAvatarRef(() => voiceRef.current.avatarRef.current);
+      if (!avatar) {
+        setConnectError(
+          `Could not connect to ${simulation.persona_name}. Reload and try again.`
+        );
+        setMountSimli(false);
+        setPhase("lobby");
+        connectStartedRef.current = false;
+        return;
       }
 
-      const ready = await voiceRef.current.avatarRef.current?.waitUntilReady(
-        SIMLI_CONNECT_TIMEOUT_MS
-      );
-      if (!ready) {
+      avatar.resumeAudioContext();
+
+      const simliReady = await avatar.startSession();
+      if (!simliReady) {
         setConnectError(
           `Could not connect to ${simulation.persona_name} in time. Check Simli keys and try again.`
         );
@@ -110,17 +142,18 @@ export function SimliCallStage({
         return;
       }
 
-      const audioStream = videoCall.audioStream;
-      if (!audioStream) {
-        setPhase("lobby");
+      const audioStream = videoCall.getAudioStream();
+      if (!audioStream || audioStream.getAudioTracks().length === 0) {
+        setConnectError("Microphone stream unavailable. Reload and try again.");
         setMountSimli(false);
+        setPhase("lobby");
         connectStartedRef.current = false;
         return;
       }
 
       try {
-        voiceRef.current.avatarRef.current?.resumeAudioContext();
         await voiceRef.current.startCall(audioStream);
+        await videoCall.primeUserGesture();
         videoCall.startTimer();
         setPhase("active");
       } catch {
@@ -132,7 +165,7 @@ export function SimliCallStage({
     };
 
     void run();
-  }, [phase, mountSimli, videoCall.audioStream, simulation.persona_name]);
+  }, [phase, mountSimli, videoCall, simulation.persona_name]);
 
   const runScoring = useCallback(async (): Promise<void> => {
     setPhase("scoring");
@@ -246,17 +279,13 @@ export function SimliCallStage({
   return (
     <div className="call-screen-root">
       {mountSimli && (
-        <div
-          className={`absolute inset-0 z-0 w-full h-full ${
-            phase === "connecting" ? "opacity-0" : "opacity-100"
-          } [&>div]:!max-w-none [&>div]:!w-full [&>div]:!h-full [&>div]:!aspect-auto [&>div]:!rounded-none [&>div]:!shadow-none [&_video]:!absolute [&_video]:!inset-0 [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover`}
-        >
+        <div className="absolute inset-0 z-0 w-full h-full [&>div]:!max-w-none [&>div]:!w-full [&>div]:!h-full [&>div]:!aspect-auto [&>div]:!rounded-none [&>div]:!shadow-none">
           <Avatar ref={voice.avatarRef} />
         </div>
       )}
 
       {phase === "connecting" && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-call-background">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-call-background/80">
           <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
           <p className="mt-4 text-sm text-white/70">
             Connecting to {simulation.persona_name}…
