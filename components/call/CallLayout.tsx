@@ -7,15 +7,16 @@
 "use client";
 
 import { CallTranscript } from "@/components/call/CallTranscript";
+import { PhoneEndIcon } from "@/components/ui/CallIcons";
 import { CALL_OVERLAY_INSET_PX } from "@/lib/constants";
 
 /** Minimum height for phone and video call containers (pipeline stays visible above). */
 export const CALL_STAGE_MIN_HEIGHT_CLASS = "call-stage-min-h";
 
 /** Viewport height fraction for call containers — must stay below 100vh. */
-export const CALL_STAGE_MIN_HEIGHT_VH = 85;
+export const CALL_STAGE_MIN_HEIGHT_VH = 92;
 
-/** Centered persona video frame — 82% × 90% with dark border around it. */
+/** Centered persona video frame — sized to keep face visible above bottom chrome. */
 export const CALL_PERSONA_VIDEO_FRAME_CLASS = "call-persona-video-frame";
 
 /** Persona WebRTC video inside the frame. */
@@ -25,7 +26,7 @@ export const CALL_PERSONA_VIDEO_CLASS = "call-persona-video";
 export const CALL_PERSONA_VIDEO_GRADIENT_CLASS = "call-persona-video-gradient";
 
 /** Height reserved at bottom for video-call controls + transcript dock. */
-export const CALL_VIDEO_BOTTOM_DOCK_PX = 200;
+export const CALL_VIDEO_BOTTOM_DOCK_PX = 118;
 
 type CallLayoutProps = {
   stageLabel: string;
@@ -49,25 +50,7 @@ const callStyle = {
   "--call-video-dock-h": `${CALL_VIDEO_BOTTOM_DOCK_PX}px`,
 } as React.CSSProperties;
 
-function PhoneDownIcon(): React.ReactElement {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
-      aria-hidden
-    >
-      <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.26 9.11 19.79 19.79 0 0 1 1.2 .5a2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11z" />
-      <line x1="23" y1="1" x2="1" y2="23" />
-    </svg>
-  );
-}
+const END_CALL_ICON_CLASS = "block h-5 w-5 shrink-0";
 
 function MicIcon(): React.ReactElement {
   return (
@@ -154,7 +137,7 @@ function VideoCallControlPill({
   onEndCall,
 }: VideoCallControlPillProps): React.ReactElement {
   return (
-    <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 shadow-xl backdrop-blur-md">
+    <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-black/70 px-2.5 py-1.5 shadow-xl backdrop-blur-md">
       <button
         type="button"
         onClick={onToggleMute}
@@ -178,10 +161,9 @@ function VideoCallControlPill({
         type="button"
         onClick={onEndCall}
         aria-label="End call"
-        className="flex h-10 min-h-[40px] shrink-0 items-center justify-center gap-2 rounded-full bg-red-500 px-5 text-sm font-medium leading-none text-white transition-colors hover:bg-red-600"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-500 p-0 leading-none text-white transition-colors hover:bg-red-600"
       >
-        <PhoneDownIcon />
-        <span>End</span>
+        <PhoneEndIcon className={END_CALL_ICON_CLASS} />
       </button>
     </div>
   );
@@ -207,12 +189,12 @@ export function CallLayout({
   onEndCall,
 }: CallLayoutProps): React.ReactElement {
   const pipClass =
-    "pointer-events-auto absolute right-6 z-[25] h-36 w-48 rounded-xl border-2 border-white/20 object-cover shadow-lg scale-x-[-1]";
+    "pointer-events-auto absolute bottom-4 right-4 z-[25] h-28 w-36 rounded-xl border-2 border-white/20 object-cover shadow-lg scale-x-[-1]";
 
   return (
     <div
-      className={`absolute inset-0 z-10 overflow-visible pointer-events-none ${CALL_STAGE_MIN_HEIGHT_CLASS}`}
-      style={{ ...callStyle, minHeight: `${CALL_STAGE_MIN_HEIGHT_VH}vh` }}
+      className="absolute inset-0 z-10 overflow-visible pointer-events-none"
+      style={callStyle}
     >
       {/* Top-left: stage badge + status stacked — no overlap */}
       <div className="pointer-events-none absolute left-6 top-4 z-20 flex max-w-[min(100%,420px)] flex-col items-start gap-2">
@@ -233,12 +215,10 @@ export function CallLayout({
             autoPlay
             muted
             playsInline
-            style={{ bottom: `calc(var(--call-video-dock-h, 200px) + 12px)` }}
             className={`${pipClass} ${isCameraOff ? "opacity-0" : "opacity-100"}`}
           />
           {isCameraOff && (
             <div
-              style={{ bottom: `calc(var(--call-video-dock-h, 200px) + 12px)` }}
               className={`${pipClass} flex items-center justify-center bg-call-background text-xs text-white/50 opacity-100`}
             >
               Camera off
@@ -249,7 +229,6 @@ export function CallLayout({
 
       {cameraUnavailable && !showStudentPip && (
         <div
-          style={{ bottom: `calc(var(--call-video-dock-h, 200px) + 12px)` }}
           className={`${pipClass} flex items-center justify-center text-xs text-white/50 opacity-100`}
         >
           Camera unavailable

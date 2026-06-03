@@ -272,7 +272,7 @@ export function SimliCallStage({
 
   if (phase === "lobby") {
     return (
-      <div className="call-screen-root flex flex-col flex-1 min-h-0">
+      <div className="call-screen-root flex h-full min-h-0 flex-1 flex-col">
         {topBanner}
         {connectError.length > 0 && (
           <p className="text-sm text-error px-4 py-2 shrink-0">{connectError}</p>
@@ -297,7 +297,7 @@ export function SimliCallStage({
   }
 
   return (
-    <div className="call-screen-root overflow-visible">
+    <div className="call-screen-root overflow-visible flex flex-col flex-1 min-h-0 h-full">
       {topBanner}
 
       {connectError.length > 0 && (

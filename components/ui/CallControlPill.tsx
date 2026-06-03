@@ -60,8 +60,7 @@ export function CallControlPill({
         aria-label="End call"
         className="call-control-btn-end"
       >
-        <PhoneEndIcon className={ICON_CLASS} />
-        <span>End</span>
+        <PhoneEndIcon className={`${ICON_CLASS} block`} />
       </button>
     </div>
   );

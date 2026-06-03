@@ -77,55 +77,50 @@ body {
   .call-container-root {
     @apply relative w-full flex flex-col bg-call-background text-white rounded-lg;
     padding: var(--call-container-padding, 16px);
-    min-height: 85vh;
+    height: var(--call-box-height, calc(100dvh - 280px));
+    min-height: 560px;
     flex: 1 1 auto;
   }
 
   .call-stage-slot {
-    @apply relative flex flex-col flex-1 w-full min-h-0;
-    min-height: 85vh;
+    @apply relative flex flex-col flex-1 w-full min-h-0 h-full;
   }
 
   .call-stage-min-h {
-    @apply flex flex-col flex-1 w-full min-h-0;
-    min-height: 85vh;
+    @apply flex flex-col flex-1 w-full min-h-0 h-full;
   }
 
   .call-screen-root {
-    @apply relative flex flex-col flex-1 w-full bg-call-background text-white overflow-hidden rounded-lg;
-    min-height: 85vh;
+    @apply relative flex flex-col flex-1 w-full min-h-0 h-full bg-call-background text-white rounded-lg;
   }
 
   /* Framed persona video — see CallLayout.tsx exports */
   .call-persona-video-frame {
-    @apply relative overflow-hidden;
-    width: 82%;
-    height: 90%;
-    max-width: 82%;
-    max-height: 90%;
-    margin: auto;
+    @apply relative h-full w-full overflow-hidden;
   }
 
   .call-persona-video {
     @apply block h-full w-full object-cover;
+    object-position: center 22%;
     transform: translateZ(0);
     backface-visibility: hidden;
   }
 
   .call-persona-video-gradient {
     @apply absolute inset-0 pointer-events-none;
-    background: linear-gradient(to bottom, transparent 70%, rgb(0 0 0 / 0.45) 100%);
+    background: linear-gradient(to bottom, transparent 88%, rgb(0 0 0 / 0.2) 100%);
   }
 
-  /* Video call bottom dock — controls stacked above transcript */
+  /* Video call bottom dock — compact strip at the very bottom */
   .call-video-bottom-dock {
-    @apply absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center gap-3 px-4 pb-4 pt-6;
+    @apply absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center gap-2 px-3 pb-3 pt-2;
     background: linear-gradient(
       to top,
-      rgb(10 10 10) 0%,
-      rgb(10 10 10 / 0.95) 55%,
+      rgb(10 10 10 / 0.98) 0%,
+      rgb(10 10 10 / 0.85) 70%,
       transparent 100%
     );
+    max-height: var(--call-video-dock-h, 118px);
   }
 
   .stage-content-fade {
@@ -198,11 +193,11 @@ body {
   }
 
   .call-control-btn-end {
-    @apply inline-flex items-center justify-center gap-2 shrink-0 bg-error text-white border border-error hover:opacity-90 rounded-full text-sm font-semibold;
+    @apply inline-flex items-center justify-center gap-2 shrink-0 bg-error text-white border border-error hover:opacity-90 rounded-full text-sm font-semibold overflow-visible leading-none;
     height: 44px;
-    width: auto;
-    min-width: unset;
-    padding: 0 20px;
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
   }
 
   .phone-initials {

@@ -478,7 +478,7 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
   const showOverlay = initError !== null || isConnecting;
 
   return (
-    <div className="w-full h-full relative bg-call-background flex items-center justify-center">
+    <div className="w-full h-full min-h-0 relative bg-call-background">
       {showOverlay && (
         <div className="absolute inset-0 z-10 grid place-items-center bg-black/60 px-4 text-center text-sm text-gray-300">
           {initError ??

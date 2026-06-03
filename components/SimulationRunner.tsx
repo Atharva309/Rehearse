@@ -83,7 +83,7 @@ export function SimulationRunner({
 
   const stageContent = (
     <ErrorBoundary stageName={stage}>
-      <div key={stage} className="stage-content-fade h-full min-h-0 flex flex-col flex-1">
+      <div key={stage} className="stage-content-fade flex h-full min-h-0 flex-1 flex-col">
         {stage === "lead_gen" && (
           <LeadGenStage
             simulation={simulation}
