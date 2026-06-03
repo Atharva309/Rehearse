@@ -83,7 +83,7 @@ export function SimulationRunner({
 
   const stageContent = (
     <ErrorBoundary stageName={stage}>
-      <div key={stage} className="stage-content-fade">
+      <div key={stage} className="stage-content-fade h-full min-h-0 flex flex-col flex-1">
         {stage === "lead_gen" && (
           <LeadGenStage
             simulation={simulation}
@@ -141,10 +141,12 @@ export function SimulationRunner({
   );
 
   return (
-    <div className={`w-full px-6 ${isCallStage ? "overflow-hidden" : ""}`}>
+    <div
+      className={`w-full px-6 ${isCallStage ? "flex flex-col min-h-[calc(100vh-4rem)]" : ""}`}
+    >
       <BackButton label="Back to Dashboard" href="/student/dashboard" />
 
-      <div className="mt-6 simulation-pipeline-bar rounded-t-lg overflow-hidden">
+      <div className="mt-6 simulation-pipeline-bar rounded-t-lg overflow-hidden shrink-0">
         <PipelineProgress items={progress} />
       </div>
 

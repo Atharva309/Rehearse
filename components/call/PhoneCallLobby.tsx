@@ -28,7 +28,7 @@ export function PhoneCallLobby({
   onJoinCall,
 }: PhoneCallLobbyProps): React.ReactElement {
   return (
-    <div className="call-screen-root flex flex-col items-center justify-center px-6 text-center h-full min-h-[360px]">
+    <div className="relative flex flex-col items-center justify-center px-6 text-center h-full min-h-[360px] w-full">
       <div className="relative mb-8">
         <span className="absolute inset-0 rounded-full border-2 border-success/30 animate-ping scale-110" />
         <PersonaInitials name={personaName} />

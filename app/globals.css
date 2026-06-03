@@ -75,15 +75,21 @@ body {
 
   /* ── Call UI (contained below pipeline, not full viewport) ─── */
   .call-container-root {
-    @apply relative w-full bg-call-background text-white;
+    @apply relative w-full flex flex-col bg-call-background text-white rounded-lg;
     padding: var(--call-container-padding, 16px);
-    overflow: visible;
-    height: calc(100vh - var(--navbar-h, 64px) - var(--pipeline-h, 140px) - 3rem);
     min-height: 420px;
+    flex: 1 1 auto;
+    /* Fits remaining viewport below header + pipeline without clipping */
+    max-height: calc(100vh - var(--call-chrome-offset, 280px));
+  }
+
+  .call-stage-slot {
+    @apply relative flex flex-col flex-1 w-full min-h-0;
+    min-height: 360px;
   }
 
   .call-screen-root {
-    @apply relative w-full h-full bg-call-background text-white overflow-hidden rounded-lg;
+    @apply relative flex flex-col flex-1 w-full min-h-[360px] bg-call-background text-white overflow-hidden rounded-lg;
   }
 
   .stage-content-fade {

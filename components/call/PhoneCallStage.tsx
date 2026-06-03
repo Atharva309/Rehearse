@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useToast } from "@/hooks/useToast";
 import { EndCallModal } from "@/components/call/EndCallModal";
 import { PhoneCallLayout } from "@/components/call/PhoneCallLayout";
@@ -41,12 +41,15 @@ export function PhoneCallStage({
 }: PhoneCallStageProps): React.ReactElement {
   const [phase, setPhase] = useState<PhonePhase>("lobby");
   const [showEndModal, setShowEndModal] = useState(false);
+  const [connectError, setConnectError] = useState("");
   const [score, setScore] = useState<number | undefined>();
   const [feedback, setFeedback] = useState<string | undefined>();
   const [scoreError, setScoreError] = useState("");
   const { showToast } = useToast();
 
   const videoCall = useVideoCall({ withVideo: false });
+  const getAudioStreamRef = useRef(videoCall.getAudioStream);
+  getAudioStreamRef.current = videoCall.getAudioStream;
 
   const voice = useProspectingVoice({
     systemPrompt: simulation.persona_system_prompt,
@@ -74,22 +77,27 @@ export function PhoneCallStage({
     }
 
     void (async (): Promise<void> => {
+      setConnectError("");
       setPhase("connecting");
       try {
         await resumePlaybackContext();
-        const audioStream = videoCall.getAudioStream();
+        const audioStream = getAudioStreamRef.current();
         if (!audioStream) {
+          setConnectError("Microphone unavailable. Reload and allow mic access.");
           setPhase("lobby");
           return;
         }
         await voice.startCall(audioStream);
         videoCall.startTimer();
         setPhase("active");
-      } catch {
+      } catch (err) {
+        setConnectError(
+          err instanceof Error ? err.message : "Could not start call. Check Deepgram API key."
+        );
         setPhase("lobby");
       }
     })();
-  }, [videoCall, voice]);
+  }, [videoCall.canJoin, videoCall.startTimer, voice]);
 
   const runScoring = useCallback(async (): Promise<void> => {
     setPhase("scoring");
@@ -130,26 +138,30 @@ export function PhoneCallStage({
     void runScoring();
   }, [voice, videoCall, runScoring]);
 
-  if (phase === "scoring") {
+  if (phase === "scored" && score !== undefined && feedback) {
     return (
-      <div className="call-screen-root flex flex-col items-center justify-center min-h-[360px]">
-        <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
-        <p className="mt-4 text-sm text-white/70">Scoring your conversation…</p>
+      <div className="call-screen-root">
+        <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-call-background">
+          <div className="stage-content-card max-w-lg w-full">
+            <StageScoreReveal
+              score={score}
+              feedback={feedback}
+              advanceLabel="Next Stage →"
+              onAdvance={onAdvance}
+            />
+            {scoreError.length > 0 && <p className="text-sm text-error mt-4">{scoreError}</p>}
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (phase === "scored" && score !== undefined && feedback) {
+  if (phase === "scoring") {
     return (
-      <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-call-background">
-        <div className="stage-content-card max-w-lg w-full">
-          <StageScoreReveal
-            score={score}
-            feedback={feedback}
-            advanceLabel="Next Stage →"
-            onAdvance={onAdvance}
-          />
-          {scoreError.length > 0 && <p className="text-sm text-error mt-4">{scoreError}</p>}
+      <div className="call-screen-root items-center justify-center">
+        <div className="flex flex-col items-center justify-center flex-1">
+          <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
+          <p className="mt-4 text-sm text-white/70">Scoring your conversation…</p>
         </div>
       </div>
     );
@@ -157,16 +169,21 @@ export function PhoneCallStage({
 
   if (phase === "connecting") {
     return (
-      <div className="call-screen-root flex flex-col items-center justify-center min-h-[360px]">
-        <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
-        <p className="mt-4 text-sm text-white/70">Calling {simulation.persona_name}…</p>
+      <div className="call-screen-root items-center justify-center">
+        <div className="flex flex-col items-center justify-center flex-1 px-6 text-center">
+          <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
+          <p className="mt-4 text-sm text-white/70">Calling {simulation.persona_name}…</p>
+          {voice.statusText.length > 0 && (
+            <p className="mt-2 text-xs text-white/50">{voice.statusText}</p>
+          )}
+        </div>
       </div>
     );
   }
 
   if (phase === "active") {
     return (
-      <>
+      <div className="call-screen-root">
         {showEndModal && (
           <EndCallModal
             personaName={simulation.persona_name}
@@ -186,18 +203,26 @@ export function PhoneCallStage({
           onToggleMute={videoCall.toggleMute}
           onEndCall={() => setShowEndModal(true)}
         />
-      </>
+        {voice.statusText.length > 0 && (
+          <p className="absolute top-14 left-4 z-30 text-xs text-white/60">{voice.statusText}</p>
+        )}
+      </div>
     );
   }
 
   return (
-    <PhoneCallLobby
-      personaName={simulation.persona_name}
-      personaRole={simulation.persona_role}
-      permissionError={videoCall.permissionError}
-      canJoin={videoCall.canJoin}
-      isPermissionPending={videoCall.permissionState === "pending"}
-      onJoinCall={handleJoinCall}
-    />
+    <div className="call-screen-root">
+      {connectError.length > 0 && (
+        <p className="text-sm text-error px-4 py-2 shrink-0">{connectError}</p>
+      )}
+      <PhoneCallLobby
+        personaName={simulation.persona_name}
+        personaRole={simulation.persona_role}
+        permissionError={videoCall.permissionError}
+        canJoin={videoCall.canJoin}
+        isPermissionPending={videoCall.permissionState === "pending"}
+        onJoinCall={handleJoinCall}
+      />
+    </div>
   );
 }

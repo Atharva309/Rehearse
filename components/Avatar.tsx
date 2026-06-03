@@ -214,6 +214,17 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
     await client?.stop().catch(() => {});
   }, []);
 
+  const waitForMediaElements = useCallback(async (maxMs = 5000): Promise<boolean> => {
+    const start = Date.now();
+    while (Date.now() - start < maxMs) {
+      if (videoRef.current && audioRef.current) {
+        return true;
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    }
+    return videoRef.current !== null && audioRef.current !== null;
+  }, []);
+
   const startSession = useCallback(async (): Promise<boolean> => {
     if (isReadyRef.current && simliRef.current) {
       return true;
@@ -226,9 +237,10 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
       return isReadyRef.current && simliRef.current !== null;
     }
 
+    const hasElements = await waitForMediaElements();
     const video = videoRef.current;
     const audio = audioRef.current;
-    if (!video || !audio) {
+    if (!hasElements || !video || !audio) {
       setInitError("Video elements not ready. Try Join Call again.");
       return false;
     }
@@ -332,7 +344,7 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
       sessionStartingRef.current = false;
       setIsConnecting(false);
     }
-  }, [stopSession]);
+  }, [stopSession, waitForMediaElements]);
 
   // ── Video inline playback (mobile Safari) ───────────────────────────────────
 
@@ -381,6 +393,7 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
     ref,
     (): AvatarRef => ({
       startSession,
+      waitForMediaElements,
       isReady: (): boolean => isReadyRef.current,
       waitUntilReady: async (maxMs = SIMLI_CONNECT_TIMEOUT_MS): Promise<boolean> => {
         if (isReadyRef.current && simliRef.current) {
@@ -454,10 +467,10 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
         }
       },
     }),
-    [isReady, startSession]
+    [isReady, startSession, waitForMediaElements]
   );
 
-  const showOverlay = initError !== null || isConnecting || !isReady;
+  const showOverlay = initError !== null || isConnecting;
 
   return (
     <div className="w-full h-full relative bg-call-background">

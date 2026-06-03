@@ -35,20 +35,25 @@ type SimliCallStageProps = {
   priorStagesSummary?: string;
   advanceLabel: string;
   onAdvance: () => void;
+  /** Optional banner above the call UI (e.g. objections instructions). */
+  topBanner?: React.ReactNode;
 };
 
 /**
- * Waits until Avatar ref is attached to a mounted video element.
+ * Waits until Avatar imperative handle and media elements are ready.
  */
-async function waitForAvatarRef(
+async function waitForAvatarReady(
   getRef: () => AvatarRef | null,
-  maxMs = 5000
+  maxMs = 8000
 ): Promise<AvatarRef | null> {
   const start = Date.now();
   while (Date.now() - start < maxMs) {
     const avatar = getRef();
     if (avatar) {
-      return avatar;
+      const domReady = await avatar.waitForMediaElements(2000);
+      if (domReady) {
+        return avatar;
+      }
     }
     await new Promise<void>((r) => setTimeout(r, 100));
   }
@@ -70,6 +75,7 @@ export function SimliCallStage({
   priorStagesSummary,
   advanceLabel,
   onAdvance,
+  topBanner,
 }: SimliCallStageProps): React.ReactElement {
   const [phase, setPhase] = useState<CallPhase>("lobby");
   const [mountSimli, setMountSimli] = useState(false);
@@ -81,6 +87,11 @@ export function SimliCallStage({
   const { showToast } = useToast();
   const videoCall = useVideoCall({ withVideo: true });
   const connectStartedRef = useRef(false);
+  const getAudioStreamRef = useRef(videoCall.getAudioStream);
+  const primeUserGestureRef = useRef(videoCall.primeUserGesture);
+
+  getAudioStreamRef.current = videoCall.getAudioStream;
+  primeUserGestureRef.current = videoCall.primeUserGesture;
 
   const voice = useSimulationVoiceSession({
     systemPrompt: simulation.persona_system_prompt,
@@ -104,11 +115,11 @@ export function SimliCallStage({
 
     void (async (): Promise<void> => {
       await resumePlaybackContext();
-      await videoCall.primeUserGesture();
+      await primeUserGestureRef.current();
       setMountSimli(true);
       setPhase("connecting");
     })();
-  }, [videoCall.canJoin, videoCall.primeUserGesture]);
+  }, [videoCall.canJoin]);
 
   useEffect(() => {
     if (phase !== "connecting" || !mountSimli || connectStartedRef.current) {
@@ -118,7 +129,7 @@ export function SimliCallStage({
     const run = async (): Promise<void> => {
       connectStartedRef.current = true;
 
-      const avatar = await waitForAvatarRef(() => voiceRef.current.avatarRef.current);
+      const avatar = await waitForAvatarReady(() => voiceRef.current.avatarRef.current);
       if (!avatar) {
         setConnectError(
           `Could not connect to ${simulation.persona_name}. Reload and try again.`
@@ -142,7 +153,7 @@ export function SimliCallStage({
         return;
       }
 
-      const audioStream = videoCall.getAudioStream();
+      const audioStream = getAudioStreamRef.current();
       if (!audioStream || audioStream.getAudioTracks().length === 0) {
         setConnectError("Microphone stream unavailable. Reload and try again.");
         setMountSimli(false);
@@ -153,7 +164,7 @@ export function SimliCallStage({
 
       try {
         await voiceRef.current.startCall(audioStream);
-        await videoCall.primeUserGesture();
+        await primeUserGestureRef.current();
         videoCall.startTimer();
         setPhase("active");
       } catch {
@@ -165,7 +176,7 @@ export function SimliCallStage({
     };
 
     void run();
-  }, [phase, mountSimli, videoCall, simulation.persona_name]);
+  }, [phase, mountSimli, simulation.persona_name, videoCall.startTimer]);
 
   const runScoring = useCallback(async (): Promise<void> => {
     setPhase("scoring");
@@ -230,26 +241,30 @@ export function SimliCallStage({
   const showStudentPip =
     videoCall.permissionState === "ready" && !videoCall.cameraUnavailable;
 
-  if (phase === "scoring") {
+  if (phase === "scored" && score !== undefined && feedback) {
     return (
-      <div className="call-screen-root flex flex-col items-center justify-center min-h-[360px]">
-        <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
-        <p className="mt-4 text-sm text-white/70">Scoring your conversation…</p>
+      <div className="call-screen-root">
+        <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-call-background">
+          <div className="stage-content-card max-w-lg w-full">
+            <StageScoreReveal
+              score={score}
+              feedback={feedback}
+              advanceLabel={advanceLabel}
+              onAdvance={onAdvance}
+            />
+            {scoreError.length > 0 && <p className="text-sm text-error mt-4">{scoreError}</p>}
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (phase === "scored" && score !== undefined && feedback) {
+  if (phase === "scoring") {
     return (
-      <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-call-background">
-        <div className="stage-content-card max-w-lg w-full">
-          <StageScoreReveal
-            score={score}
-            feedback={feedback}
-            advanceLabel={advanceLabel}
-            onAdvance={onAdvance}
-          />
-          {scoreError.length > 0 && <p className="text-sm text-error mt-4">{scoreError}</p>}
+      <div className="call-screen-root items-center justify-center">
+        <div className="flex flex-col items-center justify-center flex-1">
+          <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
+          <p className="mt-4 text-sm text-white/70">Scoring your conversation…</p>
         </div>
       </div>
     );
@@ -257,29 +272,40 @@ export function SimliCallStage({
 
   if (phase === "lobby") {
     return (
-      <>
+      <div className="call-screen-root flex flex-col flex-1 min-h-0">
+        {topBanner}
         {connectError.length > 0 && (
-          <p className="text-sm text-error mb-3">{connectError}</p>
+          <p className="text-sm text-error px-4 py-2 shrink-0">{connectError}</p>
         )}
-        <CallLobby
-          personaName={simulation.persona_name}
-          personaRole={simulation.persona_role}
-          permissionError={videoCall.permissionError}
-          canJoin={videoCall.canJoin}
-          isPermissionPending={videoCall.permissionState === "pending"}
-          studentVideoRef={videoCall.studentVideoRef}
-          showStudentPip={showStudentPip}
-          cameraUnavailable={videoCall.cameraUnavailable}
-          onJoinCall={handleJoinCall}
-        />
-      </>
+        <div className="flex-1 min-h-0">
+          <CallLobby
+            personaName={simulation.persona_name}
+            personaRole={simulation.persona_role}
+            permissionError={videoCall.permissionError}
+            canJoin={videoCall.canJoin}
+            isPermissionPending={videoCall.permissionState === "pending"}
+            studentVideoRef={videoCall.studentVideoRef}
+            showStudentPip={showStudentPip}
+            cameraUnavailable={videoCall.cameraUnavailable}
+            onJoinCall={handleJoinCall}
+          />
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="call-screen-root">
+      {topBanner}
+
+      {connectError.length > 0 && (
+        <p className="absolute top-2 left-4 right-4 z-40 text-sm text-error bg-black/70 rounded px-3 py-2">
+          {connectError}
+        </p>
+      )}
+
       {mountSimli && (
-        <div className="absolute inset-0 z-0 w-full h-full [&>div]:!max-w-none [&>div]:!w-full [&>div]:!h-full [&>div]:!aspect-auto [&>div]:!rounded-none [&>div]:!shadow-none">
+        <div className="absolute inset-0 z-0">
           <Avatar ref={voice.avatarRef} />
         </div>
       )}
@@ -290,6 +316,11 @@ export function SimliCallStage({
           <p className="mt-4 text-sm text-white/70">
             Connecting to {simulation.persona_name}…
           </p>
+          {voice.statusText.length > 0 && (
+            <p className="mt-2 text-xs text-white/50 max-w-sm text-center px-4">
+              {voice.statusText}
+            </p>
+          )}
         </div>
       )}
 
@@ -317,6 +348,11 @@ export function SimliCallStage({
             onToggleCamera={videoCall.toggleCamera}
             onEndCall={() => setShowEndModal(true)}
           />
+          {voice.statusText.length > 0 && (
+            <p className="absolute top-14 left-4 z-30 text-xs text-white/60 max-w-md">
+              {voice.statusText}
+            </p>
+          )}
           {scoreError.length > 0 && (
             <p className="absolute bottom-2 left-4 z-30 text-sm text-error">{scoreError}</p>
           )}

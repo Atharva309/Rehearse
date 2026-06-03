@@ -28,22 +28,22 @@ export function ObjectionsStage({
   onComplete,
 }: ObjectionsStageProps): React.ReactElement {
   return (
-    <>
-      <p className="text-sm text-text-secondary mb-4">
-        Handle {OBJECTIONS_COUNT} objections from {simulation.persona_name} in the video call.
-      </p>
-      <SimliCallStage
-        simulation={simulation}
-        attemptId={attemptId}
-        stage="objections"
-        stageHint={`OBJECTIONS STAGE: The student pitched: """${pitchText}""" Raise ${OBJECTIONS_COUNT} specific objections (price, timing, fit). Push back realistically.`}
-        openingGreeting={`I read your pitch. I've got a few concerns — let's hear how you handle them.`}
-        scoreStage="objections"
-        runningTotalScore={runningTotalScore}
-        scoreTranscriptExtra={`Pitch:\n${pitchText}`}
-        advanceLabel="Next Stage"
-        onAdvance={() => onComplete("close")}
-      />
-    </>
+    <SimliCallStage
+      simulation={simulation}
+      attemptId={attemptId}
+      stage="objections"
+      stageHint={`OBJECTIONS STAGE: The student pitched: """${pitchText}""" Raise ${OBJECTIONS_COUNT} specific objections (price, timing, fit). Push back realistically.`}
+      openingGreeting={`I read your pitch. I've got a few concerns — let's hear how you handle them.`}
+      scoreStage="objections"
+      runningTotalScore={runningTotalScore}
+      scoreTranscriptExtra={`Pitch:\n${pitchText}`}
+      advanceLabel="Next Stage"
+      onAdvance={() => onComplete("close")}
+      topBanner={
+        <p className="shrink-0 text-sm text-white/70 px-4 py-2 border-b border-white/10 bg-black/30">
+          Handle {OBJECTIONS_COUNT} objections from {simulation.persona_name} in the video call.
+        </p>
+      }
+    />
   );
 }

@@ -61,7 +61,7 @@ export function PhoneCallLayout({
         ];
 
   return (
-    <div className="call-screen-root" style={phoneStyle}>
+    <div className="absolute inset-0 z-10" style={phoneStyle}>
       <span className="call-stage-badge">{stageLabel}</span>
       <span className="call-timer-badge">{formattedTimer}</span>
 
