@@ -99,20 +99,33 @@ body {
   /* Framed persona video — see CallLayout.tsx exports */
   .call-persona-video-frame {
     @apply relative overflow-hidden;
-    width: 75%;
-    height: 85%;
-    max-width: 75%;
-    max-height: 85%;
+    width: 82%;
+    height: 90%;
+    max-width: 82%;
+    max-height: 90%;
     margin: auto;
   }
 
   .call-persona-video {
-    @apply block w-full h-full object-cover;
+    @apply block h-full w-full object-cover;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   .call-persona-video-gradient {
     @apply absolute inset-0 pointer-events-none;
-    background: linear-gradient(to bottom, transparent 60%, rgb(0 0 0 / 0.85) 100%);
+    background: linear-gradient(to bottom, transparent 70%, rgb(0 0 0 / 0.45) 100%);
+  }
+
+  /* Video call bottom dock — controls stacked above transcript */
+  .call-video-bottom-dock {
+    @apply absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center gap-3 px-4 pb-4 pt-6;
+    background: linear-gradient(
+      to top,
+      rgb(10 10 10) 0%,
+      rgb(10 10 10 / 0.95) 55%,
+      transparent 100%
+    );
   }
 
   .stage-content-fade {
@@ -138,7 +151,11 @@ body {
   }
 
   .call-stage-badge {
-    @apply absolute z-20 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-black/50 text-white border border-white/10 backdrop-blur-sm;
+    @apply z-20 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-black/50 text-white border border-white/10 backdrop-blur-sm;
+  }
+
+  .call-stage-badge:not(.static) {
+    @apply absolute;
     top: var(--call-inset, 24px);
     left: var(--call-inset, 24px);
   }

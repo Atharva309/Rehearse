@@ -12,6 +12,8 @@ type CallTranscriptProps = {
   userText: string;
   personaText: string;
   personaLabel?: string;
+  /** Shorter max height for video call bottom dock. */
+  compact?: boolean;
 };
 
 /**
@@ -21,6 +23,7 @@ export function CallTranscript({
   userText,
   personaText,
   personaLabel = "Persona",
+  compact = false,
 }: CallTranscriptProps): React.ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -33,11 +36,13 @@ export function CallTranscript({
 
   const hasContent = userText.length > 0 || personaText.length > 0;
 
+  const maxHeight = compact ? 96 : CALL_TRANSCRIPT_MAX_HEIGHT_PX;
+
   return (
     <div
       ref={scrollRef}
-      className="overflow-y-auto rounded-lg bg-black/40 border border-white/10 px-4 py-3"
-      style={{ maxHeight: CALL_TRANSCRIPT_MAX_HEIGHT_PX }}
+      className="overflow-y-auto rounded-lg bg-black/50 border border-white/10 px-4 py-3"
+      style={{ maxHeight }}
     >
       <div className="flex flex-col gap-2 text-sm">
         {userText.length > 0 && (

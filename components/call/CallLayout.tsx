@@ -15,7 +15,7 @@ export const CALL_STAGE_MIN_HEIGHT_CLASS = "call-stage-min-h";
 /** Viewport height fraction for call containers — must stay below 100vh. */
 export const CALL_STAGE_MIN_HEIGHT_VH = 85;
 
-/** Centered persona video frame — 75% × 85% with dark border around it. */
+/** Centered persona video frame — 82% × 90% with dark border around it. */
 export const CALL_PERSONA_VIDEO_FRAME_CLASS = "call-persona-video-frame";
 
 /** Persona WebRTC video inside the frame. */
@@ -23,6 +23,9 @@ export const CALL_PERSONA_VIDEO_CLASS = "call-persona-video";
 
 /** Bottom gradient on the persona video for transcript blend. */
 export const CALL_PERSONA_VIDEO_GRADIENT_CLASS = "call-persona-video-gradient";
+
+/** Height reserved at bottom for video-call controls + transcript dock. */
+export const CALL_VIDEO_BOTTOM_DOCK_PX = 200;
 
 type CallLayoutProps = {
   stageLabel: string;
@@ -43,6 +46,7 @@ type CallLayoutProps = {
 
 const callStyle = {
   "--call-inset": `${CALL_OVERLAY_INSET_PX}px`,
+  "--call-video-dock-h": `${CALL_VIDEO_BOTTOM_DOCK_PX}px`,
 } as React.CSSProperties;
 
 function PhoneDownIcon(): React.ReactElement {
@@ -139,7 +143,7 @@ type VideoCallControlPillProps = {
 };
 
 /**
- * Video-call-only control bar with inline SVG icons (no shared icon sizing issues).
+ * Video-call-only control bar with inline SVG icons (inline flow — not absolute).
  */
 function VideoCallControlPill({
   isMuted,
@@ -150,7 +154,7 @@ function VideoCallControlPill({
   onEndCall,
 }: VideoCallControlPillProps): React.ReactElement {
   return (
-    <div className="pointer-events-auto absolute bottom-[70px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/60 px-3 py-2 shadow-xl backdrop-blur-md">
+    <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 shadow-xl backdrop-blur-md">
       <button
         type="button"
         onClick={onToggleMute}
@@ -174,7 +178,7 @@ function VideoCallControlPill({
         type="button"
         onClick={onEndCall}
         aria-label="End call"
-        className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-red-500 px-5 text-sm font-medium text-white transition-colors hover:bg-red-600"
+        className="flex h-10 min-h-[40px] shrink-0 items-center justify-center gap-2 rounded-full bg-red-500 px-5 text-sm font-medium leading-none text-white transition-colors hover:bg-red-600"
       >
         <PhoneDownIcon />
         <span>End</span>
@@ -203,21 +207,24 @@ export function CallLayout({
   onEndCall,
 }: CallLayoutProps): React.ReactElement {
   const pipClass =
-    "pointer-events-auto absolute bottom-20 right-6 z-20 h-36 w-48 rounded-xl border-2 border-white/20 object-cover shadow-lg scale-x-[-1]";
+    "pointer-events-auto absolute right-6 z-[25] h-36 w-48 rounded-xl border-2 border-white/20 object-cover shadow-lg scale-x-[-1]";
 
   return (
     <div
-      className={`absolute inset-0 z-10 pointer-events-none ${CALL_STAGE_MIN_HEIGHT_CLASS}`}
+      className={`absolute inset-0 z-10 overflow-visible pointer-events-none ${CALL_STAGE_MIN_HEIGHT_CLASS}`}
       style={{ ...callStyle, minHeight: `${CALL_STAGE_MIN_HEIGHT_VH}vh` }}
     >
-      <span className="call-stage-badge pointer-events-auto">{stageLabel}</span>
-      <span className="call-timer-badge pointer-events-auto">{formattedTimer}</span>
+      {/* Top-left: stage badge + status stacked — no overlap */}
+      <div className="pointer-events-none absolute left-6 top-4 z-20 flex max-w-[min(100%,420px)] flex-col items-start gap-2">
+        <span className="call-stage-badge static pointer-events-auto">{stageLabel}</span>
+        {statusText.length > 0 && (
+          <p className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-xs text-white/70 backdrop-blur-sm">
+            {statusText}
+          </p>
+        )}
+      </div>
 
-      {statusText.length > 0 && (
-        <p className="pointer-events-none absolute left-6 top-12 z-20 max-w-md text-xs text-white/60">
-          {statusText}
-        </p>
-      )}
+      <span className="call-timer-badge pointer-events-auto">{formattedTimer}</span>
 
       {showStudentPip && (
         <>
@@ -226,10 +233,12 @@ export function CallLayout({
             autoPlay
             muted
             playsInline
+            style={{ bottom: `calc(var(--call-video-dock-h, 200px) + 12px)` }}
             className={`${pipClass} ${isCameraOff ? "opacity-0" : "opacity-100"}`}
           />
           {isCameraOff && (
             <div
+              style={{ bottom: `calc(var(--call-video-dock-h, 200px) + 12px)` }}
               className={`${pipClass} flex items-center justify-center bg-call-background text-xs text-white/50 opacity-100`}
             >
               Camera off
@@ -240,27 +249,31 @@ export function CallLayout({
 
       {cameraUnavailable && !showStudentPip && (
         <div
+          style={{ bottom: `calc(var(--call-video-dock-h, 200px) + 12px)` }}
           className={`${pipClass} flex items-center justify-center text-xs text-white/50 opacity-100`}
         >
           Camera unavailable
         </div>
       )}
 
-      <VideoCallControlPill
-        isMuted={isMuted}
-        isCameraOff={isCameraOff}
-        cameraUnavailable={cameraUnavailable}
-        onToggleMute={onToggleMute}
-        onToggleCamera={onToggleCamera}
-        onEndCall={onEndCall}
-      />
-
-      <div className="call-transcript-strip pointer-events-auto absolute bottom-0 left-0 right-0 z-20">
-        <CallTranscript
-          userText={userTranscripts}
-          personaText={personaTranscripts}
-          personaLabel={personaName}
+      {/* Bottom dock: controls above transcript — never overlap */}
+      <div className="call-video-bottom-dock pointer-events-none">
+        <VideoCallControlPill
+          isMuted={isMuted}
+          isCameraOff={isCameraOff}
+          cameraUnavailable={cameraUnavailable}
+          onToggleMute={onToggleMute}
+          onToggleCamera={onToggleCamera}
+          onEndCall={onEndCall}
         />
+        <div className="pointer-events-auto w-full max-w-3xl">
+          <CallTranscript
+            userText={userTranscripts}
+            personaText={personaTranscripts}
+            personaLabel={personaName}
+            compact
+          />
+        </div>
       </div>
     </div>
   );
