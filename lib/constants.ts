@@ -91,6 +91,12 @@ export const PRESENTATION_MIN_WORDS = 100;
 
 export const OBJECTIONS_COUNT = 3;
 
+/** Stages that use Simli video (camera + avatar). */
+export const SIMLI_VIDEO_STAGES = ["discovery", "objections"] as const;
+
+/** Stages that use voice-only phone UI (no Simli, no camera). */
+export const VOICE_ONLY_STAGES = ["prospecting", "close"] as const;
+
 // ── Routes ──────────────────────────────────────────────────────────────────────
 
 export const PUBLIC_ROUTES = ["/login", "/register"] as const;

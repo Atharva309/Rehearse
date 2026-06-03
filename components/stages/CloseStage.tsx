@@ -1,11 +1,11 @@
 /**
  * CloseStage.tsx
- * Final Simli video-call to close the sale; scored from call transcript.
+ * Final voice-only call to close the sale; scored from call transcript.
  */
 
 "use client";
 
-import { SimliCallStage } from "@/components/call/SimliCallStage";
+import { PhoneCallStage } from "@/components/call/PhoneCallStage";
 import type { Simulation, StageScore } from "@/types";
 
 type CloseStageProps = {
@@ -17,7 +17,7 @@ type CloseStageProps = {
 };
 
 /**
- * Close — video call with persona; transcript scored and saved on end call.
+ * Close — audio call with persona; transcript scored and saved on end call.
  */
 export function CloseStage({
   simulation,
@@ -32,13 +32,13 @@ export function CloseStage({
     .join("\n");
 
   return (
-    <SimliCallStage
+    <PhoneCallStage
       simulation={simulation}
       attemptId={attemptId}
-      stage="close"
+      callStage="close"
+      scoreStage="close"
       stageHint="CLOSE STAGE: The student should ask for the sale clearly. Push back with realistic hesitation. Stay in character."
       openingGreeting={`Alright — if you want me to move forward, convince me it's worth it.`}
-      scoreStage="close"
       runningTotalScore={runningTotalScore}
       priorStagesSummary={priorSummary.length > 0 ? priorSummary : undefined}
       scoreTranscriptExtra={priorSummary.length > 0 ? `Prior stages:\n${priorSummary}` : undefined}

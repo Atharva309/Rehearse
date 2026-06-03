@@ -1,6 +1,6 @@
 /**
  * SimliCallStage.tsx
- * Orchestrates lobby → Simli connect → active call → score for Discovery, Objections, Close.
+ * Orchestrates lobby → Simli connect → active call → score for Discovery and Objections.
  * Avatar mounts once after Join Call and is not remounted until the call ends.
  */
 
@@ -29,7 +29,7 @@ type SimliCallStageProps = {
   stage: SimulationStage;
   stageHint: string;
   openingGreeting: string;
-  scoreStage: "discovery" | "objections" | "close";
+  scoreStage: "discovery" | "objections";
   runningTotalScore?: number;
   scoreTranscriptExtra?: string;
   priorStagesSummary?: string;
@@ -287,6 +287,8 @@ export function SimliCallStage({
             studentVideoRef={videoCall.studentVideoRef}
             showStudentPip={showStudentPip}
             cameraUnavailable={videoCall.cameraUnavailable}
+            micReady={videoCall.permissionState === "ready"}
+            cameraReady={showStudentPip}
             onJoinCall={handleJoinCall}
           />
         </div>
@@ -337,6 +339,7 @@ export function SimliCallStage({
             stageLabel={stageLabel}
             formattedTimer={videoCall.formattedTimer}
             personaName={simulation.persona_name}
+            statusText={voice.statusText}
             studentVideoRef={videoCall.studentVideoRef}
             showStudentPip={showStudentPip}
             cameraUnavailable={videoCall.cameraUnavailable}
@@ -348,11 +351,6 @@ export function SimliCallStage({
             onToggleCamera={videoCall.toggleCamera}
             onEndCall={() => setShowEndModal(true)}
           />
-          {voice.statusText.length > 0 && (
-            <p className="absolute top-14 left-4 z-30 text-xs text-white/60 max-w-md">
-              {voice.statusText}
-            </p>
-          )}
           {scoreError.length > 0 && (
             <p className="absolute bottom-2 left-4 z-30 text-sm text-error">{scoreError}</p>
           )}

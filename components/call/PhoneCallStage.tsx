@@ -17,7 +17,7 @@ import { useAudioWaveform } from "@/hooks/useAudioWaveform";
 import { useProspectingVoice } from "@/hooks/useProspectingVoice";
 import { useVideoCall } from "@/hooks/useVideoCall";
 import { completeStage, fetchStageScore } from "@/lib/attempt-actions";
-import type { Simulation } from "@/types";
+import type { Simulation, SimulationStage } from "@/types";
 
 type PhonePhase = "lobby" | "connecting" | "active" | "scoring" | "scored";
 
@@ -27,10 +27,18 @@ type PhoneCallStageProps = {
   stageHint: string;
   openingGreeting?: string;
   onAdvance: () => void;
+  /** UI stage badge — defaults to prospecting. */
+  callStage?: SimulationStage;
+  /** Stage saved to stage_scores — defaults to prospecting. */
+  scoreStage?: SimulationStage;
+  runningTotalScore?: number;
+  priorStagesSummary?: string;
+  scoreTranscriptExtra?: string;
+  advanceLabel?: string;
 };
 
 /**
- * Orchestrates the prospecting phone-call experience end to end.
+ * Orchestrates the voice-only phone-call experience end to end.
  */
 export function PhoneCallStage({
   simulation,
@@ -38,6 +46,12 @@ export function PhoneCallStage({
   stageHint,
   openingGreeting,
   onAdvance,
+  callStage = "prospecting",
+  scoreStage = "prospecting",
+  runningTotalScore = 0,
+  priorStagesSummary,
+  scoreTranscriptExtra = "",
+  advanceLabel = "Next Stage →",
 }: PhoneCallStageProps): React.ReactElement {
   const [phase, setPhase] = useState<PhonePhase>("lobby");
   const [showEndModal, setShowEndModal] = useState(false);
@@ -107,19 +121,26 @@ export function PhoneCallStage({
     await new Promise<void>((r) => setTimeout(r, CALL_SCORE_DELAY_MS));
 
     try {
+      const transcript = voice.getFullTranscript();
+      const fullTranscript = scoreTranscriptExtra
+        ? `${transcript}\n\n${scoreTranscriptExtra}`
+        : transcript;
+
       const result = await fetchStageScore({
-        stage: "prospecting",
-        transcript,
+        stage: scoreStage,
+        transcript: fullTranscript,
+        priorStagesSummary,
         simulationContext: context,
+        runningTotalScore,
       });
       setScore(result.score);
       setFeedback(result.feedback);
       await completeStage(
         attemptId,
-        "prospecting",
+        scoreStage,
         result.score,
         result.feedback,
-        transcript
+        fullTranscript
       );
       setPhase("scored");
       showToast("Stage complete — score saved", "success");
@@ -128,7 +149,16 @@ export function PhoneCallStage({
       setScoreError(err instanceof Error ? err.message : "Scoring failed");
       setPhase("active");
     }
-  }, [voice, attemptId, context, showToast]);
+  }, [
+    voice,
+    attemptId,
+    context,
+    showToast,
+    scoreStage,
+    scoreTranscriptExtra,
+    priorStagesSummary,
+    runningTotalScore,
+  ]);
 
   const handleConfirmEndCall = useCallback((): void => {
     setShowEndModal(false);
@@ -146,7 +176,7 @@ export function PhoneCallStage({
             <StageScoreReveal
               score={score}
               feedback={feedback}
-              advanceLabel="Next Stage →"
+              advanceLabel={advanceLabel}
               onAdvance={onAdvance}
             />
             {scoreError.length > 0 && <p className="text-sm text-error mt-4">{scoreError}</p>}
@@ -192,7 +222,7 @@ export function PhoneCallStage({
           />
         )}
         <PhoneCallLayout
-          stage="prospecting"
+          stage={callStage}
           personaName={simulation.persona_name}
           personaRole={simulation.persona_role}
           formattedTimer={videoCall.formattedTimer}

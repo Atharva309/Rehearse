@@ -6,12 +6,8 @@
 
 "use client";
 
-import { CallControlPill } from "@/components/ui/CallControlPill";
 import { CallTranscript } from "@/components/call/CallTranscript";
-import {
-  CALL_CONTROL_BAR_BOTTOM_PX,
-  CALL_OVERLAY_INSET_PX,
-} from "@/lib/constants";
+import { CALL_OVERLAY_INSET_PX } from "@/lib/constants";
 
 /** Minimum height for phone and video call containers (pipeline stays visible above). */
 export const CALL_STAGE_MIN_HEIGHT_CLASS = "call-stage-min-h";
@@ -32,6 +28,7 @@ type CallLayoutProps = {
   stageLabel: string;
   formattedTimer: string;
   personaName: string;
+  statusText?: string;
   studentVideoRef: React.RefCallback<HTMLVideoElement | null>;
   showStudentPip: boolean;
   cameraUnavailable: boolean;
@@ -46,11 +43,145 @@ type CallLayoutProps = {
 
 const callStyle = {
   "--call-inset": `${CALL_OVERLAY_INSET_PX}px`,
-  "--call-controls-bottom": `${CALL_CONTROL_BAR_BOTTOM_PX}px`,
 } as React.CSSProperties;
 
-const pipVideoClass =
-  "absolute bottom-6 right-6 z-20 w-48 h-36 rounded-xl object-cover border-2 border-white/20 shadow-lg pointer-events-auto scale-x-[-1]";
+function PhoneDownIcon(): React.ReactElement {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+      aria-hidden
+    >
+      <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.26 9.11 19.79 19.79 0 0 1 1.2 .5a2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11z" />
+      <line x1="23" y1="1" x2="1" y2="23" />
+    </svg>
+  );
+}
+
+function MicIcon(): React.ReactElement {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+      aria-hidden
+    >
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="8" y1="23" x2="16" y2="23" />
+    </svg>
+  );
+}
+
+function MicMutedIcon(): React.ReactElement {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+      aria-hidden
+    >
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="8" y1="23" x2="16" y2="23" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
+function CameraIcon(): React.ReactElement {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+      aria-hidden
+    >
+      <path d="M17 10.5V7a2 2 0 0 0-2-2H5A2 2 0 0 0 3 7v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 2.5V8l-4 2.5z" />
+    </svg>
+  );
+}
+
+type VideoCallControlPillProps = {
+  isMuted: boolean;
+  isCameraOff: boolean;
+  cameraUnavailable: boolean;
+  onToggleMute: () => void;
+  onToggleCamera: () => void;
+  onEndCall: () => void;
+};
+
+/**
+ * Video-call-only control bar with inline SVG icons (no shared icon sizing issues).
+ */
+function VideoCallControlPill({
+  isMuted,
+  isCameraOff,
+  cameraUnavailable,
+  onToggleMute,
+  onToggleCamera,
+  onEndCall,
+}: VideoCallControlPillProps): React.ReactElement {
+  return (
+    <div className="pointer-events-auto absolute bottom-[70px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/60 px-3 py-2 shadow-xl backdrop-blur-md">
+      <button
+        type="button"
+        onClick={onToggleMute}
+        aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 transition-colors ${isMuted ? "border-error bg-error/90 text-white" : "bg-white/10 text-white hover:bg-white/20"}`}
+      >
+        {isMuted ? <MicMutedIcon /> : <MicIcon />}
+      </button>
+
+      <button
+        type="button"
+        onClick={onToggleCamera}
+        disabled={cameraUnavailable}
+        aria-label={isCameraOff ? "Turn camera on" : "Turn camera off"}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/20 disabled:opacity-40"
+      >
+        <CameraIcon />
+      </button>
+
+      <button
+        type="button"
+        onClick={onEndCall}
+        aria-label="End call"
+        className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-red-500 px-5 text-sm font-medium text-white transition-colors hover:bg-red-600"
+      >
+        <PhoneDownIcon />
+        <span>End</span>
+      </button>
+    </div>
+  );
+}
 
 /**
  * Stitch video-call chrome: badge, timer, PiP, floating controls, bottom transcript.
@@ -59,6 +190,7 @@ export function CallLayout({
   stageLabel,
   formattedTimer,
   personaName,
+  statusText = "",
   studentVideoRef,
   showStudentPip,
   cameraUnavailable,
@@ -70,13 +202,22 @@ export function CallLayout({
   onToggleCamera,
   onEndCall,
 }: CallLayoutProps): React.ReactElement {
+  const pipClass =
+    "pointer-events-auto absolute bottom-20 right-6 z-20 h-36 w-48 rounded-xl border-2 border-white/20 object-cover shadow-lg scale-x-[-1]";
+
   return (
     <div
-      className={`absolute inset-0 z-10 pointer-events-none flex flex-col ${CALL_STAGE_MIN_HEIGHT_CLASS}`}
+      className={`absolute inset-0 z-10 pointer-events-none ${CALL_STAGE_MIN_HEIGHT_CLASS}`}
       style={{ ...callStyle, minHeight: `${CALL_STAGE_MIN_HEIGHT_VH}vh` }}
     >
       <span className="call-stage-badge pointer-events-auto">{stageLabel}</span>
       <span className="call-timer-badge pointer-events-auto">{formattedTimer}</span>
+
+      {statusText.length > 0 && (
+        <p className="pointer-events-none absolute left-6 top-12 z-20 max-w-md text-xs text-white/60">
+          {statusText}
+        </p>
+      )}
 
       {showStudentPip && (
         <>
@@ -85,11 +226,11 @@ export function CallLayout({
             autoPlay
             muted
             playsInline
-            className={`${pipVideoClass} ${isCameraOff ? "opacity-0" : "opacity-100"}`}
+            className={`${pipClass} ${isCameraOff ? "opacity-0" : "opacity-100"}`}
           />
           {isCameraOff && (
             <div
-              className={`${pipVideoClass} flex items-center justify-center bg-call-background text-xs text-white/50 opacity-100`}
+              className={`${pipClass} flex items-center justify-center bg-call-background text-xs text-white/50 opacity-100`}
             >
               Camera off
             </div>
@@ -99,23 +240,22 @@ export function CallLayout({
 
       {cameraUnavailable && !showStudentPip && (
         <div
-          className={`${pipVideoClass} flex items-center justify-center text-xs text-white/50 opacity-100`}
+          className={`${pipClass} flex items-center justify-center text-xs text-white/50 opacity-100`}
         >
           Camera unavailable
         </div>
       )}
 
-      <CallControlPill
+      <VideoCallControlPill
         isMuted={isMuted}
-        onToggleMute={onToggleMute}
-        onEndCall={onEndCall}
-        showCamera
         isCameraOff={isCameraOff}
-        isCameraDisabled={cameraUnavailable}
+        cameraUnavailable={cameraUnavailable}
+        onToggleMute={onToggleMute}
         onToggleCamera={onToggleCamera}
+        onEndCall={onEndCall}
       />
 
-      <div className="call-transcript-strip pointer-events-auto mt-auto">
+      <div className="call-transcript-strip pointer-events-auto absolute bottom-0 left-0 right-0 z-20">
         <CallTranscript
           userText={userTranscripts}
           personaText={personaTranscripts}
