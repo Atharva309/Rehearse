@@ -61,18 +61,24 @@ export function PhoneCallLayout({
         ];
 
   return (
-    <div className="absolute inset-0 z-10" style={phoneStyle}>
+    <div className="absolute inset-0 z-10 flex flex-col" style={phoneStyle}>
       <span className="call-stage-badge">{stageLabel}</span>
       <span className="call-timer-badge">{formattedTimer}</span>
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center px-6 pb-48">
-        <PersonaInitials name={personaName} />
-        <p className="mt-6 text-xl font-semibold">{personaName}</p>
-        <p className="text-sm text-white/60 mt-1">{personaRole}</p>
-        <p className="text-xs text-success mt-2 font-medium uppercase tracking-wider">On call</p>
+      <div className="flex flex-1 flex-col items-center justify-between px-6 pt-20 pb-52 min-h-0">
+        <div className="flex flex-col items-center gap-4">
+          <PersonaInitials name={personaName} />
+          <div className="text-center">
+            <p className="text-xl font-semibold">{personaName}</p>
+            <p className="text-sm text-white/60 mt-1">{personaRole}</p>
+            <p className="text-xs text-success mt-2 font-medium uppercase tracking-wider">
+              On call
+            </p>
+          </div>
+        </div>
 
         <div
-          className="flex items-end justify-center gap-1 mt-12 w-full max-w-xs"
+          className="flex items-end justify-center gap-1.5 w-full max-w-sm flex-shrink-0"
           style={{ height: PHONE_WAVEFORM_MAX_HEIGHT_PX + PHONE_WAVEFORM_MIN_HEIGHT_PX }}
           aria-hidden
         >

@@ -5,6 +5,7 @@
 
 "use client";
 
+import { CALL_STAGE_MIN_HEIGHT_CLASS } from "@/components/call/CallLayout";
 import { PhoneCallStage } from "@/components/call/PhoneCallStage";
 import type { Simulation, SimulationStage } from "@/types";
 
@@ -23,11 +24,13 @@ export function ProspectingStage({
   onComplete,
 }: ProspectingStageProps): React.ReactElement {
   return (
-    <PhoneCallStage
-      simulation={simulation}
-      attemptId={attemptId}
-      stageHint="PROSPECTING STAGE: You are on a short cold call. Be busy but fair."
-      onAdvance={() => onComplete("discovery")}
-    />
+    <div className={`${CALL_STAGE_MIN_HEIGHT_CLASS} flex flex-col flex-1 min-h-0 h-full`}>
+      <PhoneCallStage
+        simulation={simulation}
+        attemptId={attemptId}
+        stageHint="PROSPECTING STAGE: You are on a short cold call. Be busy but fair."
+        onAdvance={() => onComplete("discovery")}
+      />
+    </div>
   );
 }

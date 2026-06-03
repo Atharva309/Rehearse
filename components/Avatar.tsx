@@ -30,6 +30,11 @@ import {
   SIMLI_MAX_IDLE_TIME_SEC,
   SIMLI_MAX_SESSION_LENGTH_SEC,
 } from "@/lib/constants";
+import {
+  CALL_PERSONA_VIDEO_CLASS,
+  CALL_PERSONA_VIDEO_FRAME_CLASS,
+  CALL_PERSONA_VIDEO_GRADIENT_CLASS,
+} from "@/components/call/CallLayout";
 import type { AvatarRef, SpeakAudioPayload } from "@/types";
 
 // Re-export for consumers that imported AvatarRef from this module historically.
@@ -473,20 +478,23 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
   const showOverlay = initError !== null || isConnecting;
 
   return (
-    <div className="w-full h-full relative bg-call-background">
+    <div className="w-full h-full relative bg-call-background flex items-center justify-center">
       {showOverlay && (
         <div className="absolute inset-0 z-10 grid place-items-center bg-black/60 px-4 text-center text-sm text-gray-300">
           {initError ??
             (isConnecting ? "Connecting to Simli…" : "Tap Join Call to connect the avatar.")}
         </div>
       )}
-      <video
-        ref={videoRef}
-        className="absolute inset-0 h-full w-full object-cover"
-        autoPlay
-        playsInline
-        muted
-      />
+      <div className={CALL_PERSONA_VIDEO_FRAME_CLASS}>
+        <video
+          ref={videoRef}
+          className={CALL_PERSONA_VIDEO_CLASS}
+          autoPlay
+          playsInline
+          muted
+        />
+        <div className={CALL_PERSONA_VIDEO_GRADIENT_CLASS} aria-hidden />
+      </div>
       <audio ref={audioRef} className="hidden" autoPlay playsInline />
     </div>
   );

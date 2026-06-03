@@ -1,6 +1,7 @@
 /**
  * CallLayout.tsx
- * Active Simli video-call overlay — absolute layers over full-screen persona video.
+ * Active Simli video-call overlay — badge, PiP, controls, transcript.
+ * Also exports shared call-stage layout class names used by Avatar and stages.
  */
 
 "use client";
@@ -14,6 +15,18 @@ import {
   PIP_HEIGHT_PX,
   PIP_WIDTH_PX,
 } from "@/lib/constants";
+
+/** Minimum height for phone and video call containers (pipeline stays visible above). */
+export const CALL_STAGE_MIN_HEIGHT_CLASS = "call-stage-min-h";
+
+/** Centered persona video frame — 75% × 85% with dark border around it. */
+export const CALL_PERSONA_VIDEO_FRAME_CLASS = "call-persona-video-frame";
+
+/** Persona WebRTC video inside the frame. */
+export const CALL_PERSONA_VIDEO_CLASS = "call-persona-video";
+
+/** Bottom gradient on the persona video for transcript blend. */
+export const CALL_PERSONA_VIDEO_GRADIENT_CLASS = "call-persona-video-gradient";
 
 type CallLayoutProps = {
   stageLabel: string;
@@ -58,7 +71,10 @@ export function CallLayout({
   onEndCall,
 }: CallLayoutProps): React.ReactElement {
   return (
-    <div className="absolute inset-0 z-10 pointer-events-none" style={callStyle}>
+    <div
+      className={`absolute inset-0 z-10 pointer-events-none flex flex-col ${CALL_STAGE_MIN_HEIGHT_CLASS}`}
+      style={callStyle}
+    >
       <span className="call-stage-badge pointer-events-auto">{stageLabel}</span>
       <span className="call-timer-badge pointer-events-auto">{formattedTimer}</span>
 
@@ -98,7 +114,7 @@ export function CallLayout({
         onToggleCamera={onToggleCamera}
       />
 
-      <div className="call-transcript-strip pointer-events-auto">
+      <div className="call-transcript-strip pointer-events-auto mt-auto">
         <CallTranscript
           userText={userTranscripts}
           personaText={personaTranscripts}

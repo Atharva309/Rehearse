@@ -77,19 +77,42 @@ body {
   .call-container-root {
     @apply relative w-full flex flex-col bg-call-background text-white rounded-lg;
     padding: var(--call-container-padding, 16px);
-    min-height: 420px;
+    min-height: 75vh;
     flex: 1 1 auto;
-    /* Fits remaining viewport below header + pipeline without clipping */
-    max-height: calc(100vh - var(--call-chrome-offset, 280px));
   }
 
   .call-stage-slot {
     @apply relative flex flex-col flex-1 w-full min-h-0;
-    min-height: 360px;
+    min-height: 75vh;
+  }
+
+  .call-stage-min-h {
+    @apply flex flex-col flex-1 w-full min-h-0;
+    min-height: 75vh;
   }
 
   .call-screen-root {
-    @apply relative flex flex-col flex-1 w-full min-h-[360px] bg-call-background text-white overflow-hidden rounded-lg;
+    @apply relative flex flex-col flex-1 w-full bg-call-background text-white overflow-hidden rounded-lg;
+    min-height: 75vh;
+  }
+
+  /* Framed persona video — see CallLayout.tsx exports */
+  .call-persona-video-frame {
+    @apply relative overflow-hidden;
+    width: 75%;
+    height: 85%;
+    max-width: 75%;
+    max-height: 85%;
+    margin: auto;
+  }
+
+  .call-persona-video {
+    @apply block w-full h-full object-cover;
+  }
+
+  .call-persona-video-gradient {
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(to bottom, transparent 60%, rgb(0 0 0 / 0.85) 100%);
   }
 
   .stage-content-fade {
