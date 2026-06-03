@@ -5,7 +5,9 @@
 
 "use client";
 
+import { useEffect, useRef } from "react";
 import { ScoreBadge } from "@/components/ScoreBadge";
+import { useToast } from "@/hooks/useToast";
 
 type StageShellProps = {
   children: React.ReactNode;
@@ -31,6 +33,22 @@ export function StageShell({
   advanceLabel = "Next Stage",
   onAdvance,
 }: StageShellProps): React.ReactElement {
+  const { showToast } = useToast();
+  const hadScoreRef = useRef(false);
+
+  useEffect(() => {
+    if (score !== undefined && feedback && !hadScoreRef.current) {
+      hadScoreRef.current = true;
+      showToast("Stage complete — score saved", "success");
+    }
+  }, [score, feedback, showToast]);
+
+  useEffect(() => {
+    if (error && error.length > 0) {
+      showToast("Something went wrong. Please try again.", "error");
+    }
+  }, [error, showToast]);
+
   return (
     <div className="flex flex-col gap-6 flex-1 card-surface p-6">
       {children}

@@ -3,6 +3,7 @@
  * Lists published simulations and completed attempt history (Stitch layout).
  */
 
+import { EmptyState } from "@/components/EmptyState";
 import { SimulationCard } from "@/components/SimulationCard";
 import {
   StudentAttemptHistory,
@@ -31,6 +32,22 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
     .eq("student_id", profile.id)
     .eq("status", "in_progress");
 
+  const inProgressList = (attempts ?? []) as Attempt[];
+  const attemptIds = inProgressList.map((a) => a.id);
+
+  const stageCountByAttempt = new Map<string, number>();
+  if (attemptIds.length > 0) {
+    const { data: stageRows } = await supabase
+      .from("stage_scores")
+      .select("attempt_id")
+      .in("attempt_id", attemptIds);
+
+    (stageRows ?? []).forEach((row: { attempt_id: string }) => {
+      const id = row.attempt_id;
+      stageCountByAttempt.set(id, (stageCountByAttempt.get(id) ?? 0) + 1);
+    });
+  }
+
   const { data: completedAttempts } = await supabase
     .from("attempts")
     .select("id, total_score, completed_at, simulations ( id, title, persona_name )")
@@ -39,10 +56,7 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
     .order("completed_at", { ascending: false })
     .limit(20);
 
-  const attemptBySim = new Map(
-    (attempts ?? []).map((a: Attempt) => [a.simulation_id, a])
-  );
-
+  const attemptBySim = new Map(inProgressList.map((a) => [a.simulation_id, a]));
   const list = (simulations ?? []) as Simulation[];
 
   const history: StudentAttemptRow[] = (completedAttempts ?? []).map((row) => {
@@ -77,19 +91,25 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
       </div>
 
       {list.length === 0 ? (
-        <p className="text-text-secondary mt-12 text-center card-surface py-12">
-          No published simulations yet. Check back soon.
-        </p>
+        <EmptyState
+          icon="🎯"
+          title="No simulations available yet."
+          description="Check back soon — your teacher may publish new scenarios."
+        />
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
           {list.map((sim) => {
             const existing = attemptBySim.get(sim.id);
+            const stagesCompleted = existing
+              ? stageCountByAttempt.get(existing.id) ?? 0
+              : 0;
             return (
               <SimulationCard
                 key={sim.id}
                 simulation={sim}
-                actionLabel={existing ? "Continue" : "Start"}
+                actionLabel={existing ? "Continue" : "Start Simulation"}
                 href={`/student/simulation/${sim.id}${existing ? `?attempt=${existing.id}` : ""}`}
+                stagesCompleted={stagesCompleted}
               />
             );
           })}

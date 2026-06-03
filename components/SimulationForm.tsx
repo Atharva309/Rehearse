@@ -7,6 +7,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/hooks/useToast";
 import { createClient } from "@/lib/supabase/client";
 import { CHAT_SYSTEM_PROMPT } from "@/lib/persona";
 import type { Simulation } from "@/types";
@@ -24,6 +25,7 @@ export function SimulationForm({
   initial,
 }: SimulationFormProps): React.ReactElement {
   const router = useRouter();
+  const { showToast } = useToast();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [personaName, setPersonaName] = useState(initial?.persona_name ?? "Dana Reeves");
@@ -73,9 +75,14 @@ export function SimulationForm({
         .eq("id", initial.id);
       if (updateError) {
         setError(updateError.message);
+        showToast("Something went wrong. Please try again.", "error");
         setIsLoading(false);
         return;
       }
+      showToast(
+        shouldPublish ? "Simulation published" : "Simulation saved successfully",
+        "success"
+      );
       router.push(shouldPublish ? "/teacher/dashboard" : `/teacher/simulation/${initial.id}/edit`);
     } else {
       const { data, error: insertError } = await supabase
@@ -85,9 +92,14 @@ export function SimulationForm({
         .single();
       if (insertError) {
         setError(insertError.message);
+        showToast("Something went wrong. Please try again.", "error");
         setIsLoading(false);
         return;
       }
+      showToast(
+        shouldPublish ? "Simulation published" : "Simulation saved successfully",
+        "success"
+      );
       router.push(shouldPublish ? "/teacher/dashboard" : `/teacher/simulation/${data.id}/edit`);
     }
     router.refresh();

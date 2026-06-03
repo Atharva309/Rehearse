@@ -6,7 +6,8 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { Leaderboard } from "@/components/Leaderboard";
+import { EmptyState } from "@/components/EmptyState";
+import { TeacherLeaderboard } from "@/components/TeacherLeaderboard";
 import { STAGE_LABELS, SCORED_STAGES } from "@/lib/constants";
 import { scoreToGrade } from "@/lib/grades";
 import { stageScoreTone, toneTextClass } from "@/lib/score-display";
@@ -25,17 +26,21 @@ type AttemptRow = {
 type TeacherResultsClientProps = {
   attempts: AttemptRow[];
   leaderboard: LeaderboardEntry[];
+  stageScoresByAttempt: Record<string, StageScore[]>;
 };
 
 /**
- * Teacher results table with expandable stage detail.
+ * Teacher results table with expandable stage detail and leaderboard tab.
  */
 export function TeacherResultsClient({
   attempts,
   leaderboard,
+  stageScoresByAttempt,
 }: TeacherResultsClientProps): React.ReactElement {
   const [tab, setTab] = useState<"attempts" | "leaderboard">("attempts");
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  const completedAttempts = attempts.filter((a) => a.status === "completed");
 
   return (
     <div>
@@ -57,21 +62,32 @@ export function TeacherResultsClient({
       </div>
 
       {tab === "leaderboard" ? (
-        <Leaderboard entries={leaderboard} />
+        <TeacherLeaderboard
+          entries={leaderboard}
+          stageScoresByAttempt={stageScoresByAttempt}
+          emptyMessage="No students have completed this simulation yet."
+        />
+      ) : completedAttempts.length === 0 && attempts.length === 0 ? (
+        <EmptyState
+          icon="👥"
+          title="No students have attempted this simulation yet."
+          description="Share the published simulation with your class to see attempts here."
+        />
       ) : attempts.length === 0 ? (
-        <p className="text-text-secondary text-center py-12 card-surface">
-          No student attempts yet.
-        </p>
+        <EmptyState
+          icon="👥"
+          title="No students have attempted this simulation yet."
+        />
       ) : (
         <div className="card-surface overflow-hidden">
           <table className="w-full text-sm stitch-table">
             <thead>
               <tr>
                 <th>Student</th>
-                <th className="px-4 py-3 font-medium">Started</th>
-                <th className="px-4 py-3 font-medium">Score</th>
-                <th className="px-4 py-3 font-medium">Grade</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                <th>Started</th>
+                <th>Score</th>
+                <th>Grade</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -81,17 +97,15 @@ export function TeacherResultsClient({
                     className="border-t border-border cursor-pointer hover:bg-surface/80"
                     onClick={() => setExpanded(expanded === row.id ? null : row.id)}
                   >
-                    <td className="px-4 py-3 font-medium text-text-primary">
+                    <td className="font-medium text-text-primary">
                       {row.profiles?.full_name ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-text-secondary">
+                    <td className="text-text-secondary">
                       {new Date(row.started_at).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3">{row.total_score}/600</td>
-                    <td className="px-4 py-3 font-medium text-gold">
-                      {scoreToGrade(row.total_score)}
-                    </td>
-                    <td className="px-4 py-3 capitalize text-text-secondary">
+                    <td>{row.total_score}/600</td>
+                    <td className="font-medium text-gold">{scoreToGrade(row.total_score)}</td>
+                    <td className="capitalize text-text-secondary">
                       {row.status.replace("_", " ")}
                     </td>
                   </tr>

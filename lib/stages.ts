@@ -40,6 +40,13 @@ export function getNextStage(stage: SimulationStage): SimulationStage | null {
 }
 
 /**
+ * Counts how many of the six playable stages have a saved score.
+ */
+export function countCompletedStages(completedScores: StageScore[]): number {
+  return completedScores.length;
+}
+
+/**
  * Builds sidebar progress items from current stage and completed scores.
  */
 export function buildStageProgress(

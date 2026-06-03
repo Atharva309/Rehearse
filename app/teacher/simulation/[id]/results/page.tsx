@@ -2,12 +2,14 @@
  * simulation/[id]/results/page.tsx — teacher
  */
 
-import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 import { redirect } from "next/navigation";
 import { TeacherResultsClient } from "@/components/TeacherResultsClient";
+import { LEADERBOARD_QUERY_LIMIT } from "@/lib/constants";
 import { buildLeaderboard } from "@/lib/leaderboard";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
+import type { StageScore } from "@/types";
 
 type PageProps = { params: { id: string } };
 
@@ -36,26 +38,44 @@ export default async function TeacherResultsPage({
 
   const { data: completed } = await supabase
     .from("attempts")
-    .select("id, student_id, total_score, profiles(full_name)")
+    .select(
+      `
+      id,
+      student_id,
+      total_score,
+      completed_at,
+      profiles (
+        full_name
+      )
+    `
+    )
     .eq("simulation_id", params.id)
     .eq("status", "completed")
-    .order("total_score", { ascending: false });
+    .order("total_score", { ascending: false })
+    .limit(LEADERBOARD_QUERY_LIMIT);
 
   const leaderboard = buildLeaderboard(
     (completed ?? []) as Parameters<typeof buildLeaderboard>[0]
   );
 
+  const stageScoresByAttempt: Record<string, StageScore[]> = {};
+  (attempts ?? []).forEach((row) => {
+    const scores = (row as { stage_scores?: StageScore[] }).stage_scores ?? [];
+    if (row.status === "completed") {
+      stageScoresByAttempt[row.id] = scores;
+    }
+  });
+
   return (
     <div>
-      <Link href="/teacher/dashboard" className="text-sm text-accent font-medium hover:underline">
-        ← Dashboard
-      </Link>
-      <h1 className="text-2xl font-bold text-text-primary mt-4">{simulation.title} — Results</h1>
+      <BackButton label="Back to My Simulations" href="/teacher/dashboard" />
+      <h1 className="text-2xl font-bold text-text-primary mt-2">{simulation.title} — Results</h1>
       <p className="text-sm text-text-secondary mt-1">Student attempts and leaderboard</p>
       <div className="mt-8">
         <TeacherResultsClient
           attempts={(attempts ?? []) as Parameters<typeof TeacherResultsClient>[0]["attempts"]}
           leaderboard={leaderboard}
+          stageScoresByAttempt={stageScoresByAttempt}
         />
       </div>
     </div>

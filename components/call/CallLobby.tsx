@@ -47,7 +47,7 @@ export function CallLobby({
   onJoinCall,
 }: CallLobbyProps): React.ReactElement {
   return (
-    <div className="call-screen-root flex flex-col" style={lobbyStyle}>
+    <div className="call-screen-root flex flex-col h-full min-h-[360px]" style={lobbyStyle}>
       <div className="flex-1 grid lg:grid-cols-2 gap-6 p-6 lg:p-10 items-center max-w-6xl mx-auto w-full">
         {/* Host / persona panel */}
         <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm flex flex-col items-center justify-center">

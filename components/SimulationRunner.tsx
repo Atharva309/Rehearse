@@ -1,12 +1,14 @@
 /**
  * SimulationRunner.tsx
- * Client stage router — full-width Stitch pipeline, stage content below.
+ * Client stage router — pipeline always visible; contained call area below.
  */
 
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { BackButton } from "@/components/BackButton";
+import { CallContainer } from "@/components/call/CallContainer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PipelineProgress } from "@/components/PipelineProgress";
 import { CloseStage } from "@/components/stages/CloseStage";
@@ -27,7 +29,7 @@ type SimulationRunnerProps = {
 const CALL_STAGES: SimulationStage[] = ["prospecting", "discovery", "objections", "close"];
 
 /**
- * Renders full-width pipeline header and active stage content.
+ * Renders pipeline header and active stage content below.
  */
 export function SimulationRunner({
   simulation,
@@ -43,6 +45,17 @@ export function SimulationRunner({
     setStageScores(initialScores);
   }, [initialAttempt, initialScores]);
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+      if (attempt.status === "in_progress") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [attempt.status]);
+
   const progress = useMemo(
     () => buildStageProgress(attempt.current_stage, stageScores),
     [attempt.current_stage, stageScores]
@@ -53,10 +66,13 @@ export function SimulationRunner({
     stageScores.find((s) => s.stage === "discovery")?.transcript ?? "";
   const pitchText = stageScores.find((s) => s.stage === "presentation")?.transcript ?? "";
 
-  const handleStageComplete = (next: SimulationStage): void => {
-    setAttempt((a) => ({ ...a, current_stage: next }));
-    router.refresh();
-  };
+  const handleStageComplete = useCallback(
+    (next: SimulationStage): void => {
+      setAttempt((a) => ({ ...a, current_stage: next }));
+      router.refresh();
+    },
+    [router]
+  );
 
   const handleSimulationComplete = (): void => {
     router.push(`/student/simulation/${simulation.id}/complete?attempt=${attempt.id}`);
@@ -65,16 +81,73 @@ export function SimulationRunner({
   const stage = attempt.current_stage;
   const isCallStage = CALL_STAGES.includes(stage);
 
-  return (
-    <div className="w-full">
-      {!isCallStage && (
-        <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[100vw] px-4 sm:px-8 mb-2">
-          <PipelineProgress items={progress} />
-        </div>
+  const stageContent = (
+    <ErrorBoundary stageName={stage}>
+      {stage === "lead_gen" && (
+        <LeadGenStage
+          simulation={simulation}
+          attemptId={attempt.id}
+          onComplete={handleStageComplete}
+        />
       )}
+      {stage === "prospecting" && (
+        <ProspectingStage
+          simulation={simulation}
+          attemptId={attempt.id}
+          onComplete={handleStageComplete}
+        />
+      )}
+      {stage === "discovery" && (
+        <DiscoveryStage
+          simulation={simulation}
+          attemptId={attempt.id}
+          runningTotalScore={runningTotal}
+          onComplete={handleStageComplete}
+        />
+      )}
+      {stage === "presentation" && (
+        <PresentationStage
+          simulation={simulation}
+          attemptId={attempt.id}
+          discoveryNotes={discoveryTranscript}
+          runningTotalScore={runningTotal}
+          onComplete={handleStageComplete}
+        />
+      )}
+      {stage === "objections" && (
+        <ObjectionsStage
+          simulation={simulation}
+          attemptId={attempt.id}
+          pitchText={pitchText}
+          runningTotalScore={runningTotal}
+          onComplete={handleStageComplete}
+        />
+      )}
+      {stage === "close" && (
+        <CloseStage
+          simulation={simulation}
+          attemptId={attempt.id}
+          stageScores={stageScores}
+          runningTotalScore={runningTotal}
+          onComplete={handleSimulationComplete}
+        />
+      )}
+      {stage === "results" && (
+        <p className="text-text-secondary">Redirecting to results...</p>
+      )}
+    </ErrorBoundary>
+  );
+
+  return (
+    <div className={`w-full ${isCallStage ? "overflow-hidden" : ""}`}>
+      <BackButton label="Back to Dashboard" href="/student/dashboard" />
+
+      <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[100vw] px-4 sm:px-8 mb-4">
+        <PipelineProgress items={progress} />
+      </div>
 
       {!isCallStage && (
-        <header className="max-w-3xl mb-8">
+        <header className="max-w-3xl mb-6">
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">
             {simulation.title}
           </h1>
@@ -84,62 +157,11 @@ export function SimulationRunner({
         </header>
       )}
 
-      <div className={isCallStage ? "" : "max-w-3xl"}>
-        <ErrorBoundary stageName={stage}>
-          {stage === "lead_gen" && (
-            <LeadGenStage
-              simulation={simulation}
-              attemptId={attempt.id}
-              onComplete={handleStageComplete}
-            />
-          )}
-          {stage === "prospecting" && (
-            <ProspectingStage
-              simulation={simulation}
-              attemptId={attempt.id}
-              onComplete={handleStageComplete}
-            />
-          )}
-          {stage === "discovery" && (
-            <DiscoveryStage
-              simulation={simulation}
-              attemptId={attempt.id}
-              runningTotalScore={runningTotal}
-              onComplete={handleStageComplete}
-            />
-          )}
-          {stage === "presentation" && (
-            <PresentationStage
-              simulation={simulation}
-              attemptId={attempt.id}
-              discoveryNotes={discoveryTranscript}
-              runningTotalScore={runningTotal}
-              onComplete={handleStageComplete}
-            />
-          )}
-          {stage === "objections" && (
-            <ObjectionsStage
-              simulation={simulation}
-              attemptId={attempt.id}
-              pitchText={pitchText}
-              runningTotalScore={runningTotal}
-              onComplete={handleStageComplete}
-            />
-          )}
-          {stage === "close" && (
-            <CloseStage
-              simulation={simulation}
-              attemptId={attempt.id}
-              stageScores={stageScores}
-              runningTotalScore={runningTotal}
-              onComplete={handleSimulationComplete}
-            />
-          )}
-          {stage === "results" && (
-            <p className="text-text-secondary">Redirecting to results...</p>
-          )}
-        </ErrorBoundary>
-      </div>
+      {isCallStage ? (
+        <CallContainer>{stageContent}</CallContainer>
+      ) : (
+        <div className="max-w-3xl">{stageContent}</div>
+      )}
     </div>
   );
 }

@@ -3,11 +3,10 @@
  * Pipeline (all complete), gold/blue/red scores, and leaderboard.
  */
 
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { BackButton } from "@/components/BackButton";
 import { PipelineProgress } from "@/components/PipelineProgress";
-import { Leaderboard } from "@/components/Leaderboard";
-import { STAGE_LABELS, SCORED_STAGES } from "@/lib/constants";
+import { StudentLeaderboard } from "@/components/StudentLeaderboard";
+import { LEADERBOARD_QUERY_LIMIT, SCORED_STAGES, STAGE_LABELS } from "@/lib/constants";
 import { scoreToGrade } from "@/lib/grades";
 import { buildLeaderboard } from "@/lib/leaderboard";
 import { buildStageProgress } from "@/lib/stages";
@@ -19,6 +18,7 @@ import {
 } from "@/lib/score-display";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 import type { StageScore } from "@/types";
 
 type PageProps = {
@@ -63,10 +63,21 @@ export default async function SimulationCompletePage({
 
   const { data: leaderboardRows } = await supabase
     .from("attempts")
-    .select("id, student_id, total_score, profiles(full_name)")
+    .select(
+      `
+      id,
+      student_id,
+      total_score,
+      completed_at,
+      profiles (
+        full_name
+      )
+    `
+    )
     .eq("simulation_id", params.id)
     .eq("status", "completed")
-    .order("total_score", { ascending: false });
+    .order("total_score", { ascending: false })
+    .limit(LEADERBOARD_QUERY_LIMIT);
 
   const leaderboard = buildLeaderboard(
     (leaderboardRows ?? []) as Parameters<typeof buildLeaderboard>[0]
@@ -74,68 +85,61 @@ export default async function SimulationCompletePage({
 
   return (
     <div className="w-full">
+      <BackButton label="Back to Dashboard" href="/student/dashboard" />
+
       <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[100vw] px-4 sm:px-8 mb-6">
         <PipelineProgress items={pipelineItems} allComplete />
       </div>
+
       <div className="max-w-3xl">
-
-      <h1 className="text-2xl font-bold text-text-primary">Results</h1>
-      <p className="text-sm text-text-secondary mt-1">
-        {(attempt.simulations as { title: string })?.title ?? "Simulation"}
-      </p>
-
-      <div className={`mt-8 rounded-lg border p-6 ${toneBgClass(totalTone)}`}>
-        <p className={`text-5xl font-bold ${toneTextClass(totalTone)}`}>{total}</p>
-        <p className="text-text-secondary text-sm">out of 600</p>
-        <p className="text-xl font-semibold mt-2 text-text-primary">
-          Grade: <span className={toneTextClass(totalTone)}>{grade}</span>
+        <h1 className="text-2xl font-bold text-text-primary">Results</h1>
+        <p className="text-sm text-text-secondary mt-1">
+          {(attempt.simulations as { title: string })?.title ?? "Simulation"}
         </p>
-      </div>
 
-      <div className="mt-8 card-surface overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-surface text-left text-text-secondary border-b border-border">
-            <tr>
-              <th className="px-4 py-3 font-medium">Stage</th>
-              <th className="px-4 py-3 font-medium">Score</th>
-              <th className="px-4 py-3 font-medium">Feedback</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SCORED_STAGES.map((stage) => {
-              const row = scores.find((s) => s.stage === stage);
-              const tone = row ? stageScoreTone(row.score) : null;
-              return (
-                <tr key={stage} className="border-t border-border">
-                  <td className="px-4 py-3 font-medium text-text-primary">
-                    {STAGE_LABELS[stage]}
-                  </td>
-                  <td className="px-4 py-3">
-                    {row ? (
-                      <span className={`font-semibold ${toneTextClass(tone!)}`}>
-                        {row.score}/100
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">{row?.feedback ?? "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+        <div className={`mt-8 rounded-lg border p-6 ${toneBgClass(totalTone)}`}>
+          <p className={`text-5xl font-bold ${toneTextClass(totalTone)}`}>{total}</p>
+          <p className="text-text-secondary text-sm">out of 600</p>
+          <p className="text-xl font-semibold mt-2 text-text-primary">
+            Grade: <span className={toneTextClass(totalTone)}>{grade}</span>
+          </p>
+        </div>
 
-      <h2 className="text-lg font-semibold text-text-primary mt-12 mb-4">Leaderboard</h2>
-      <Leaderboard entries={leaderboard} highlightStudentId={profile.id} />
+        <div className="mt-8 card-surface overflow-hidden">
+          <table className="w-full text-sm stitch-table">
+            <thead>
+              <tr>
+                <th>Stage</th>
+                <th>Score</th>
+                <th>Feedback</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SCORED_STAGES.map((stage) => {
+                const row = scores.find((s) => s.stage === stage);
+                const tone = row ? stageScoreTone(row.score) : null;
+                return (
+                  <tr key={stage} className="border-t border-border">
+                    <td className="font-medium text-text-primary">{STAGE_LABELS[stage]}</td>
+                    <td>
+                      {row ? (
+                        <span className={`font-semibold ${toneTextClass(tone!)}`}>
+                          {row.score}/100
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="text-text-secondary">{row?.feedback ?? "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
 
-      <Link
-        href="/student/dashboard"
-        className="inline-block mt-8 px-5 py-2.5 border border-border rounded-md text-sm font-medium text-text-primary hover:bg-surface"
-      >
-        Back to Dashboard
-      </Link>
+        <h2 className="text-lg font-semibold text-text-primary mt-12 mb-4">Leaderboard</h2>
+        <StudentLeaderboard entries={leaderboard} highlightStudentId={profile.id} />
       </div>
     </div>
   );

@@ -73,9 +73,15 @@ body {
     @apply w-full max-w-md card-surface p-8 lg:p-10 border-t-4;
   }
 
-  /* ── Call UI ─── */
+  /* ── Call UI (contained below pipeline, not full viewport) ─── */
+  .call-container-root {
+    @apply relative w-full bg-call-background text-white overflow-hidden rounded-lg;
+    height: calc(100vh - var(--navbar-h, 64px) - var(--pipeline-h, 140px) - 3rem);
+    min-height: 420px;
+  }
+
   .call-screen-root {
-    @apply fixed inset-0 z-50 bg-call-background text-white overflow-hidden;
+    @apply relative w-full h-full bg-call-background text-white overflow-hidden;
   }
 
   .call-stage-badge {

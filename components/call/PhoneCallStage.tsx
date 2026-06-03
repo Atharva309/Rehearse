@@ -6,6 +6,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useToast } from "@/hooks/useToast";
 import { EndCallModal } from "@/components/call/EndCallModal";
 import { PhoneCallLayout } from "@/components/call/PhoneCallLayout";
 import { PhoneCallLobby } from "@/components/call/PhoneCallLobby";
@@ -42,6 +43,7 @@ export function PhoneCallStage({
   const [score, setScore] = useState<number | undefined>();
   const [feedback, setFeedback] = useState<string | undefined>();
   const [scoreError, setScoreError] = useState("");
+  const { showToast } = useToast();
 
   const videoCall = useVideoCall({ withVideo: false });
 
@@ -97,7 +99,9 @@ export function PhoneCallStage({
         transcript
       );
       setPhase("scored");
+      showToast("Stage complete — score saved", "success");
     } catch (err) {
+      showToast("Something went wrong. Please try again.", "error");
       setScoreError(err instanceof Error ? err.message : "Scoring failed");
       setPhase("active");
     }
@@ -113,7 +117,7 @@ export function PhoneCallStage({
 
   if (phase === "scoring") {
     return (
-      <div className="call-screen-root flex flex-col items-center justify-center">
+      <div className="call-screen-root flex flex-col items-center justify-center min-h-[360px]">
         <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
         <p className="mt-4 text-sm text-white/70">Scoring your conversation…</p>
       </div>
@@ -135,7 +139,7 @@ export function PhoneCallStage({
 
   if (phase === "connecting") {
     return (
-      <div className="call-screen-root flex flex-col items-center justify-center">
+      <div className="call-screen-root flex flex-col items-center justify-center min-h-[360px]">
         <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
         <p className="mt-4 text-sm text-white/70">Calling {simulation.persona_name}…</p>
       </div>

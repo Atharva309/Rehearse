@@ -7,6 +7,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useToast } from "@/hooks/useToast";
 import { Avatar } from "@/components/Avatar";
 import { CallLayout } from "@/components/call/CallLayout";
 import { CallLobby } from "@/components/call/CallLobby";
@@ -57,7 +58,7 @@ export function SimliCallStage({
   const [score, setScore] = useState<number | undefined>();
   const [feedback, setFeedback] = useState<string | undefined>();
   const [scoreError, setScoreError] = useState("");
-
+  const { showToast } = useToast();
   const videoCall = useVideoCall({ withVideo: true });
   const connectStartedRef = useRef(false);
 
@@ -163,7 +164,9 @@ export function SimliCallStage({
         fullTranscript
       );
       setPhase("scored");
+      showToast("Stage complete — score saved", "success");
     } catch (err) {
+      showToast("Something went wrong. Please try again.", "error");
       setScoreError(err instanceof Error ? err.message : "Scoring failed");
       setPhase("active");
       setMountSimli(true);
@@ -184,7 +187,7 @@ export function SimliCallStage({
 
   if (phase === "scoring") {
     return (
-      <div className="call-screen-root flex flex-col items-center justify-center">
+      <div className="call-screen-root flex flex-col items-center justify-center min-h-[360px]">
         <div className="w-10 h-10 border-2 border-white/20 border-t-success rounded-full animate-spin" />
         <p className="mt-4 text-sm text-white/70">Scoring your conversation…</p>
       </div>
@@ -208,9 +211,7 @@ export function SimliCallStage({
     return (
       <>
         {connectError.length > 0 && (
-          <p className="fixed top-20 left-1/2 -translate-x-1/2 z-[55] text-sm text-error bg-page px-4 py-2 rounded-md shadow">
-            {connectError}
-          </p>
+          <p className="text-sm text-error mb-3">{connectError}</p>
         )}
         <CallLobby
           personaName={simulation.persona_name}

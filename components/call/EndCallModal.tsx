@@ -31,8 +31,7 @@ export function EndCallModal({
           End this call?
         </h2>
         <p className="text-sm text-white/60 mt-2">
-          Your conversation with {personaName} will be scored. You cannot return to this call after
-          ending it.
+          End this call? Your progress will be scored.
         </p>
         <div className="flex gap-3 mt-6 justify-end">
           <button

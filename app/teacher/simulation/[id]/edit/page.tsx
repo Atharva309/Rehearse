@@ -2,6 +2,7 @@
  * simulation/[id]/edit/page.tsx — teacher
  */
 
+import { BackButton } from "@/components/BackButton";
 import { redirect } from "next/navigation";
 import { SimulationForm } from "@/components/SimulationForm";
 import { createClient } from "@/lib/supabase/server";
@@ -30,8 +31,11 @@ export default async function EditSimulationPage({
 
   return (
     <div>
+      <BackButton label="Back to My Simulations" href="/teacher/dashboard" />
       <h1 className="text-2xl font-bold text-text-primary mb-2">Edit simulation</h1>
-      <p className="text-sm text-text-secondary mb-6">Update scenario details and republish when ready.</p>
+      <p className="text-sm text-text-secondary mb-6">
+        Update scenario details and republish when ready.
+      </p>
       <SimulationForm teacherId={profile.id} initial={data as Simulation} />
     </div>
   );

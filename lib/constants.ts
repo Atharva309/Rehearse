@@ -112,6 +112,11 @@ export const PIPELINE_GRID_MIN_WIDTH_PX = 720;
 export const PIPELINE_LABEL_INSET_LEFT_PX = 56;
 export const PIP_BORDER_RADIUS_PX = 12;
 export const AUTH_BRAND_PANEL_PERCENT = 42;
+export const APP_NAVBAR_HEIGHT_PX = 64;
+export const PIPELINE_SECTION_HEIGHT_PX = 140;
+export const TOAST_AUTO_DISMISS_MS = 3000;
+export const LEADERBOARD_TOP_N = 10;
+export const LEADERBOARD_QUERY_LIMIT = 50;
 
 /** Appended to persona system prompts on voice stages — reduces interruptions. */
 export const PERSONA_LISTENING_RULES =

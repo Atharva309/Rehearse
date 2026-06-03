@@ -75,6 +75,7 @@ export type LeaderboardEntry = {
   total_score: number;
   grade: string;
   attempt_id: string;
+  completed_at?: string | null;
 };
 
 /** Imperative handle exposed by Avatar for TTS playback and interruption. */
