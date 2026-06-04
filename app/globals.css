@@ -76,7 +76,8 @@ body {
   /* ── Call UI (contained below pipeline, not full viewport) ─── */
   .call-container-root {
     @apply relative flex w-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-call-background text-white;
-    min-height: 680px;
+    min-height: 720px;
+    height: calc(100dvh - 4rem - 8rem);
   }
 
   .call-stage-slot {

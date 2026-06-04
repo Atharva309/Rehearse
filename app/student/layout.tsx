@@ -18,7 +18,7 @@ export default async function StudentLayout({
 }): Promise<React.ReactElement> {
   const profile = await requireRole("student");
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex h-dvh flex-col overflow-hidden">
       <AppHeader userName={profile.full_name} homeHref="/student/dashboard" />
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-4 pb-3 pt-2 sm:px-6">
         {children}
