@@ -10,10 +10,10 @@ type CallContainerProps = {
 };
 
 /** Explicit height for the dark call box (viewport minus navbar + chrome above). */
-export const CALL_BOX_HEIGHT_CSS = "calc(100dvh - 4rem - 8rem)";
+export const CALL_BOX_HEIGHT_CSS = "calc(100dvh - 4rem - 7rem)";
 
 /** Minimum call box height on small screens. */
-export const CALL_BOX_MIN_HEIGHT_PX = 720;
+export const CALL_BOX_MIN_HEIGHT_PX = 800;
 
 /**
  * Dark call region filling all space below navbar, back link, and pipeline.

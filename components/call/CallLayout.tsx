@@ -17,7 +17,7 @@ export const CALL_STAGE_MIN_HEIGHT_CLASS = "call-stage-min-h";
 export const CALL_STAGE_MIN_HEIGHT_VH = 92;
 
 /** Bottom strip height — avatar video ends above this (controls + transcript). */
-export const CALL_VIDEO_BOTTOM_DOCK_PX = 140;
+export const CALL_VIDEO_BOTTOM_DOCK_PX = 200;
 
 /** Persona video frame — full avatar visible above bottom dock. */
 export const CALL_PERSONA_VIDEO_FRAME_CLASS = "call-persona-video-frame";
@@ -245,7 +245,7 @@ export function CallLayout({
           onToggleCamera={onToggleCamera}
           onEndCall={onEndCall}
         />
-        <div className="pointer-events-auto w-full px-4">
+        <div className="pointer-events-auto w-full max-w-4xl">
           <CallTranscript
             userText={userTranscripts}
             personaText={personaTranscripts}

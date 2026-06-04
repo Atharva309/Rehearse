@@ -76,8 +76,8 @@ body {
   /* ── Call UI (contained below pipeline, not full viewport) ─── */
   .call-container-root {
     @apply relative flex w-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-call-background text-white;
-    min-height: 720px;
-    height: calc(100dvh - 4rem - 8rem);
+    min-height: 800px;
+    height: calc(100dvh - 4rem - 7rem);
   }
 
   .call-stage-slot {
@@ -95,7 +95,7 @@ body {
   /* Persona video — full frame visible above bottom dock (see CallLayout exports) */
   .call-persona-video-frame {
     @apply absolute inset-x-0 top-0 overflow-hidden bg-black;
-    bottom: var(--call-video-dock-h, 140px);
+    bottom: var(--call-video-dock-h, 200px);
   }
 
   .call-persona-video {
@@ -109,9 +109,9 @@ body {
     background: linear-gradient(to top, rgb(0 0 0 / 0.2), transparent);
   }
 
-  /* Video call bottom dock — solid strip, no tall fade over the avatar */
+  /* Video call bottom dock — controls + transcript strip */
   .call-video-bottom-dock {
-    @apply absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-1.5 px-3 pb-3 pt-2;
+    @apply absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 px-3 pb-3 pt-2;
     background: rgb(10 10 10 / 0.92);
   }
 

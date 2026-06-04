@@ -112,6 +112,8 @@ export const SIMULATION_ENTRY_LOADER_MS = 500;
 export const STAGE_TRANSITION_MS = 200;
 export const CALL_CONTROL_BAR_BOTTOM_PX = 80;
 export const CALL_TRANSCRIPT_MAX_HEIGHT_PX = 128;
+/** Taller transcript strip during Simli video calls. */
+export const CALL_TRANSCRIPT_VIDEO_COMPACT_MAX_HEIGHT_PX = 132;
 export const PHONE_INITIALS_SIZE_PX = 96;
 export const PHONE_WAVEFORM_BAR_COUNT = 24;
 export const PHONE_WAVEFORM_MAX_HEIGHT_PX = 56;

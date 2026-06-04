@@ -6,7 +6,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { CALL_TRANSCRIPT_MAX_HEIGHT_PX } from "@/lib/constants";
+import { CALL_TRANSCRIPT_MAX_HEIGHT_PX, CALL_TRANSCRIPT_VIDEO_COMPACT_MAX_HEIGHT_PX } from "@/lib/constants";
 
 type CallTranscriptProps = {
   userText: string;
@@ -36,13 +36,15 @@ export function CallTranscript({
 
   const hasContent = userText.length > 0 || personaText.length > 0;
 
-  const maxHeight = compact ? 48 : CALL_TRANSCRIPT_MAX_HEIGHT_PX;
+  const maxHeight = compact
+    ? CALL_TRANSCRIPT_VIDEO_COMPACT_MAX_HEIGHT_PX
+    : CALL_TRANSCRIPT_MAX_HEIGHT_PX;
 
   return (
     <div
       ref={scrollRef}
-      className="overflow-y-auto rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-xs"
-      style={{ maxHeight }}
+      className="overflow-y-auto rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-sm"
+      style={{ maxHeight, minHeight: compact ? 100 : undefined }}
     >
       <div className="flex flex-col gap-2 text-sm">
         {userText.length > 0 && (
