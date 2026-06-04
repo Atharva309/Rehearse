@@ -16,17 +16,17 @@ export const CALL_STAGE_MIN_HEIGHT_CLASS = "call-stage-min-h";
 /** Viewport height fraction for call containers — must stay below 100vh. */
 export const CALL_STAGE_MIN_HEIGHT_VH = 92;
 
-/** Centered persona video frame — sized to keep face visible above bottom chrome. */
+/** Bottom strip height — avatar video ends above this (controls + transcript). */
+export const CALL_VIDEO_BOTTOM_DOCK_PX = 140;
+
+/** Persona video frame — full avatar visible above bottom dock. */
 export const CALL_PERSONA_VIDEO_FRAME_CLASS = "call-persona-video-frame";
 
-/** Persona WebRTC video inside the frame. */
+/** Persona WebRTC video — object-contain so face is never cropped. */
 export const CALL_PERSONA_VIDEO_CLASS = "call-persona-video";
 
 /** Bottom gradient on the persona video for transcript blend. */
 export const CALL_PERSONA_VIDEO_GRADIENT_CLASS = "call-persona-video-gradient";
-
-/** Height reserved at bottom so persona video stays above controls + transcript. */
-export const CALL_VIDEO_BOTTOM_DOCK_PX = 152;
 
 type CallLayoutProps = {
   stageLabel: string;
@@ -189,15 +189,15 @@ export function CallLayout({
   onEndCall,
 }: CallLayoutProps): React.ReactElement {
   const pipClass =
-    "pointer-events-auto absolute right-4 top-[4.5rem] z-[25] h-24 w-32 rounded-xl border-2 border-white/20 object-cover shadow-lg scale-x-[-1]";
+    "pointer-events-auto absolute right-6 top-16 z-20 h-36 w-48 rounded-xl border-2 border-white/20 object-cover shadow-lg scale-x-[-1]";
 
   return (
     <div
-      className="absolute inset-0 z-10 overflow-visible pointer-events-none"
+      className="pointer-events-none absolute inset-0 z-10 overflow-visible"
       style={callStyle}
     >
-      {/* Top-left: stage badge + status stacked — no overlap */}
-      <div className="pointer-events-none absolute left-6 top-4 z-20 flex max-w-[min(100%,420px)] flex-col items-start gap-2">
+      {/* Top-left: stage badge + status */}
+      <div className="pointer-events-none absolute left-6 top-6 z-30 flex max-w-[min(100%,420px)] flex-col items-start gap-2">
         <span className="call-stage-badge static pointer-events-auto">{stageLabel}</span>
         {statusText.length > 0 && (
           <p className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-xs text-white/70 backdrop-blur-sm">
@@ -206,7 +206,7 @@ export function CallLayout({
         )}
       </div>
 
-      <span className="call-timer-badge pointer-events-auto">{formattedTimer}</span>
+      <span className="call-timer-badge pointer-events-auto !right-6 !top-6 z-30">{formattedTimer}</span>
 
       {showStudentPip && (
         <>
