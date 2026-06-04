@@ -46,7 +46,7 @@ body {
   }
 
   .btn-call-join {
-    @apply px-10 py-3.5 bg-success text-white text-base font-semibold rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity;
+    @apply px-5 py-3 bg-success text-white text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity;
   }
 
   .card-surface {

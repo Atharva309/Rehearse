@@ -145,7 +145,7 @@ export function CallLobby({
             type="button"
             onClick={onJoinCall}
             disabled={!canJoin || isPermissionPending}
-            className="btn-call-join mt-2 w-auto self-start px-8"
+            className="btn-call-join mt-2 w-auto self-start"
           >
             Join Call
           </button>
