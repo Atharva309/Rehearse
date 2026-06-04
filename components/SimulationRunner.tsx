@@ -150,7 +150,7 @@ export function SimulationRunner({
     >
       <BackButton label="Back to Dashboard" href="/student/dashboard" />
 
-      <div className="mt-6 simulation-pipeline-bar rounded-t-lg overflow-hidden shrink-0">
+      <div className={`${isCallStage ? "mt-3" : "mt-6"} simulation-pipeline-bar shrink-0 overflow-hidden rounded-t-lg`}>
         <PipelineProgress items={progress} />
       </div>
 
