@@ -245,7 +245,7 @@ export function CallLayout({
           onToggleCamera={onToggleCamera}
           onEndCall={onEndCall}
         />
-        <div className="pointer-events-auto w-full max-w-3xl">
+        <div className="pointer-events-auto w-full px-4">
           <CallTranscript
             userText={userTranscripts}
             personaText={personaTranscripts}
