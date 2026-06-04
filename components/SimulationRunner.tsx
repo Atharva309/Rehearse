@@ -144,7 +144,7 @@ export function SimulationRunner({
     <div
       className={
         isCallStage
-          ? "flex h-full min-h-0 w-full flex-1 flex-col"
+          ? "flex min-h-0 w-full flex-1 flex-col"
           : "w-full px-6"
       }
     >
