@@ -10,24 +10,31 @@ import { AuthSplitLayout } from "@/components/ui/AuthSplitLayout";
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "./LoginForm";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Login page — redirects authenticated professors to dashboard; otherwise shows form.
  */
 export default async function LoginPage(): Promise<React.ReactElement> {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (session) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", session.user.id)
-      .single();
+  if (url && key) {
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (profile?.role === "teacher") {
-      redirect("/teacher/dashboard");
+    if (session) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profile?.role === "teacher") {
+        redirect("/teacher/dashboard");
+      }
     }
   }
 

@@ -9,6 +9,8 @@ import { AuthSplitLayout } from "@/components/ui/AuthSplitLayout";
 import { getStudentSession } from "@/lib/student-session";
 import { StudentLoginForm } from "./StudentLoginForm";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Student login page — redirects if session already exists.
  */
