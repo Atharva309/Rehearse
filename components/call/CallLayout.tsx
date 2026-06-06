@@ -7,6 +7,7 @@
 "use client";
 
 import { useState } from "react";
+import { PhoneEndIcon } from "@/components/ui/CallIcons";
 import { CALL_OVERLAY_INSET_PX } from "@/lib/constants";
 
 /** Minimum height for phone and video call containers (pipeline stays visible above). */
@@ -43,6 +44,8 @@ type CallLayoutProps = {
   onToggleCamera: () => void;
   onEndCall: () => void;
 };
+
+const END_CALL_ICON_CLASS = "block h-[18px] w-[18px] shrink-0";
 
 const callStyle = {
   "--call-inset": `${CALL_OVERLAY_INSET_PX}px`,
@@ -83,14 +86,6 @@ function SubtitlesIcon({ filled = false }: { filled?: boolean }): React.ReactEle
     <svg width="22" height="22" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" aria-hidden>
       <rect x="2" y="4" width="20" height="16" rx="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M7 10h6M7 14h10" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CallEndIcon(): React.ReactElement {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .55-.45 1-1 1H4.5c-.55 0-1-.45-1-1v-5c0-.55.45-1 1-1h2.3c3.4-2.4 7.5-3.8 12.2-3.8.55 0 1 .45 1 1v5c0 .55-.45 1-1 1h-1.9c-.55 0-1-.45-1-1v-3.1A15.9 15.9 0 0 0 12 9z" />
     </svg>
   );
 }
@@ -263,7 +258,7 @@ export function CallLayout({
             aria-label="End call"
             className="flex items-center gap-2 rounded-full bg-[#ba1a1a] py-3 pl-3 pr-5 text-white transition-all hover:opacity-90 active:scale-90"
           >
-            <CallEndIcon />
+            <PhoneEndIcon className={END_CALL_ICON_CLASS} />
             <span className="font-mono text-xs font-medium uppercase tracking-wider">End</span>
           </button>
         </div>
