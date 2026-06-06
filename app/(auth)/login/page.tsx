@@ -1,17 +1,36 @@
 /**
  * login/page.tsx
- * Stitch split-screen login page shell.
+ * Stitch split-screen login page shell — professor Supabase auth only.
  */
 
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
 import { AuthSplitLayout } from "@/components/ui/AuthSplitLayout";
+import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "./LoginForm";
 
 /**
- * Login page with brand panel and form card.
+ * Login page — redirects authenticated professors to dashboard; otherwise shows form.
  */
-export default function LoginPage(): React.ReactElement {
+export default async function LoginPage(): Promise<React.ReactElement> {
+  const supabase = createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .single();
+
+    if (profile?.role === "teacher") {
+      redirect("/teacher/dashboard");
+    }
+  }
+
   return (
     <AuthSplitLayout accent="accent" subtitle="Sign in to continue your sales training.">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Professor Sign In</p>

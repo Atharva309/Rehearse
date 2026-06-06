@@ -49,7 +49,7 @@ export function StudentLoginForm(): React.ReactElement {
   };
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="mt-8 space-y-4">
+    <form onSubmit={(e) => void handleSubmit(e)} className="mt-8 space-y-4" autoComplete="off">
       <label className="block text-sm font-medium text-text-primary">
         Class Code
         <input

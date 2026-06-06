@@ -3,14 +3,21 @@
  * Centered card for new students joining a class via join code.
  */
 
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AuthSplitLayout } from "@/components/ui/AuthSplitLayout";
+import { getStudentSession } from "@/lib/student-session";
 import { StudentRegisterForm } from "./StudentRegisterForm";
 
 /**
- * Student registration page with PitchLab branding.
+ * Student registration page — redirects if session already exists.
  */
-export default function StudentRegisterPage(): React.ReactElement {
+export default async function StudentRegisterPage(): Promise<React.ReactElement> {
+  const session = await getStudentSession();
+  if (session) {
+    redirect("/student/dashboard");
+  }
+
   return (
     <AuthSplitLayout accent="accent" subtitle="Create your student account to join your class.">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Student</p>

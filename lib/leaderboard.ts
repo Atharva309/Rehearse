@@ -24,7 +24,7 @@ function resolveStudentName(row: LeaderboardAttemptRow): string {
     return student.display_name.trim();
   }
   const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-  return profile?.full_name?.trim() || "Student";
+  return profile?.full_name?.trim() || "…";
 }
 
 /**

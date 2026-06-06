@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/useToast";
 import { createClient } from "@/lib/supabase/client";
-import { CHAT_SYSTEM_PROMPT } from "@/lib/persona";
 import type { Simulation } from "@/types";
 
 type SimulationFormProps = {
@@ -28,16 +27,10 @@ export function SimulationForm({
   const { showToast } = useToast();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [personaName, setPersonaName] = useState(initial?.persona_name ?? "Dana Reeves");
-  const [personaRole, setPersonaRole] = useState(
-    initial?.persona_role ?? "Retail shop owner at Walmart"
-  );
-  const [personaPrompt, setPersonaPrompt] = useState(
-    initial?.persona_system_prompt ?? CHAT_SYSTEM_PROMPT
-  );
-  const [simliFaceId, setSimliFaceId] = useState(
-    initial?.simli_face_id ?? process.env.NEXT_PUBLIC_SIMLI_FACE_ID ?? ""
-  );
+  const [personaName, setPersonaName] = useState(initial?.persona_name ?? "");
+  const [personaRole, setPersonaRole] = useState(initial?.persona_role ?? "");
+  const [personaPrompt, setPersonaPrompt] = useState(initial?.persona_system_prompt ?? "");
+  const [simliFaceId, setSimliFaceId] = useState(initial?.simli_face_id ?? "");
   const [productContext, setProductContext] = useState(initial?.product_context ?? "");
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? false);
   const [error, setError] = useState("");

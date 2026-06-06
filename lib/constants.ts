@@ -117,9 +117,6 @@ export const PASSWORD_MIN_LENGTH = 6;
 export const JOIN_CODE_LENGTH = 6;
 export const STUDENT_SESSION_DAYS = 7;
 
-export const DEFAULT_OPENING_GREETING =
-  "Yeah? I've got customers—what do you need?";
-
 // ── Stitch UI layout ──────────────────────────────────────────────────────────
 
 export const CALL_OVERLAY_INSET_PX = 16;

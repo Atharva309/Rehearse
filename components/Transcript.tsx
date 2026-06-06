@@ -1,21 +1,27 @@
 /**
  * Transcript.tsx
- * Live conversation display for the user and Dana lines.
- * Receives plain strings from useVoiceSession state.
+ * Live conversation display for the user and persona lines.
+ * Receives plain strings from voice session state.
  */
 
 "use client";
 
 type TranscriptProps = {
   userText: string;
-  danaText: string;
+  personaText: string;
+  personaName?: string;
 };
 
 /**
- * Shows the latest user and Dana transcript bubbles (or a waiting placeholder).
+ * Shows the latest user and persona transcript bubbles (or a waiting placeholder).
  */
-export function Transcript({ userText, danaText }: TranscriptProps): React.ReactElement {
-  const hasContent = userText.length > 0 || danaText.length > 0;
+export function Transcript({
+  userText,
+  personaText,
+  personaName,
+}: TranscriptProps): React.ReactElement {
+  const hasContent = userText.length > 0 || personaText.length > 0;
+  const personaLabel = personaName?.trim() || "…";
 
   return (
     <div className="flex flex-col w-full max-w-2xl mx-auto mt-6 bg-gray-900/80 backdrop-blur-md rounded-xl shadow-2xl min-h-[140px] p-6 border border-gray-800">
@@ -35,13 +41,13 @@ export function Transcript({ userText, danaText }: TranscriptProps): React.React
           </div>
         )}
 
-        {danaText.length > 0 && (
+        {personaText.length > 0 && (
           <div className="flex items-start gap-3 flex-row-reverse">
             <span className="shrink-0 w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center text-xs font-bold text-blue-200">
-              Dana
+              {personaLabel}
             </span>
             <div className="text-blue-200 text-md bg-blue-900/40 border border-blue-800/50 p-3 rounded-2xl rounded-tr-sm">
-              {danaText}
+              {personaText}
             </div>
           </div>
         )}

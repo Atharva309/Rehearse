@@ -9,8 +9,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { playBase64Speech, resumePlaybackContext, stopBase64Speech } from "@/lib/audio-playback";
 import { pickMediaRecorderMimeType } from "@/lib/audio";
+import { buildDefaultOpeningGreeting } from "@/lib/persona";
 import {
-  DEFAULT_OPENING_GREETING,
   MEDIA_RECORDER_TIMESLICE_MS,
   POST_SPEAK_COOLDOWN_MS,
   VOICE_ENDPOINTING_MS,
@@ -213,7 +213,9 @@ export function useProspectingVoice(config: ProspectingVoiceConfig): Prospecting
         };
         mediaRecorderRef.current = mediaRecorder;
 
-        const greeting = configRef.current.openingGreeting ?? DEFAULT_OPENING_GREETING;
+        const greeting =
+          configRef.current.openingGreeting ??
+          buildDefaultOpeningGreeting(configRef.current.personaName);
 
         connection.onTranscript((sentence: string, meta): void => {
           if (!canAcceptStudentSpeech()) return;

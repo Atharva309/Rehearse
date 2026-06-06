@@ -20,12 +20,16 @@ export default function RegisterPage(): React.ReactElement {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("student");
+  const [role, setRole] = useState<UserRole | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    if (!role) {
+      setError("Please select whether you are a student or teacher.");
+      return;
+    }
     setIsLoading(true);
     setError("");
     const supabase = createClient();
@@ -48,11 +52,12 @@ export default function RegisterPage(): React.ReactElement {
       <h2 className="text-2xl font-bold text-primary">Create account</h2>
       <p className="text-sm text-text-secondary mt-1">Join as a student or teacher</p>
 
-      <form onSubmit={(e) => void handleSubmit(e)} className="mt-8 space-y-4">
+      <form onSubmit={(e) => void handleSubmit(e)} className="mt-8 space-y-4" autoComplete="off">
         <label className="block text-sm font-medium text-text-primary">
           Full name
           <input
             required
+            autoComplete="off"
             className="input-field mt-1"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
@@ -63,6 +68,7 @@ export default function RegisterPage(): React.ReactElement {
           <input
             type="email"
             required
+            autoComplete="off"
             className="input-field mt-1"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -74,6 +80,7 @@ export default function RegisterPage(): React.ReactElement {
             type="password"
             required
             minLength={6}
+            autoComplete="new-password"
             className="input-field mt-1"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -99,7 +106,7 @@ export default function RegisterPage(): React.ReactElement {
         </div>
 
         {error.length > 0 && <p className="text-sm text-error">{error}</p>}
-        <button type="submit" disabled={isLoading} className="w-full btn-primary">
+        <button type="submit" disabled={isLoading || role === null} className="w-full btn-primary">
           {isLoading ? "Creating…" : "Register"}
         </button>
       </form>

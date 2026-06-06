@@ -36,6 +36,20 @@ CREATE TABLE IF NOT EXISTS class_simulations (
 ALTER TABLE attempts DROP CONSTRAINT IF EXISTS attempts_student_id_fkey;
 ALTER TABLE attempts
   ADD COLUMN IF NOT EXISTS class_id uuid REFERENCES classes(id);
+
+-- Legacy attempts used profiles.id as student_id; those rows are not in students.
+-- Remove dependent scores first, then orphan attempts, before adding the new FK.
+DELETE FROM stage_scores
+WHERE attempt_id IN (
+  SELECT id FROM attempts
+  WHERE student_id IS NOT NULL
+    AND student_id NOT IN (SELECT id FROM students)
+);
+
+DELETE FROM attempts
+WHERE student_id IS NOT NULL
+  AND student_id NOT IN (SELECT id FROM students);
+
 ALTER TABLE attempts
   ADD CONSTRAINT attempts_student_id_fkey
   FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE;

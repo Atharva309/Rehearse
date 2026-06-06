@@ -33,7 +33,7 @@ export default async function JoinClassPage({ params }: PageProps): Promise<Reac
     .eq("id", classRow.professor_id)
     .single();
 
-  const professorName = professor?.full_name ?? "Your professor";
+  const professorName = professor?.full_name?.trim();
   const codeQuery = `?code=${joinCode}`;
 
   return (
@@ -41,7 +41,13 @@ export default async function JoinClassPage({ params }: PageProps): Promise<Reac
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Join Class</p>
       <h2 className="text-2xl font-bold text-primary mt-2">Join {classRow.name}</h2>
       <p className="text-sm text-text-secondary mt-1">
-        Taught by <span className="font-medium text-text-primary">{professorName}</span>
+        {professorName ? (
+          <>
+            Taught by <span className="font-medium text-text-primary">{professorName}</span>
+          </>
+        ) : (
+          <>Join this class on PitchLab</>
+        )}
       </p>
       {classRow.description && (
         <p className="text-sm text-text-secondary mt-3">{classRow.description}</p>

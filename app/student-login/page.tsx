@@ -3,14 +3,21 @@
  * Returning students sign in with class code, username, and password.
  */
 
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AuthSplitLayout } from "@/components/ui/AuthSplitLayout";
+import { getStudentSession } from "@/lib/student-session";
 import { StudentLoginForm } from "./StudentLoginForm";
 
 /**
- * Student login page with PitchLab branding.
+ * Student login page — redirects if session already exists.
  */
-export default function StudentLoginPage(): React.ReactElement {
+export default async function StudentLoginPage(): Promise<React.ReactElement> {
+  const session = await getStudentSession();
+  if (session) {
+    redirect("/student/dashboard");
+  }
+
   return (
     <AuthSplitLayout accent="accent" subtitle="Sign in to continue your sales training.">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Student</p>

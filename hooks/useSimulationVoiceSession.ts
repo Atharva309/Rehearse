@@ -8,8 +8,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { base64ToArrayBuffer, pickMediaRecorderMimeType } from "@/lib/audio";
+import { buildDefaultOpeningGreeting } from "@/lib/persona";
 import {
-  DEFAULT_OPENING_GREETING,
   MEDIA_RECORDER_TIMESLICE_MS,
   POST_SPEAK_COOLDOWN_MS,
   VOICE_ENDPOINTING_MS,
@@ -242,7 +242,8 @@ export function useSimulationVoiceSession(
         };
         mediaRecorderRef.current = mediaRecorder;
 
-        const greeting = configRef.current.openingGreeting ?? DEFAULT_OPENING_GREETING;
+        const greeting =
+          configRef.current.openingGreeting ?? buildDefaultOpeningGreeting();
 
         connection.onTranscript((sentence: string, meta): void => {
           if (!canAcceptStudentSpeech()) return;

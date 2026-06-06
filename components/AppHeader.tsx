@@ -68,7 +68,7 @@ export function AppHeader({
             </svg>
           </button>
           <span className="hidden sm:inline font-medium text-text-primary">
-            {userName}
+            {userName.trim() || "…"}
             {subtitle && (
               <span className="block text-xs font-normal text-text-secondary">{subtitle}</span>
             )}
