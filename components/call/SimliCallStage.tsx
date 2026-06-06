@@ -279,6 +279,7 @@ export function SimliCallStage({
         )}
         <div className="flex-1 min-h-0">
           <CallLobby
+            stageLabel={stageLabel}
             personaName={simulation.persona_name}
             personaRole={simulation.persona_role}
             permissionError={videoCall.permissionError}
