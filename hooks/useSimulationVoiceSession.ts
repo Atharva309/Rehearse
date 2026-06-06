@@ -38,6 +38,8 @@ export type SimulationVoiceReturn = {
   startCall: (audioStream: MediaStream) => Promise<void>;
   stopListening: () => void;
   endCall: () => void;
+  /** Swap MediaRecorder to a new mic stream after unmute. */
+  replaceAudioStream: (audioStream: MediaStream) => void;
 };
 
 /**
@@ -286,6 +288,37 @@ export function useSimulationVoiceSession(
     stopListening();
   }, [stopListening]);
 
+  const replaceAudioStream = useCallback((audioStream: MediaStream): void => {
+    if (audioStream.getAudioTracks().length === 0) {
+      return;
+    }
+
+    const connection = deepgramConnectionRef.current;
+    const prev = mediaRecorderRef.current;
+    if (prev && prev.state !== "inactive") {
+      prev.stop();
+    }
+
+    const mimeType = pickMediaRecorderMimeType();
+    const mediaRecorder = mimeType
+      ? new MediaRecorder(audioStream, { mimeType })
+      : new MediaRecorder(audioStream);
+
+    mediaRecorder.ondataavailable = (event: BlobEvent): void => {
+      if (configRef.current.isMutedRef?.current) {
+        return;
+      }
+      if (event.data.size > 0) {
+        connection?.send(event.data);
+      }
+    };
+    mediaRecorderRef.current = mediaRecorder;
+
+    if (connection && mediaRecorder.state === "inactive") {
+      mediaRecorder.start(MEDIA_RECORDER_TIMESLICE_MS);
+    }
+  }, []);
+
   return {
     avatarRef,
     isActive,
@@ -296,5 +329,6 @@ export function useSimulationVoiceSession(
     startCall,
     stopListening,
     endCall,
+    replaceAudioStream,
   };
 }

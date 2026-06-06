@@ -190,38 +190,39 @@ export function CallLayout({
         </div>
       )}
 
-      {/* Transcript overlay */}
-      {transcriptVisible && (
-        <section className="pointer-events-auto absolute bottom-32 left-1/2 z-30 w-full max-w-3xl -translate-x-1/2 px-6">
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-6 shadow-2xl backdrop-blur-md">
-            <div className="mb-2 flex items-center gap-2">
+      {/* Bottom bar — transcript + controls side by side */}
+      <footer
+        className={`pointer-events-none absolute bottom-4 left-4 right-4 z-50 flex items-end gap-3 ${transcriptVisible ? "" : "justify-end"}`}
+      >
+        {transcriptVisible && (
+          <div className="pointer-events-auto min-w-0 max-h-[72px] flex-1 overflow-y-auto rounded-xl border border-white/10 bg-black/30 p-3 shadow-2xl backdrop-blur-md">
+            <div className="mb-1 flex items-center gap-2">
               <span className="font-mono text-[10px] uppercase tracking-widest text-[#bbc3ff]">
                 {personaName}
               </span>
               <span className="h-px flex-1 bg-white/10" />
             </div>
             {hasUserText && hasPersonaText && (
-              <p className="mb-3 text-sm leading-relaxed text-white/60">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-white/40">You · </span>
+              <p className="mb-1 line-clamp-1 text-xs leading-snug text-white/60">
+                <span className="font-mono uppercase tracking-wider text-white/40">You · </span>
                 {userTranscripts}
               </p>
             )}
             {hasPersonaText ? (
-              <p className="text-xl font-semibold leading-relaxed text-white">
+              <p className="line-clamp-2 text-sm font-medium leading-snug text-white">
                 &ldquo;{personaTranscripts}&rdquo;
               </p>
             ) : hasUserText ? (
-              <p className="text-xl font-semibold leading-relaxed text-white">{userTranscripts}</p>
+              <p className="line-clamp-2 text-sm font-medium leading-snug text-white">
+                {userTranscripts}
+              </p>
             ) : (
-              <p className="text-sm italic text-white/50">Live transcript will appear here…</p>
+              <p className="text-xs italic text-white/50">Live transcript will appear here…</p>
             )}
           </div>
-        </section>
-      )}
+        )}
 
-      {/* Bottom control island */}
-      <nav className="pointer-events-none absolute bottom-0 left-0 right-0 z-50 flex justify-center pb-8">
-        <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/10 bg-black/20 p-2 shadow-2xl backdrop-blur-xl">
+        <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-black/20 p-2 shadow-2xl backdrop-blur-xl">
           <button
             type="button"
             onClick={onToggleMute}
@@ -262,7 +263,7 @@ export function CallLayout({
             <span className="font-mono text-xs font-medium uppercase tracking-wider">End</span>
           </button>
         </div>
-      </nav>
+      </footer>
     </div>
   );
 }

@@ -85,7 +85,10 @@ export function SimliCallStage({
   const [feedback, setFeedback] = useState<string | undefined>();
   const [scoreError, setScoreError] = useState("");
   const { showToast } = useToast();
-  const videoCall = useVideoCall({ withVideo: true });
+  const videoCall = useVideoCall({
+    withVideo: true,
+    onAudioStreamReplace: (stream) => voiceRef.current.replaceAudioStream(stream),
+  });
   const connectStartedRef = useRef(false);
   const getAudioStreamRef = useRef(videoCall.getAudioStream);
   const primeUserGestureRef = useRef(videoCall.primeUserGesture);
