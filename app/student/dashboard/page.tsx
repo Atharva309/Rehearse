@@ -135,6 +135,7 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
               <SimulationCard
                 key={sim.id}
                 simulation={sim}
+                className={classRow?.name}
                 actionLabel={existing ? "Continue" : "Start Simulation"}
                 href={`/student/simulation/${sim.id}${existing ? `?attempt=${existing.id}` : ""}`}
                 stagesCompleted={stagesCompleted}

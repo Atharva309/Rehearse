@@ -24,6 +24,7 @@ type SimulationRunnerProps = {
   simulation: Simulation;
   attempt: Attempt;
   stageScores: StageScore[];
+  className?: string;
 };
 
 const CALL_STAGES: SimulationStage[] = ["prospecting", "discovery", "objections", "close"];
@@ -35,6 +36,7 @@ export function SimulationRunner({
   simulation,
   attempt: initialAttempt,
   stageScores: initialScores,
+  className,
 }: SimulationRunnerProps): React.ReactElement {
   const router = useRouter();
   const [attempt, setAttempt] = useState(initialAttempt);
@@ -149,6 +151,11 @@ export function SimulationRunner({
       }
     >
       <BackButton label="Back to Dashboard" href="/student/dashboard" />
+      {className && isCallStage && (
+        <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-accent px-1">
+          {className}
+        </p>
+      )}
 
       <div className={`${isCallStage ? "mt-3" : "mt-6"} simulation-pipeline-bar shrink-0 overflow-hidden rounded-t-lg`}>
         <PipelineProgress items={progress} />
@@ -156,6 +163,11 @@ export function SimulationRunner({
 
       {!isCallStage && (
         <header className="px-8 pt-6 pb-2 max-w-4xl">
+          {className && (
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent mb-1">
+              {className}
+            </p>
+          )}
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">
             {simulation.title}
           </h1>

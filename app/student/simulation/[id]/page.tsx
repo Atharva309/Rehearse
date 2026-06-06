@@ -28,6 +28,12 @@ export default async function StudentSimulationPage({
 
   const supabase = createServiceClient();
 
+  const { data: classRow } = await supabase
+    .from("classes")
+    .select("name")
+    .eq("id", session.classId)
+    .single();
+
   const { data: assignment } = await supabase
     .from("class_simulations")
     .select(
@@ -103,6 +109,7 @@ export default async function StudentSimulationPage({
       simulation={simulation}
       attempt={attempt}
       stageScores={(stageScores ?? []) as StageScore[]}
+      className={classRow?.name}
     />
   );
 }

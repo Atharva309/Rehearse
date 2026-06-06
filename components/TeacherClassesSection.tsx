@@ -30,7 +30,6 @@ export function TeacherClassesSection(): React.ReactElement {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const loadClasses = useCallback(async (): Promise<void> => {
     const res = await fetch("/api/professor/classes");
@@ -79,26 +78,6 @@ export function TeacherClassesSection(): React.ReactElement {
     router.refresh();
   };
 
-  const handleToggleActive = async (classRow: ClassWithCounts): Promise<void> => {
-    setTogglingId(classRow.id);
-    const res = await fetch(`/api/professor/classes/${classRow.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !classRow.is_active }),
-    });
-    setTogglingId(null);
-
-    if (!res.ok) {
-      showToast("Could not update class", "error");
-      return;
-    }
-
-    const body = (await res.json()) as { class: Class };
-    setClasses((prev) =>
-      prev.map((c) => (c.id === classRow.id ? { ...c, ...body.class } : c))
-    );
-  };
-
   const joinUrl = (): string => {
     if (typeof window === "undefined") {
       return STUDENT_JOIN_PATH;
@@ -134,22 +113,11 @@ export function TeacherClassesSection(): React.ReactElement {
         <div className="grid md:grid-cols-2 gap-4 mt-6">
           {classes.map((classRow) => (
             <div key={classRow.id} className="card-surface p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-text-primary">{classRow.name}</h3>
-                  {classRow.description && (
-                    <p className="text-sm text-text-secondary mt-1">{classRow.description}</p>
-                  )}
-                </div>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${
-                    classRow.is_active
-                      ? "bg-success/10 text-success"
-                      : "bg-surface text-text-secondary border border-border"
-                  }`}
-                >
-                  {classRow.is_active ? "Active" : "Inactive"}
-                </span>
+              <div>
+                <h3 className="font-semibold text-text-primary">{classRow.name}</h3>
+                {classRow.description && (
+                  <p className="text-sm text-text-secondary mt-1">{classRow.description}</p>
+                )}
               </div>
 
               <div className="mt-4 flex items-center gap-2">
@@ -178,14 +146,6 @@ export function TeacherClassesSection(): React.ReactElement {
                   className="text-sm font-medium text-accent hover:underline"
                 >
                   Copy Join Link
-                </button>
-                <button
-                  type="button"
-                  disabled={togglingId === classRow.id}
-                  onClick={() => void handleToggleActive(classRow)}
-                  className="text-sm font-medium text-text-secondary hover:underline disabled:opacity-50"
-                >
-                  {classRow.is_active ? "Deactivate" : "Activate"}
                 </button>
                 <Link
                   href={`/teacher/classes/${classRow.id}`}

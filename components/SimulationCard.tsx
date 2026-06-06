@@ -14,6 +14,7 @@ type SimulationCardProps = {
   actionLabel: string;
   href: string;
   stagesCompleted?: number;
+  className?: string;
 };
 
 /**
@@ -24,6 +25,7 @@ export function SimulationCard({
   actionLabel,
   href,
   stagesCompleted = 0,
+  className,
 }: SimulationCardProps): React.ReactElement {
   const hasProgress = stagesCompleted > 0;
   const progressPercent = Math.min(
@@ -33,6 +35,9 @@ export function SimulationCard({
 
   return (
     <article className="card-surface border-l-4 border-l-gold p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+      {className && (
+        <p className="text-xs font-semibold uppercase tracking-wider text-accent">{className}</p>
+      )}
       <h3 className="font-semibold text-text-primary">{simulation.title}</h3>
       <p className="text-sm text-text-secondary">
         {simulation.persona_name} · {simulation.persona_role}
