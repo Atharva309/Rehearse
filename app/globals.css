@@ -92,27 +92,20 @@ body {
     @apply relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-call-background text-white;
   }
 
-  /* Persona video — full frame visible above bottom dock (see CallLayout exports) */
+  /* Persona video — full bleed inside call box (see CallLayout exports) */
   .call-persona-video-frame {
-    @apply absolute inset-x-0 top-0 overflow-hidden bg-black;
-    bottom: var(--call-video-dock-h, 200px);
+    @apply absolute inset-0 overflow-hidden bg-black;
   }
 
   .call-persona-video {
-    @apply absolute inset-0 block h-full w-full bg-black object-contain;
+    @apply absolute inset-0 block h-full w-full object-cover opacity-80;
     transform: translateZ(0);
     backface-visibility: hidden;
   }
 
   .call-persona-video-gradient {
-    @apply pointer-events-none absolute inset-x-0 bottom-0 h-12;
-    background: linear-gradient(to top, rgb(0 0 0 / 0.2), transparent);
-  }
-
-  /* Video call bottom dock — controls + transcript strip */
-  .call-video-bottom-dock {
-    @apply absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 px-3 pb-3 pt-2;
-    background: rgb(10 10 10 / 0.92);
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.6), transparent 45%, rgb(0 0 0 / 0.3));
   }
 
   .stage-content-fade {
