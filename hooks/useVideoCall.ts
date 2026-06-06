@@ -206,25 +206,67 @@ export function useVideoCall(options: UseVideoCallOptions = {}): UseVideoCallRet
     }
   }, [isMuted]);
 
-  useEffect(() => {
-    const videoTrack = rawStreamRef.current?.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = !isCameraOff;
-    }
+  const stopVideoTracks = useCallback((): void => {
+    const raw = rawStreamRef.current;
+    raw?.getVideoTracks().forEach((track) => {
+      track.stop();
+      raw.removeTrack(track);
+    });
+
+    videoPreviewStreamRef.current?.getVideoTracks().forEach((track) => track.stop());
+    videoPreviewStreamRef.current = null;
+    setHasVideoPreview(false);
+
     const video = videoElementRef.current;
     if (video) {
-      video.style.opacity = isCameraOff ? "0" : "1";
+      video.srcObject = null;
     }
-  }, [isCameraOff]);
+  }, []);
+
+  const toggleCamera = useCallback((): void => {
+    if (cameraUnavailable) {
+      return;
+    }
+
+    if (!isCameraOff) {
+      stopVideoTracks();
+      setIsCameraOff(true);
+      return;
+    }
+
+    void (async (): Promise<void> => {
+      try {
+        const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const newVideoTrack = videoStream.getVideoTracks()[0];
+        if (!newVideoTrack) {
+          videoStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        const raw = rawStreamRef.current ?? new MediaStream();
+        raw.getVideoTracks().forEach((track) => {
+          track.stop();
+          raw.removeTrack(track);
+        });
+        raw.addTrack(newVideoTrack);
+        rawStreamRef.current = raw;
+
+        const videoOnly = new MediaStream([newVideoTrack]);
+        videoPreviewStreamRef.current = videoOnly;
+        setHasVideoPreview(true);
+        setIsCameraOff(false);
+        await attachVideoPreview();
+      } catch {
+        setCameraUnavailable(true);
+        setPermissionError("Could not turn the camera back on.");
+        setIsCameraOff(true);
+      }
+    })();
+  }, [cameraUnavailable, isCameraOff, stopVideoTracks, attachVideoPreview]);
 
   const toggleMute = useCallback((): void => {
     setIsMuted((prev) => !prev);
   }, []);
-
-  const toggleCamera = useCallback((): void => {
-    if (cameraUnavailable) return;
-    setIsCameraOff((prev) => !prev);
-  }, [cameraUnavailable]);
 
   const startTimer = useCallback((): void => {
     if (timerIdRef.current) return;
