@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    dirs: ["app", "components", "lib", "hooks"],
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Handle Node.js built-in module fallbacks for client-side

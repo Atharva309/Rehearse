@@ -12,15 +12,30 @@ import { createClient } from "@/lib/supabase/client";
 type AppHeaderProps = {
   userName: string;
   homeHref: string;
+  subtitle?: string;
+  /** student = JWT cookie logout; supabase = default professor/student auth logout */
+  logoutMode?: "supabase" | "student";
 };
 
 /**
  * Top navigation bar for student and teacher dashboards.
  */
-export function AppHeader({ userName, homeHref }: AppHeaderProps): React.ReactElement {
+export function AppHeader({
+  userName,
+  homeHref,
+  subtitle,
+  logoutMode = "supabase",
+}: AppHeaderProps): React.ReactElement {
   const router = useRouter();
 
   const handleLogout = async (): Promise<void> => {
+    if (logoutMode === "student") {
+      await fetch("/api/student/logout", { method: "POST" });
+      router.push("/student-login");
+      router.refresh();
+      return;
+    }
+
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
@@ -52,7 +67,12 @@ export function AppHeader({ userName, homeHref }: AppHeaderProps): React.ReactEl
               />
             </svg>
           </button>
-          <span className="hidden sm:inline font-medium text-text-primary">{userName}</span>
+          <span className="hidden sm:inline font-medium text-text-primary">
+            {userName}
+            {subtitle && (
+              <span className="block text-xs font-normal text-text-secondary">{subtitle}</span>
+            )}
+          </span>
           <button
             type="button"
             onClick={() => void handleLogout()}

@@ -16,8 +16,8 @@ import {
   toneTextClass,
   totalScoreTone,
 } from "@/lib/score-display";
-import { createClient } from "@/lib/supabase/server";
-import { requireRole } from "@/lib/auth-helpers";
+import { getStudentSession } from "@/lib/student-session";
+import { createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { StageScore } from "@/types";
 
@@ -33,9 +33,12 @@ export default async function SimulationCompletePage({
   params,
   searchParams,
 }: PageProps): Promise<React.ReactElement> {
-  const profile = await requireRole("student");
-  const supabase = createClient();
+  const session = await getStudentSession();
+  if (!session) {
+    redirect("/student-login");
+  }
 
+  const supabase = createServiceClient();
   const attemptId = searchParams.attempt;
   if (!attemptId) redirect("/student/dashboard");
 
@@ -43,7 +46,7 @@ export default async function SimulationCompletePage({
     .from("attempts")
     .select("*, simulations(title)")
     .eq("id", attemptId)
-    .eq("student_id", profile.id)
+    .eq("student_id", session.studentId)
     .single();
 
   if (!attempt) redirect("/student/dashboard");
@@ -69,8 +72,8 @@ export default async function SimulationCompletePage({
       student_id,
       total_score,
       completed_at,
-      profiles (
-        full_name
+      students (
+        display_name
       )
     `
     )
@@ -141,7 +144,7 @@ export default async function SimulationCompletePage({
         </div>
 
         <h2 className="text-lg font-semibold text-text-primary mt-12 mb-4">Leaderboard</h2>
-        <StudentLeaderboard entries={leaderboard} highlightStudentId={profile.id} />
+        <StudentLeaderboard entries={leaderboard} highlightStudentId={session.studentId} />
       </div>
     </div>
   );

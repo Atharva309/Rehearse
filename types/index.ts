@@ -78,6 +78,40 @@ export type LeaderboardEntry = {
   completed_at?: string | null;
 };
 
+export type StudentSession = {
+  studentId: string;
+  classId: string;
+  professorId: string;
+  username: string;
+  displayName: string;
+};
+
+export type Class = {
+  id: string;
+  professor_id: string;
+  name: string;
+  description: string | null;
+  join_code: string;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type Student = {
+  id: string;
+  class_id: string;
+  professor_id: string;
+  username: string;
+  display_name: string;
+  joined_at: string;
+};
+
+export type ClassSimulation = {
+  id: string;
+  class_id: string;
+  simulation_id: string;
+  added_at: string;
+};
+
 /** Imperative handle exposed by Avatar for TTS playback and interruption. */
 export interface AvatarRef {
   /** Starts Simli WebRTC — call from a user gesture (Join Call). */

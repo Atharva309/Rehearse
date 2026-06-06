@@ -1,35 +1,62 @@
 /**
  * dashboard/page.tsx — student
- * Lists published simulations and completed attempt history (Stitch layout).
+ * Lists class-assigned simulations and completed attempt history.
  */
 
+import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { SimulationCard } from "@/components/SimulationCard";
 import {
   StudentAttemptHistory,
   type StudentAttemptRow,
 } from "@/components/StudentAttemptHistory";
-import { createClient } from "@/lib/supabase/server";
-import { requireRole } from "@/lib/auth-helpers";
+import { getStudentSession } from "@/lib/student-session";
+import { createServiceClient } from "@/lib/supabase/server";
 import type { Attempt, Simulation } from "@/types";
 
 /**
- * Student home — browse simulations and review past scores.
+ * Student home — browse class simulations and review past scores.
  */
 export default async function StudentDashboardPage(): Promise<React.ReactElement> {
-  const profile = await requireRole("student");
-  const supabase = createClient();
+  const session = await getStudentSession();
+  if (!session) {
+    redirect("/student-login");
+  }
 
-  const { data: simulations } = await supabase
-    .from("simulations")
-    .select("*")
-    .eq("is_published", true)
-    .order("created_at", { ascending: false });
+  const supabase = createServiceClient();
+
+  const { data: classRow } = await supabase
+    .from("classes")
+    .select("name")
+    .eq("id", session.classId)
+    .single();
+
+  const { data: classSimRows } = await supabase
+    .from("class_simulations")
+    .select(
+      `
+      simulation_id,
+      simulations (
+        id, title, description,
+        persona_name, persona_role,
+        product_context, is_published,
+        persona_system_prompt, simli_face_id, teacher_id, created_at
+      )
+    `
+    )
+    .eq("class_id", session.classId);
+
+  const simulations = (classSimRows ?? [])
+    .map((row) => {
+      const sim = row.simulations;
+      return Array.isArray(sim) ? sim[0] : sim;
+    })
+    .filter((sim): sim is Simulation => Boolean(sim?.is_published));
 
   const { data: attempts } = await supabase
     .from("attempts")
     .select("*")
-    .eq("student_id", profile.id)
+    .eq("student_id", session.studentId)
     .eq("status", "in_progress");
 
   const inProgressList = (attempts ?? []) as Attempt[];
@@ -51,13 +78,13 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
   const { data: completedAttempts } = await supabase
     .from("attempts")
     .select("id, total_score, completed_at, simulations ( id, title, persona_name )")
-    .eq("student_id", profile.id)
+    .eq("student_id", session.studentId)
     .eq("status", "completed")
     .order("completed_at", { ascending: false })
     .limit(20);
 
   const attemptBySim = new Map(inProgressList.map((a) => [a.simulation_id, a]));
-  const list = (simulations ?? []) as Simulation[];
+  const list = simulations as Simulation[];
 
   const history: StudentAttemptRow[] = (completedAttempts ?? []).map((row) => {
     const sim = row.simulations;
@@ -74,12 +101,13 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
     <div>
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Simulations</h1>
+          <h1 className="text-2xl font-bold text-text-primary">
+            Welcome back, {session.displayName}
+          </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Choose a scenario to practice your pitch.
+            {classRow?.name ?? "Your class"} — choose a scenario to practice your pitch.
           </p>
         </div>
-        {/* TODO: search */}
         <input
           type="search"
           placeholder="Search simulations…"
@@ -94,7 +122,7 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
         <EmptyState
           icon="🎯"
           title="No simulations available yet."
-          description="Check back soon — your teacher may publish new scenarios."
+          description="Your professor hasn't assigned any published simulations to your class yet."
         />
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">

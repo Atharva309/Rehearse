@@ -1,10 +1,8 @@
 /**
  * attempt-actions.ts
- * Client-side Supabase helpers for attempts and stage scores.
+ * Client-side helpers for attempts and stage scores.
  */
 
-import { createClient } from "@/lib/supabase/client";
-import { getNextStage } from "@/lib/stages";
 import type { SimulationStage } from "@/types";
 
 /**
@@ -17,46 +15,18 @@ export async function completeStage(
   feedback: string,
   transcript: string
 ): Promise<{ nextStage: SimulationStage | null; totalScore: number }> {
-  const supabase = createClient();
+  const res = await fetch("/api/student/complete-stage", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ attemptId, stage, score, feedback, transcript }),
+  });
 
-  await supabase.from("stage_scores").upsert(
-    {
-      attempt_id: attemptId,
-      stage,
-      score,
-      feedback,
-      transcript,
-    },
-    { onConflict: "attempt_id,stage" }
-  );
-
-  const { data: scores } = await supabase
-    .from("stage_scores")
-    .select("score")
-    .eq("attempt_id", attemptId);
-
-  const totalScore = (scores ?? []).reduce((sum, row) => sum + row.score, 0);
-  const next = getNextStage(stage);
-
-  if (next === "results" || next === null) {
-    await supabase
-      .from("attempts")
-      .update({
-        current_stage: "results",
-        status: "completed",
-        total_score: totalScore,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", attemptId);
-    return { nextStage: "results", totalScore };
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? "Could not save stage progress.");
   }
 
-  await supabase
-    .from("attempts")
-    .update({ current_stage: next, total_score: totalScore })
-    .eq("id", attemptId);
-
-  return { nextStage: next, totalScore };
+  return res.json() as Promise<{ nextStage: SimulationStage | null; totalScore: number }>;
 }
 
 /**

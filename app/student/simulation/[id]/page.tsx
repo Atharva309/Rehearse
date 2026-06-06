@@ -5,8 +5,8 @@
 
 import { redirect } from "next/navigation";
 import { SimulationRunner } from "@/components/SimulationRunner";
-import { createClient } from "@/lib/supabase/server";
-import { requireRole } from "@/lib/auth-helpers";
+import { getStudentSession } from "@/lib/student-session";
+import { createServiceClient } from "@/lib/supabase/server";
 import type { Attempt, Simulation, StageScore } from "@/types";
 
 type PageProps = {
@@ -15,23 +15,35 @@ type PageProps = {
 };
 
 /**
- * Student simulation session page.
+ * Student simulation session page — uses class-assigned simulations only.
  */
 export default async function StudentSimulationPage({
   params,
   searchParams,
 }: PageProps): Promise<React.ReactElement> {
-  const profile = await requireRole("student");
-  const supabase = createClient();
+  const session = await getStudentSession();
+  if (!session) {
+    redirect("/student-login");
+  }
 
-  const { data: simulation } = await supabase
-    .from("simulations")
-    .select("*")
-    .eq("id", params.id)
-    .eq("is_published", true)
+  const supabase = createServiceClient();
+
+  const { data: assignment } = await supabase
+    .from("class_simulations")
+    .select(
+      `
+      simulation_id,
+      simulations (*)
+    `
+    )
+    .eq("class_id", session.classId)
+    .eq("simulation_id", params.id)
     .single();
 
-  if (!simulation) {
+  const simRaw = assignment?.simulations;
+  const simulation = (Array.isArray(simRaw) ? simRaw[0] : simRaw) as Simulation | null;
+
+  if (!simulation || !simulation.is_published) {
     redirect("/student/dashboard");
   }
 
@@ -42,7 +54,7 @@ export default async function StudentSimulationPage({
       .from("attempts")
       .select("*")
       .eq("id", searchParams.attempt)
-      .eq("student_id", profile.id)
+      .eq("student_id", session.studentId)
       .single();
     attempt = data as Attempt | null;
   }
@@ -52,7 +64,7 @@ export default async function StudentSimulationPage({
       .from("attempts")
       .select("*")
       .eq("simulation_id", params.id)
-      .eq("student_id", profile.id)
+      .eq("student_id", session.studentId)
       .eq("status", "in_progress")
       .maybeSingle();
 
@@ -62,7 +74,8 @@ export default async function StudentSimulationPage({
       const { data: created } = await supabase
         .from("attempts")
         .insert({
-          student_id: profile.id,
+          student_id: session.studentId,
+          class_id: session.classId,
           simulation_id: params.id,
           current_stage: "lead_gen",
         })
@@ -87,7 +100,7 @@ export default async function StudentSimulationPage({
 
   return (
     <SimulationRunner
-      simulation={simulation as Simulation}
+      simulation={simulation}
       attempt={attempt}
       stageScores={(stageScores ?? []) as StageScore[]}
     />

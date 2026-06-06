@@ -99,7 +99,23 @@ export const VOICE_ONLY_STAGES = ["prospecting", "close"] as const;
 
 // ── Routes ──────────────────────────────────────────────────────────────────────
 
-export const PUBLIC_ROUTES = ["/login", "/register"] as const;
+export const PUBLIC_ROUTES = [
+  "/login",
+  "/register",
+  "/student-login",
+  "/student-register",
+] as const;
+
+export const STUDENT_SESSION_COOKIE = "student_session";
+
+// ── Student auth ────────────────────────────────────────────────────────────────
+
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 20;
+export const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+export const PASSWORD_MIN_LENGTH = 6;
+export const JOIN_CODE_LENGTH = 6;
+export const STUDENT_SESSION_DAYS = 7;
 
 export const DEFAULT_OPENING_GREETING =
   "Yeah? I've got customers—what do you need?";

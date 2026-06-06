@@ -19,9 +19,18 @@ type AttemptRow = {
   total_score: number;
   status: string;
   started_at: string;
-  profiles: { full_name: string } | null;
+  profiles?: { full_name: string } | null;
+  students?: { display_name: string } | { display_name: string }[] | null;
   stage_scores: StageScore[];
 };
+
+function resolveAttemptStudentName(row: AttemptRow): string {
+  const student = Array.isArray(row.students) ? row.students[0] : row.students;
+  if (student?.display_name?.trim()) {
+    return student.display_name.trim();
+  }
+  return row.profiles?.full_name ?? "—";
+}
 
 type TeacherResultsClientProps = {
   attempts: AttemptRow[];
@@ -98,7 +107,7 @@ export function TeacherResultsClient({
                     onClick={() => setExpanded(expanded === row.id ? null : row.id)}
                   >
                     <td className="font-medium text-text-primary">
-                      {row.profiles?.full_name ?? "—"}
+                      {resolveAttemptStudentName(row)}
                     </td>
                     <td className="text-text-secondary">
                       {new Date(row.started_at).toLocaleDateString()}

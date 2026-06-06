@@ -32,7 +32,7 @@ export default async function TeacherResultsPage({
 
   const { data: attempts } = await supabase
     .from("attempts")
-    .select("*, profiles(full_name), stage_scores(*)")
+    .select("*, students(display_name), stage_scores(*)")
     .eq("simulation_id", params.id)
     .order("started_at", { ascending: false });
 
@@ -44,8 +44,8 @@ export default async function TeacherResultsPage({
       student_id,
       total_score,
       completed_at,
-      profiles (
-        full_name
+      students (
+        display_name
       )
     `
     )

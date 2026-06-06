@@ -1,0 +1,146 @@
+/**
+ * classes/[classId]/route.ts
+ * GET    — class details + students + simulations
+ * PATCH  — update name/description/isActive
+ * DELETE — delete class
+ */
+
+import { NextResponse } from "next/server";
+import { requireProfessorApi } from "@/lib/api-auth";
+import { createServiceClient } from "@/lib/supabase/server";
+
+type RouteContext = { params: { classId: string } };
+
+type PatchBody = {
+  name?: string;
+  description?: string;
+  isActive?: boolean;
+};
+
+/**
+ * Loads a single class with enrolled students and assigned simulations.
+ */
+export async function GET(
+  _request: Request,
+  { params }: RouteContext
+): Promise<NextResponse> {
+  const auth = await requireProfessorApi();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const supabase = createServiceClient();
+
+  const { data: classRow, error } = await supabase
+    .from("classes")
+    .select("*")
+    .eq("id", params.classId)
+    .eq("professor_id", auth.professorId)
+    .single();
+
+  if (error || !classRow) {
+    return NextResponse.json({ error: "Class not found." }, { status: 404 });
+  }
+
+  const { data: students } = await supabase
+    .from("students")
+    .select("id, username, display_name, joined_at")
+    .eq("class_id", params.classId)
+    .order("joined_at", { ascending: false });
+
+  const { data: classSimulations } = await supabase
+    .from("class_simulations")
+    .select(
+      `
+      id,
+      simulation_id,
+      added_at,
+      simulations (
+        id, title, description, persona_name, persona_role, is_published
+      )
+    `
+    )
+    .eq("class_id", params.classId)
+    .order("added_at", { ascending: false });
+
+  return NextResponse.json({
+    class: classRow,
+    students: students ?? [],
+    simulations: classSimulations ?? [],
+  });
+}
+
+/**
+ * Updates class metadata for the logged-in professor.
+ */
+export async function PATCH(
+  request: Request,
+  { params }: RouteContext
+): Promise<NextResponse> {
+  const auth = await requireProfessorApi();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const body = (await request.json()) as PatchBody;
+  const updates: Record<string, string | boolean | null> = {};
+
+  if (body.name !== undefined) {
+    const name = body.name.trim();
+    if (!name) {
+      return NextResponse.json({ error: "Class name cannot be empty." }, { status: 400 });
+    }
+    updates.name = name;
+  }
+  if (body.description !== undefined) {
+    updates.description = body.description.trim() || null;
+  }
+  if (body.isActive !== undefined) {
+    updates.is_active = body.isActive;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "No updates provided." }, { status: 400 });
+  }
+
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("classes")
+    .update(updates)
+    .eq("id", params.classId)
+    .eq("professor_id", auth.professorId)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    return NextResponse.json({ error: "Class not found." }, { status: 404 });
+  }
+
+  return NextResponse.json({ class: data });
+}
+
+/**
+ * Deletes a class owned by the logged-in professor.
+ */
+export async function DELETE(
+  _request: Request,
+  { params }: RouteContext
+): Promise<NextResponse> {
+  const auth = await requireProfessorApi();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const supabase = createServiceClient();
+  const { error } = await supabase
+    .from("classes")
+    .delete()
+    .eq("id", params.classId)
+    .eq("professor_id", auth.professorId);
+
+  if (error) {
+    return NextResponse.json({ error: "Could not delete class." }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

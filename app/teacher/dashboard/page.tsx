@@ -4,6 +4,7 @@
  */
 
 import Link from "next/link";
+import { TeacherClassesSection } from "@/components/TeacherClassesSection";
 import { TeacherDashboardClient } from "@/components/TeacherDashboardClient";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
@@ -26,6 +27,8 @@ export default async function TeacherDashboardPage(): Promise<React.ReactElement
 
   return (
     <div>
+      <TeacherClassesSection />
+
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">My simulations</h1>

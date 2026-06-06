@@ -11,8 +11,21 @@ export type LeaderboardAttemptRow = {
   student_id: string;
   total_score: number;
   completed_at?: string | null;
-  profiles: { full_name: string } | { full_name: string }[] | null;
+  profiles?: { full_name: string } | { full_name: string }[] | null;
+  students?: { display_name: string } | { display_name: string }[] | null;
 };
+
+/**
+ * Resolves display name from profiles (legacy) or students (class auth).
+ */
+function resolveStudentName(row: LeaderboardAttemptRow): string {
+  const student = Array.isArray(row.students) ? row.students[0] : row.students;
+  if (student?.display_name?.trim()) {
+    return student.display_name.trim();
+  }
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  return profile?.full_name?.trim() || "Student";
+}
 
 /**
  * Medal prefix for ranks 1–3.
@@ -30,11 +43,10 @@ export function formatRankDisplay(rank: number): string {
 export function buildLeaderboard(attempts: LeaderboardAttemptRow[]): LeaderboardEntry[] {
   const sorted = [...attempts].sort((a, b) => b.total_score - a.total_score);
   return sorted.map((row, index) => {
-    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
     return {
       rank: index + 1,
       student_id: row.student_id,
-      student_name: profile?.full_name?.trim() || "Student",
+      student_name: resolveStudentName(row),
       total_score: row.total_score,
       grade: scoreToGrade(row.total_score),
       attempt_id: row.id,
