@@ -104,7 +104,11 @@ export const PUBLIC_ROUTES = [
   "/register",
   "/student-login",
   "/student-register",
+  "/join",
 ] as const;
+
+/** Student onboarding entry — class code is never embedded in this URL. */
+export const STUDENT_JOIN_PATH = "/join";
 
 export const STUDENT_SESSION_COOKIE = "student_session";
 

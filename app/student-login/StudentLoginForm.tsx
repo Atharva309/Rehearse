@@ -6,7 +6,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 /**
@@ -14,8 +14,7 @@ import { useState } from "react";
  */
 export function StudentLoginForm(): React.ReactElement {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [joinCode, setJoinCode] = useState(searchParams.get("code")?.toUpperCase() ?? "");
+  const [joinCode, setJoinCode] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -93,10 +92,7 @@ export function StudentLoginForm(): React.ReactElement {
 
       <p className="text-sm text-text-secondary text-center">
         New student?{" "}
-        <Link
-          href={`/student-register${joinCode ? `?code=${joinCode}` : ""}`}
-          className="text-accent font-medium hover:underline"
-        >
+        <Link href="/student-register" className="text-accent font-medium hover:underline">
           Register here
         </Link>
       </p>

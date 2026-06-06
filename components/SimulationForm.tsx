@@ -17,7 +17,7 @@ type SimulationFormProps = {
 };
 
 /**
- * Teacher form to save or publish a simulation.
+ * Teacher form to save a simulation draft.
  */
 export function SimulationForm({
   teacherId,
@@ -32,11 +32,10 @@ export function SimulationForm({
   const [personaPrompt, setPersonaPrompt] = useState(initial?.persona_system_prompt ?? "");
   const [simliFaceId, setSimliFaceId] = useState(initial?.simli_face_id ?? "");
   const [productContext, setProductContext] = useState(initial?.product_context ?? "");
-  const [isPublished, setIsPublished] = useState(initial?.is_published ?? false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = async (publish: boolean): Promise<void> => {
+  const handleSave = async (): Promise<void> => {
     setIsLoading(true);
     setError("");
 
@@ -55,11 +54,10 @@ export function SimulationForm({
       persona_system_prompt: personaPrompt,
       product_context: productContext,
       simli_face_id: simliFaceId,
-      is_published: publish || isPublished,
+      is_published: initial?.is_published ?? false,
     };
 
     const supabase = createClient();
-    const shouldPublish = publish || isPublished;
 
     if (initial) {
       const { error: updateError } = await supabase
@@ -72,11 +70,8 @@ export function SimulationForm({
         setIsLoading(false);
         return;
       }
-      showToast(
-        shouldPublish ? "Simulation published" : "Simulation saved successfully",
-        "success"
-      );
-      router.push(shouldPublish ? "/teacher/dashboard" : `/teacher/simulation/${initial.id}/edit`);
+      showToast("Simulation saved successfully", "success");
+      router.push(`/teacher/simulation/${initial.id}/edit`);
     } else {
       const { data, error: insertError } = await supabase
         .from("simulations")
@@ -89,11 +84,8 @@ export function SimulationForm({
         setIsLoading(false);
         return;
       }
-      showToast(
-        shouldPublish ? "Simulation published" : "Simulation saved successfully",
-        "success"
-      );
-      router.push(shouldPublish ? "/teacher/dashboard" : `/teacher/simulation/${data.id}/edit`);
+      showToast("Simulation saved successfully", "success");
+      router.push(`/teacher/simulation/${data.id}/edit`);
     }
     router.refresh();
     setIsLoading(false);
@@ -188,18 +180,6 @@ export function SimulationForm({
             />
           </section>
 
-          <section className="card-surface p-6">
-            <label className="flex items-center gap-2 text-sm text-text-primary">
-              <input
-                type="checkbox"
-                checked={isPublished}
-                onChange={(e) => setIsPublished(e.target.checked)}
-                className="rounded border-border text-accent focus:ring-accent"
-              />
-              Publish immediately
-            </label>
-          </section>
-
           {error && (
             <p className="text-sm text-error border border-error/30 bg-error/5 rounded-md p-3">
               {error}
@@ -210,18 +190,10 @@ export function SimulationForm({
             <button
               type="button"
               disabled={isLoading}
-              onClick={() => void handleSave(false)}
-              className="px-5 py-2 border border-border rounded-md text-sm text-text-primary hover:bg-surface"
-            >
-              Save draft
-            </button>
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => void handleSave(true)}
+              onClick={() => void handleSave()}
               className="btn-primary"
             >
-              {isLoading ? "Saving…" : "Publish"}
+              {isLoading ? "Saving…" : "Save"}
             </button>
           </div>
         </div>

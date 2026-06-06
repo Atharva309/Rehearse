@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/useToast";
+import { STUDENT_JOIN_PATH } from "@/lib/constants";
 import type { Class } from "@/types";
 
 type ClassWithCounts = Class & {
@@ -98,11 +99,11 @@ export function TeacherClassesSection(): React.ReactElement {
     );
   };
 
-  const joinUrl = (joinCode: string): string => {
+  const joinUrl = (): string => {
     if (typeof window === "undefined") {
-      return `/join/${joinCode}`;
+      return STUDENT_JOIN_PATH;
     }
-    return `${window.location.origin}/join/${joinCode}`;
+    return `${window.location.origin}${STUDENT_JOIN_PATH}`;
   };
 
   return (
@@ -111,7 +112,7 @@ export function TeacherClassesSection(): React.ReactElement {
         <div>
           <h2 className="text-xl font-bold text-text-primary">My Classes</h2>
           <p className="text-sm text-text-secondary mt-1">
-            Create classes and share join links with students
+            Share the join link with students and give them the class code separately
           </p>
         </div>
         <button type="button" onClick={() => setShowModal(true)} className="btn-primary shrink-0">
@@ -173,7 +174,7 @@ export function TeacherClassesSection(): React.ReactElement {
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => void copyToClipboard(joinUrl(classRow.join_code), "Join link")}
+                  onClick={() => void copyToClipboard(joinUrl(), "Join link")}
                   className="text-sm font-medium text-accent hover:underline"
                 >
                   Copy Join Link

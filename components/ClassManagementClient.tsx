@@ -8,6 +8,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/useToast";
+import { STUDENT_JOIN_PATH } from "@/lib/constants";
 import type { Simulation, Student } from "@/types";
 
 type AssignedSimulation = {
@@ -45,7 +46,18 @@ export function ClassManagementClient({
   const availableSims = professorSimulations.filter((s) => !assignedIds.has(s.id));
 
   const joinUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/join/${joinCode}` : `/join/${joinCode}`;
+    typeof window !== "undefined"
+      ? `${window.location.origin}${STUDENT_JOIN_PATH}`
+      : STUDENT_JOIN_PATH;
+
+  const copyCode = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(joinCode);
+      showToast("Class code copied", "success");
+    } catch {
+      showToast("Could not copy code", "error");
+    }
+  };
 
   const copyLink = async (): Promise<void> => {
     try {
@@ -103,18 +115,26 @@ export function ClassManagementClient({
   return (
     <div>
       <div className="card-surface p-5 mt-6">
-        <p className="text-sm font-medium text-text-primary">Join link</p>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <code className="text-sm text-text-secondary break-all">{joinUrl}</code>
-          <button type="button" onClick={() => void copyLink()} className="btn-accent text-sm">
-            Copy
-          </button>
+        <p className="text-sm font-medium text-text-primary">Share with students</p>
+        <div className="mt-3">
+          <p className="text-xs text-text-secondary">Join link (no code in URL)</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <code className="text-sm text-text-secondary break-all">{joinUrl}</code>
+            <button type="button" onClick={() => void copyLink()} className="btn-accent text-sm">
+              Copy link
+            </button>
+          </div>
+        </div>
+        <div className="mt-4">
+          <p className="text-xs text-text-secondary">Class code — share separately</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <span className="font-mono text-2xl font-bold tracking-widest text-accent">{joinCode}</span>
+            <button type="button" onClick={() => void copyCode()} className="text-sm font-medium text-accent hover:underline">
+              Copy code
+            </button>
+          </div>
         </div>
         {/* TODO: QR code for join link */}
-        <p className="mt-4 text-sm text-text-secondary">
-          Join code:{" "}
-          <span className="font-mono text-2xl font-bold tracking-widest text-accent">{joinCode}</span>
-        </p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mt-8">

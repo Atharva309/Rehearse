@@ -6,7 +6,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   PASSWORD_MIN_LENGTH,
@@ -19,12 +19,11 @@ import {
  */
 export function StudentRegisterForm(): React.ReactElement {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [joinCode, setJoinCode] = useState(searchParams.get("code")?.toUpperCase() ?? "");
+  const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -142,10 +141,7 @@ export function StudentRegisterForm(): React.ReactElement {
 
       <p className="text-sm text-text-secondary text-center">
         Already have an account?{" "}
-        <Link
-          href={`/student-login${joinCode ? `?code=${joinCode}` : ""}`}
-          className="text-accent font-medium hover:underline"
-        >
+        <Link href="/student-login" className="text-accent font-medium hover:underline">
           Sign in
         </Link>
       </p>

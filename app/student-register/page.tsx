@@ -4,7 +4,6 @@
  */
 
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 import { AuthSplitLayout } from "@/components/ui/AuthSplitLayout";
 import { getStudentSession } from "@/lib/student-session";
 import { StudentRegisterForm } from "./StudentRegisterForm";
@@ -27,9 +26,7 @@ export default async function StudentRegisterPage(): Promise<React.ReactElement>
       <p className="text-sm text-text-secondary mt-1">
         Enter the class code from your professor to get started.
       </p>
-      <Suspense fallback={<p className="mt-8 text-sm text-text-secondary">Loading…</p>}>
-        <StudentRegisterForm />
-      </Suspense>
+      <StudentRegisterForm />
     </AuthSplitLayout>
   );
 }
