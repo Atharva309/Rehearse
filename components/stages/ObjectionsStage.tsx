@@ -40,7 +40,7 @@ export function ObjectionsStage({
       advanceLabel="Next Stage"
       onAdvance={() => onComplete("close")}
       topBanner={
-        <p className="shrink-0 text-sm text-white/70 px-4 py-2 border-b border-white/10 bg-black/30">
+        <p className="shrink-0 border-b border-[#c5c5d7] bg-[#f0f3ff] px-6 py-3 text-sm text-[#454654]">
           Handle {OBJECTIONS_COUNT} objections from {simulation.persona_name} in the video call.
         </p>
       }

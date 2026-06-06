@@ -17,6 +17,10 @@ type CallLobbyProps = {
   cameraUnavailable: boolean;
   micReady: boolean;
   cameraReady: boolean;
+  isMuted: boolean;
+  isCameraOff: boolean;
+  onToggleMute: () => void;
+  onToggleCamera: () => void;
   onJoinCall: () => void;
 };
 
@@ -124,13 +128,19 @@ export function CallLobby({
   cameraUnavailable,
   micReady,
   cameraReady,
+  isMuted,
+  isCameraOff,
+  onToggleMute,
+  onToggleCamera,
   onJoinCall,
 }: CallLobbyProps): React.ReactElement {
   const stageBadge = stageLabel.toUpperCase();
+  const micActive = micReady && !isMuted;
+  const cameraActive = cameraReady && !cameraUnavailable && !isCameraOff;
 
   return (
-    <div className="flex h-full min-h-[600px] w-full items-center justify-center p-6 lg:p-8">
-      <div className="flex min-h-[600px] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-[#c5c5d7] bg-white/70 shadow-[0px_12px_24px_rgba(0,0,0,0.05)] backdrop-blur-md md:flex-row">
+    <div className="flex h-full min-h-[600px] w-full flex-1">
+      <div className="flex min-h-[600px] w-full flex-col overflow-hidden bg-white/70 backdrop-blur-md md:flex-row">
         {/* Left — interviewer profile */}
         <div className="flex w-full flex-col border-b border-[#c5c5d7]/30 bg-[#f0f3ff]/50 p-10 md:w-2/5 md:border-b-0 md:border-r">
           <div className="mb-12">
@@ -176,15 +186,22 @@ export function CallLobby({
             </p>
           </div>
 
-          <div className="group relative mb-8 min-h-[240px] flex-1 overflow-hidden rounded-xl border border-[#c5c5d7] bg-[#111c2d] shadow-inner">
+          <div className="group relative mb-8 min-h-[240px] flex-1 overflow-hidden rounded-xl bg-[#111c2d] shadow-inner">
             {showStudentPip ? (
-              <video
-                ref={studentVideoRef}
-                className="h-full min-h-[240px] w-full object-cover opacity-90 transition-opacity group-hover:opacity-100 scale-x-[-1]"
-                autoPlay
-                playsInline
-                muted
-              />
+              <>
+                <video
+                  ref={studentVideoRef}
+                  className={`h-full min-h-[240px] w-full scale-x-[-1] object-cover transition-opacity group-hover:opacity-100 ${isCameraOff ? "opacity-0" : "opacity-90"}`}
+                  autoPlay
+                  playsInline
+                  muted
+                />
+                {isCameraOff && (
+                  <div className="absolute inset-0 flex items-center justify-center text-sm text-white/50">
+                    Camera off
+                  </div>
+                )}
+              </>
             ) : (
               <div className="flex h-full min-h-[240px] w-full items-center justify-center text-sm text-white/50">
                 {cameraUnavailable ? "Camera unavailable" : "Camera preview…"}
@@ -199,18 +216,23 @@ export function CallLobby({
             </div>
 
             <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-3">
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/70 text-[#111c2d] backdrop-blur-md"
-                title="Microphone"
+              <button
+                type="button"
+                onClick={onToggleMute}
+                aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+                className={`flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/70 text-[#111c2d] backdrop-blur-md transition-all hover:bg-white active:scale-90 ${isMuted ? "text-error ring-2 ring-error/40" : ""}`}
               >
-                <MicIcon />
-              </div>
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/70 text-[#111c2d] backdrop-blur-md"
-                title="Camera"
+                <MicIcon filled={micActive} />
+              </button>
+              <button
+                type="button"
+                onClick={onToggleCamera}
+                disabled={cameraUnavailable}
+                aria-label={isCameraOff ? "Turn camera on" : "Turn camera off"}
+                className={`flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/70 text-[#111c2d] backdrop-blur-md transition-all hover:bg-white active:scale-90 disabled:opacity-40 ${isCameraOff ? "text-error ring-2 ring-error/40" : ""}`}
               >
-                <CameraIcon />
-              </div>
+                <CameraIcon filled={cameraActive} />
+              </button>
             </div>
           </div>
 
@@ -225,21 +247,29 @@ export function CallLobby({
           <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="flex flex-wrap items-center gap-4">
               <div
-                className={`flex items-center gap-2 ${micReady ? "text-[#2036bd]" : "text-error"}`}
+                className={`flex items-center gap-2 ${micActive ? "text-[#2036bd]" : "text-error"}`}
               >
-                <MicIcon filled={micReady} />
-                <div className="flex h-3 items-end gap-0.5">
-                  <div className="h-1 w-0.5 rounded-full bg-current" />
-                  <div className="h-2 w-0.5 animate-bounce rounded-full bg-current" />
-                  <div className="h-3 w-0.5 rounded-full bg-current" />
-                  <div className="h-1 w-0.5 rounded-full bg-current" />
-                </div>
+                <MicIcon filled={micActive} />
+                {micActive && (
+                  <div className="flex h-3 items-end gap-0.5">
+                    <div className="h-1 w-0.5 rounded-full bg-current" />
+                    <div className="h-2 w-0.5 animate-bounce rounded-full bg-current" />
+                    <div className="h-3 w-0.5 rounded-full bg-current" />
+                    <div className="h-1 w-0.5 rounded-full bg-current" />
+                  </div>
+                )}
               </div>
               <div
-                className={`flex items-center gap-2 font-mono text-xs uppercase tracking-tight ${cameraReady && !cameraUnavailable ? "text-[#2036bd]" : "text-error"}`}
+                className={`flex items-center gap-2 font-mono text-xs uppercase tracking-tight ${cameraActive ? "text-[#2036bd]" : "text-error"}`}
               >
-                <CameraIcon filled={cameraReady && !cameraUnavailable} />
-                <span>{cameraReady && !cameraUnavailable ? "HD Active" : "Camera off"}</span>
+                <CameraIcon filled={cameraActive} />
+                <span>
+                  {cameraActive
+                    ? "HD Active"
+                    : cameraUnavailable
+                      ? "Unavailable"
+                      : "Camera off"}
+                </span>
               </div>
             </div>
 
