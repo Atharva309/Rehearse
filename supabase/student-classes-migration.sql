@@ -16,15 +16,18 @@ SELECT id, class_id, professor_id
 FROM students
 WHERE class_id IS NOT NULL;
 
--- Step 3: Remove class_id and professor_id from students table
+-- Step 3: Drop policy + constraint that depend on legacy columns
+DROP POLICY IF EXISTS "professors_read_their_students" ON students;
+ALTER TABLE students DROP CONSTRAINT IF EXISTS students_class_id_username_key;
+
+-- Step 4: Remove class_id and professor_id from students table
 ALTER TABLE students DROP COLUMN IF EXISTS class_id;
 ALTER TABLE students DROP COLUMN IF EXISTS professor_id;
 
--- Step 4: Make username globally unique (not per class)
-ALTER TABLE students DROP CONSTRAINT IF EXISTS students_class_id_username_key;
+-- Step 5: Make username globally unique (not per class)
 ALTER TABLE students ADD CONSTRAINT students_username_unique UNIQUE (username);
 
--- Step 5: Update attempts table to use student_classes
+-- Step 6: Update attempts table to use student_classes
 ALTER TABLE attempts
   ADD COLUMN IF NOT EXISTS student_class_id uuid REFERENCES student_classes(id);
 
@@ -38,7 +41,7 @@ WHERE a.student_class_id IS NULL
   AND sc.student_id = a.student_id
   AND sc.class_id = a.class_id;
 
--- Step 6: Grants + RLS on student_classes
+-- Step 7: Grants + RLS on student_classes
 GRANT ALL ON TABLE student_classes TO service_role;
 GRANT SELECT ON TABLE student_classes TO authenticated;
 GRANT SELECT ON TABLE student_classes TO anon;
@@ -60,5 +63,4 @@ CREATE POLICY "professors_read_their_student_classes" ON student_classes
   TO authenticated
   USING (professor_id = auth.uid());
 
--- Update students RLS — professors read via junction table
-DROP POLICY IF EXISTS "professors_read_their_students" ON students;
+-- Professors read enrollments via student_classes (policy created above)

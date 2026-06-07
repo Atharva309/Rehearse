@@ -32,12 +32,15 @@ BEGIN
   END IF;
 END $$;
 
--- 3) Drop legacy columns from students
+-- 3) Drop policies/constraints that reference legacy columns BEFORE dropping them
+DROP POLICY IF EXISTS "professors_read_their_students" ON students;
+ALTER TABLE students DROP CONSTRAINT IF EXISTS students_class_id_username_key;
+
+-- 4) Drop legacy columns from students
 ALTER TABLE students DROP COLUMN IF EXISTS class_id;
 ALTER TABLE students DROP COLUMN IF EXISTS professor_id;
 
--- 4) Global unique username
-ALTER TABLE students DROP CONSTRAINT IF EXISTS students_class_id_username_key;
+-- 5) Global unique username
 
 DO $$
 BEGIN
@@ -48,7 +51,7 @@ BEGIN
   END IF;
 END $$;
 
--- 5) Link attempts to enrollments
+-- 6) Link attempts to enrollments
 ALTER TABLE attempts
   ADD COLUMN IF NOT EXISTS student_class_id uuid REFERENCES student_classes(id);
 
@@ -61,7 +64,7 @@ WHERE a.student_class_id IS NULL
   AND sc.student_id = a.student_id
   AND sc.class_id = a.class_id;
 
--- 6) Grants + RLS
+-- 7) Grants + RLS
 GRANT ALL ON TABLE student_classes TO service_role;
 GRANT SELECT ON TABLE student_classes TO authenticated;
 GRANT SELECT ON TABLE student_classes TO anon;
@@ -83,9 +86,7 @@ CREATE POLICY "professors_read_their_student_classes" ON student_classes
   TO authenticated
   USING (professor_id = auth.uid());
 
-DROP POLICY IF EXISTS "professors_read_their_students" ON students;
-
--- 7) Backfill from attempts if enrollments were missed
+-- 8) Backfill from attempts if enrollments were missed
 INSERT INTO student_classes (student_id, class_id, professor_id)
 SELECT DISTINCT a.student_id, a.class_id, c.professor_id
 FROM attempts a
