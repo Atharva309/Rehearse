@@ -33,8 +33,9 @@ export function JoinClassButton(): React.ReactElement {
 
     const res = await fetch("/api/student/join-class", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ joinCode: joinCode.toUpperCase() }),
+      body: JSON.stringify({ joinCode: joinCode.trim().toUpperCase() }),
     });
 
     const body = (await res.json()) as { error?: string; className?: string };

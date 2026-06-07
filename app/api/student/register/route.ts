@@ -12,6 +12,7 @@ import {
   USERNAME_REGEX,
 } from "@/lib/constants";
 import { hashPassword } from "@/lib/password";
+import { enrollStudentInClass } from "@/lib/student-enrollment";
 import { createStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -104,15 +105,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Could not create account. Please try again." }, { status: 500 });
     }
 
-    const { error: enrollError } = await supabase.from("student_classes").insert({
-      student_id: student.id,
-      class_id: classRow.id,
-      professor_id: classRow.professor_id,
+    const enrollResult = await enrollStudentInClass(supabase, {
+      studentId: student.id,
+      classId: classRow.id,
+      professorId: classRow.professor_id,
     });
 
-    if (enrollError) {
+    if (!enrollResult.ok) {
       await supabase.from("students").delete().eq("id", student.id);
-      return NextResponse.json({ error: "Could not join class. Please try again." }, { status: 500 });
+      return NextResponse.json({ error: enrollResult.message }, { status: enrollResult.status });
     }
 
     await createStudentSession({

@@ -5,6 +5,11 @@
 
 import { NextResponse } from "next/server";
 import { JOIN_CODE_LENGTH } from "@/lib/constants";
+import {
+  enrollStudentInClass,
+  enrollmentErrorMessage,
+  isStudentEnrolledInClass,
+} from "@/lib/student-enrollment";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -31,6 +36,19 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const supabase = createServiceClient();
 
+    const { data: studentRow, error: studentError } = await supabase
+      .from("students")
+      .select("id")
+      .eq("id", session.studentId)
+      .single();
+
+    if (studentError || !studentRow) {
+      return NextResponse.json(
+        { error: "Session expired. Please sign out and sign in again." },
+        { status: 401 }
+      );
+    }
+
     const { data: classRow, error: classError } = await supabase
       .from("classes")
       .select("id, name, professor_id, is_active")
@@ -45,32 +63,47 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "This class is not accepting new students." }, { status: 403 });
     }
 
-    const { data: existing } = await supabase
-      .from("student_classes")
-      .select("id")
-      .eq("student_id", session.studentId)
-      .eq("class_id", classRow.id)
-      .maybeSingle();
+    if (!classRow.professor_id) {
+      return NextResponse.json({ error: "This class is not configured correctly." }, { status: 500 });
+    }
 
-    if (existing) {
+    const { enrolled, lookupFailed } = await isStudentEnrolledInClass(
+      supabase,
+      session.studentId,
+      classRow.id
+    );
+
+    if (lookupFailed) {
+      const probe = await supabase.from("student_classes").select("id").limit(1);
+      if (probe.error) {
+        const mapped = enrollmentErrorMessage(probe.error);
+        return NextResponse.json(
+          { error: mapped.message, code: mapped.code },
+          { status: mapped.status }
+        );
+      }
+    }
+
+    if (enrolled) {
       return NextResponse.json(
         { error: "You are already enrolled in this class" },
         { status: 409 }
       );
     }
 
-    const { error: enrollError } = await supabase.from("student_classes").insert({
-      student_id: session.studentId,
-      class_id: classRow.id,
-      professor_id: classRow.professor_id,
+    const result = await enrollStudentInClass(supabase, {
+      studentId: session.studentId,
+      classId: classRow.id,
+      professorId: classRow.professor_id,
     });
 
-    if (enrollError) {
-      return NextResponse.json({ error: "Could not join class. Please try again." }, { status: 500 });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.message }, { status: result.status });
     }
 
     return NextResponse.json({ success: true, className: classRow.name });
-  } catch {
+  } catch (err) {
+    console.error("[join-class] unexpected", err);
     return NextResponse.json({ error: "Could not join class." }, { status: 500 });
   }
 }

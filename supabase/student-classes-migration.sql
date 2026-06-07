@@ -38,14 +38,27 @@ WHERE a.student_class_id IS NULL
   AND sc.student_id = a.student_id
   AND sc.class_id = a.class_id;
 
--- Step 6: RLS on student_classes
+-- Step 6: Grants + RLS on student_classes
+GRANT ALL ON TABLE student_classes TO service_role;
+GRANT SELECT ON TABLE student_classes TO authenticated;
+GRANT SELECT ON TABLE student_classes TO anon;
+
 ALTER TABLE student_classes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "service_role_student_classes" ON student_classes
-  FOR ALL USING (auth.role() = 'service_role');
+DROP POLICY IF EXISTS "service_role_student_classes" ON student_classes;
+DROP POLICY IF EXISTS "service_role_all_student_classes" ON student_classes;
+DROP POLICY IF EXISTS "professors_read_their_student_classes" ON student_classes;
+
+CREATE POLICY "service_role_all_student_classes" ON student_classes
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
 
 CREATE POLICY "professors_read_their_student_classes" ON student_classes
-  FOR SELECT USING (professor_id = auth.uid());
+  FOR SELECT
+  TO authenticated
+  USING (professor_id = auth.uid());
 
 -- Update students RLS — professors read via junction table
 DROP POLICY IF EXISTS "professors_read_their_students" ON students;
