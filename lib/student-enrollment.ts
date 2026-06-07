@@ -35,12 +35,18 @@ export function enrollmentErrorMessage(error: PostgrestError): { ok: false } & E
     };
   }
 
-  if (error.code === "42P01" || error.message?.includes("student_classes")) {
+  const missingTable =
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    error.message?.includes("student_classes") ||
+    error.message?.includes("schema cache");
+
+  if (missingTable) {
     return {
       ok: false as const,
       status: 503,
       message:
-        "Class enrollment is not set up yet. Ask your administrator to run the database migration.",
+        "Class enrollment is not set up yet. Run supabase/RUN-THIS-MIGRATION.sql in the Supabase SQL editor.",
       code: error.code,
     };
   }
