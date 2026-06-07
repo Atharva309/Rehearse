@@ -1,6 +1,6 @@
 /**
  * register/route.ts
- * POST /api/student/register — create student account and session.
+ * POST /api/student/register — create student account and join first class.
  */
 
 import { NextResponse } from "next/server";
@@ -23,7 +23,7 @@ type RegisterBody = {
 };
 
 /**
- * Validates registration input and creates a student row + session cookie.
+ * Creates a globally unique student account and enrolls them in a class.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -78,13 +78,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     const { data: existing } = await supabase
       .from("students")
       .select("id")
-      .eq("class_id", classRow.id)
       .eq("username", username)
       .maybeSingle();
 
     if (existing) {
       return NextResponse.json(
-        { error: "Username already taken in this class." },
+        { error: "Username already taken. Please choose another." },
         { status: 409 }
       );
     }
@@ -97,8 +96,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         username,
         display_name: displayName,
         password_hash: passwordHash,
-        class_id: classRow.id,
-        professor_id: classRow.professor_id,
       })
       .select("id")
       .single();
@@ -107,10 +104,19 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Could not create account. Please try again." }, { status: 500 });
     }
 
+    const { error: enrollError } = await supabase.from("student_classes").insert({
+      student_id: student.id,
+      class_id: classRow.id,
+      professor_id: classRow.professor_id,
+    });
+
+    if (enrollError) {
+      await supabase.from("students").delete().eq("id", student.id);
+      return NextResponse.json({ error: "Could not join class. Please try again." }, { status: 500 });
+    }
+
     await createStudentSession({
       studentId: student.id,
-      classId: classRow.id,
-      professorId: classRow.professor_id,
       username,
       displayName,
     });

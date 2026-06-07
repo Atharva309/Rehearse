@@ -18,7 +18,7 @@ import { formatRankDisplay } from "@/lib/leaderboard";
 import { CHAT_SYSTEM_PROMPT } from "@/lib/persona";
 import { stageScoreTone, toneTextClass } from "@/lib/score-display";
 import { createClient } from "@/lib/supabase/client";
-import type { Class, LeaderboardEntry, Simulation, StageScore, Student } from "@/types";
+import type { Class, EnrolledStudent, LeaderboardEntry, Simulation, StageScore } from "@/types";
 
 // ── Material Symbols ───────────────────────────────────────────────────────────
 
@@ -844,7 +844,7 @@ type ProfessorClassManagementViewProps = {
   classDescription: string | null;
   classId: string;
   joinCode: string;
-  initialStudents: Pick<Student, "id" | "username" | "display_name" | "joined_at">[];
+  initialStudents: EnrolledStudent[];
   initialAssignments: AssignedSimulation[];
   professorSimulations: Simulation[];
 };
@@ -1051,10 +1051,10 @@ export function ProfessorClassManagementView({
                               {student.username}
                             </td>
                             <td className="px-lg py-4 font-body-md text-on-surface-variant">
-                              {student.display_name}
+                              {student.displayName}
                             </td>
                             <td className="px-lg py-4 font-body-md text-on-surface-variant">
-                              {new Date(student.joined_at).toLocaleDateString()}
+                              {new Date(student.joinedAt).toLocaleDateString()}
                             </td>
                             <td className="px-lg py-4 text-right">
                               <MaterialIcon name="more_vert" className="text-on-surface-variant" />

@@ -10,14 +10,22 @@ import { StudentRegisterForm } from "./StudentRegisterForm";
 
 export const dynamic = "force-dynamic";
 
+type PageProps = {
+  searchParams: { code?: string };
+};
+
 /**
  * Student registration page — redirects if session already exists.
  */
-export default async function StudentRegisterPage(): Promise<React.ReactElement> {
+export default async function StudentRegisterPage({
+  searchParams,
+}: PageProps): Promise<React.ReactElement> {
   const session = await getStudentSession();
   if (session) {
     redirect("/student/dashboard");
   }
+
+  const initialJoinCode = searchParams.code?.trim().toUpperCase() ?? "";
 
   return (
     <AuthSplitLayout accent="accent" subtitle="Create your student account to join your class.">
@@ -26,7 +34,7 @@ export default async function StudentRegisterPage(): Promise<React.ReactElement>
       <p className="text-sm text-text-secondary mt-1">
         Enter the class code from your professor to get started.
       </p>
-      <StudentRegisterForm />
+      <StudentRegisterForm initialJoinCode={initialJoinCode} />
     </AuthSplitLayout>
   );
 }

@@ -28,13 +28,25 @@ export async function signStudentSessionToken(data: StudentSession): Promise<str
 /**
  * Verifies a JWT token string and returns the session payload.
  */
+function parseStudentSessionPayload(payload: Record<string, unknown>): StudentSession | null {
+  const { studentId, username, displayName } = payload;
+  if (
+    typeof studentId !== "string" ||
+    typeof username !== "string" ||
+    typeof displayName !== "string"
+  ) {
+    return null;
+  }
+  return { studentId, username, displayName };
+}
+
 export async function verifyStudentSessionToken(token: string): Promise<StudentSession | null> {
   if (!process.env.STUDENT_SESSION_SECRET) {
     return null;
   }
   try {
     const { payload } = await jwtVerify(token, getSessionSecret());
-    return payload as unknown as StudentSession;
+    return parseStudentSessionPayload(payload as Record<string, unknown>);
   } catch {
     return null;
   }

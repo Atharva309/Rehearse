@@ -42,11 +42,33 @@ export async function GET(
     return NextResponse.json({ error: "Class not found." }, { status: 404 });
   }
 
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, username, display_name, joined_at")
+  const { data: enrollmentRows } = await supabase
+    .from("student_classes")
+    .select(
+      `
+      joined_at,
+      students (
+        id,
+        username,
+        display_name,
+        joined_at
+      )
+    `
+    )
     .eq("class_id", params.classId)
     .order("joined_at", { ascending: false });
+
+  const students = (enrollmentRows ?? []).map((row) => {
+    const studentRaw = row.students;
+    const student = Array.isArray(studentRaw) ? studentRaw[0] : studentRaw;
+    if (!student) return null;
+    return {
+      id: student.id,
+      username: student.username,
+      display_name: student.display_name,
+      joined_at: row.joined_at,
+    };
+  }).filter(Boolean);
 
   const { data: classSimulations } = await supabase
     .from("class_simulations")

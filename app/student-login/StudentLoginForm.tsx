@@ -1,6 +1,6 @@
 /**
  * StudentLoginForm.tsx
- * Client form for returning student login with class code.
+ * Client form for returning student login with username and password.
  */
 
 "use client";
@@ -14,7 +14,6 @@ import { useState } from "react";
  */
 export function StudentLoginForm(): React.ReactElement {
   const router = useRouter();
-  const [joinCode, setJoinCode] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,11 +27,7 @@ export function StudentLoginForm(): React.ReactElement {
     const res = await fetch("/api/student/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        joinCode: joinCode.toUpperCase(),
-        username,
-        password,
-      }),
+      body: JSON.stringify({ username, password }),
     });
 
     const body = (await res.json()) as { error?: string };
@@ -49,19 +44,6 @@ export function StudentLoginForm(): React.ReactElement {
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="mt-8 space-y-4" autoComplete="off">
-      <label className="block text-sm font-medium text-text-primary">
-        Class Code
-        <input
-          type="text"
-          required
-          maxLength={6}
-          className="input-field mt-1 uppercase tracking-widest"
-          placeholder="6-character code"
-          value={joinCode}
-          onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-        />
-      </label>
-
       <label className="block text-sm font-medium text-text-primary">
         Username
         <input
@@ -92,9 +74,12 @@ export function StudentLoginForm(): React.ReactElement {
 
       <p className="text-sm text-text-secondary text-center">
         New student?{" "}
-        <Link href="/student-register" className="text-accent font-medium hover:underline">
-          Register here
+        <Link href="/join" className="text-accent font-medium hover:underline">
+          Use your professor&apos;s link to register
         </Link>
+      </p>
+      <p className="text-sm text-text-secondary text-center">
+        Forgot your username? Contact your professor.
       </p>
     </form>
   );

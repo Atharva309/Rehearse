@@ -15,15 +15,16 @@ export default function JoinPage(): React.ReactElement {
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Join Class</p>
       <h2 className="text-2xl font-bold text-primary mt-2">Welcome to PitchLab</h2>
       <p className="text-sm text-text-secondary mt-1">
-        Use the class code from your professor when you create an account or sign in.
+        Use the class code from your professor when you create an account. Returning students can
+        sign in and join additional classes from the dashboard.
       </p>
 
       <div className="mt-8 space-y-3">
         <Link href="/student-register" className="block w-full text-center btn-primary">
-          New student? Create account
+          New student? Create your account
         </Link>
         <Link href="/student-login" className="block w-full text-center btn-accent">
-          Already registered? Sign in
+          Already have an account? Sign in
         </Link>
       </div>
     </AuthSplitLayout>

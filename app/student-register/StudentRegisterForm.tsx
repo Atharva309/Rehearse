@@ -14,27 +14,27 @@ import {
   USERNAME_MIN_LENGTH,
 } from "@/lib/constants";
 
+type StudentRegisterFormProps = {
+  initialJoinCode?: string;
+};
+
 /**
  * Registration form — POST /api/student/register then redirect to dashboard.
  */
-export function StudentRegisterForm(): React.ReactElement {
+export function StudentRegisterForm({
+  initialJoinCode = "",
+}: StudentRegisterFormProps): React.ReactElement {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [joinCode, setJoinCode] = useState("");
+  const [joinCode, setJoinCode] = useState(initialJoinCode);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setError("");
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
 
     if (password.length < PASSWORD_MIN_LENGTH) {
       setError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
@@ -93,7 +93,7 @@ export function StudentRegisterForm(): React.ReactElement {
           onChange={(e) => setUsername(e.target.value)}
         />
         <span className="mt-1 block text-xs text-text-secondary">
-          {USERNAME_MIN_LENGTH}–{USERNAME_MAX_LENGTH} chars, letters/numbers/underscores only
+          3–20 characters, letters, numbers and underscores only
         </span>
       </label>
 
@@ -106,17 +106,6 @@ export function StudentRegisterForm(): React.ReactElement {
           className="input-field mt-1"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-        />
-      </label>
-
-      <label className="block text-sm font-medium text-text-primary">
-        Confirm Password
-        <input
-          type="password"
-          required
-          className="input-field mt-1"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
         />
       </label>
 

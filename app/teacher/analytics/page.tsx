@@ -26,7 +26,7 @@ export default async function TeacherAnalyticsPage(): Promise<React.ReactElement
 
   if (classIds.length > 0) {
     const { count } = await supabase
-      .from("students")
+      .from("student_classes")
       .select("*", { count: "exact", head: true })
       .in("class_id", classIds);
     studentCount = count ?? 0;

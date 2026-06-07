@@ -120,6 +120,8 @@ export const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
 export const PASSWORD_MIN_LENGTH = 6;
 export const JOIN_CODE_LENGTH = 6;
 export const STUDENT_SESSION_DAYS = 7;
+/** Username is globally unique — not per class. */
+export const USERNAME_SCOPE = "global" as const;
 
 // ── Stitch UI layout ──────────────────────────────────────────────────────────
 

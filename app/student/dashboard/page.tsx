@@ -1,6 +1,6 @@
 /**
  * dashboard/page.tsx — student
- * Lists class-assigned simulations and completed attempt history.
+ * Lists simulations from all enrolled classes and completed attempt history.
  */
 
 import { redirect } from "next/navigation";
@@ -13,9 +13,16 @@ import {
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Attempt, Simulation } from "@/types";
+import { JoinClassButton } from "./JoinClassButton";
+
+type ClassSection = {
+  classId: string;
+  className: string;
+  simulations: Simulation[];
+};
 
 /**
- * Student home — browse class simulations and review past scores.
+ * Student home — browse simulations across all enrolled classes.
  */
 export default async function StudentDashboardPage(): Promise<React.ReactElement> {
   const session = await getStudentSession();
@@ -25,33 +32,68 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
 
   const supabase = createServiceClient();
 
-  const { data: classRow } = await supabase
-    .from("classes")
-    .select("name")
-    .eq("id", session.classId)
-    .single();
-
-  const { data: classSimRows } = await supabase
-    .from("class_simulations")
+  const { data: studentClasses } = await supabase
+    .from("student_classes")
     .select(
       `
-      simulation_id,
-      simulations (
-        id, title, description,
-        persona_name, persona_role,
-        product_context, is_published,
-        persona_system_prompt, simli_face_id, teacher_id, created_at
+      class_id,
+      classes (
+        id,
+        name,
+        join_code
       )
     `
     )
-    .eq("class_id", session.classId);
+    .eq("student_id", session.studentId);
 
-  const simulations = (classSimRows ?? [])
-    .map((row) => {
-      const sim = row.simulations;
-      return Array.isArray(sim) ? sim[0] : sim;
-    })
-    .filter((sim): sim is Simulation => Boolean(sim?.is_published));
+  const classIds = (studentClasses ?? []).map((row) => row.class_id as string);
+
+  let classSections: ClassSection[] = [];
+
+  if (classIds.length > 0) {
+    const { data: classSimRows } = await supabase
+      .from("class_simulations")
+      .select(
+        `
+        class_id,
+        simulation_id,
+        simulations (
+          id, title, description,
+          persona_name, persona_role,
+          product_context, is_published,
+          persona_system_prompt, simli_face_id, teacher_id, created_at
+        )
+      `
+      )
+      .in("class_id", classIds);
+
+    const simsByClass = new Map<string, Simulation[]>();
+
+    for (const row of classSimRows ?? []) {
+      const simRaw = row.simulations;
+      const sim = (Array.isArray(simRaw) ? simRaw[0] : simRaw) as Simulation | null;
+      if (!sim?.is_published) continue;
+
+      const list = simsByClass.get(row.class_id as string) ?? [];
+      if (!list.some((s) => s.id === sim.id)) {
+        list.push(sim);
+        simsByClass.set(row.class_id as string, list);
+      }
+    }
+
+    classSections = (studentClasses ?? [])
+      .map((row) => {
+        const classRaw = row.classes;
+        const cls = Array.isArray(classRaw) ? classRaw[0] : classRaw;
+        const classId = row.class_id as string;
+        return {
+          classId,
+          className: (cls?.name as string) ?? "Class",
+          simulations: simsByClass.get(classId) ?? [],
+        };
+      })
+      .filter((section) => section.simulations.length > 0);
+  }
 
   const { data: attempts } = await supabase
     .from("attempts")
@@ -75,6 +117,16 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
     });
   }
 
+  const attemptKey = (simulationId: string, classId: string): string =>
+    `${simulationId}:${classId}`;
+
+  const attemptBySimClass = new Map<string, Attempt>();
+  for (const attempt of inProgressList) {
+    if (attempt.class_id) {
+      attemptBySimClass.set(attemptKey(attempt.simulation_id, attempt.class_id), attempt);
+    }
+  }
+
   const { data: completedAttempts } = await supabase
     .from("attempts")
     .select("id, total_score, completed_at, simulations ( id, title, persona_name )")
@@ -82,9 +134,6 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
     .eq("status", "completed")
     .order("completed_at", { ascending: false })
     .limit(20);
-
-  const attemptBySim = new Map(inProgressList.map((a) => [a.simulation_id, a]));
-  const list = simulations as Simulation[];
 
   const history: StudentAttemptRow[] = (completedAttempts ?? []).map((row) => {
     const sim = row.simulations;
@@ -97,6 +146,9 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
     };
   });
 
+  const totalSimulations = classSections.reduce((sum, s) => sum + s.simulations.length, 0);
+  const classCount = studentClasses?.length ?? 0;
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -105,43 +157,57 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
             Welcome back, {session.displayName}
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            {classRow?.name ?? "Your class"} — choose a scenario to practice your pitch.
+            {classCount === 0
+              ? "Join a class to see assigned simulations."
+              : classCount === 1
+                ? `${classSections[0]?.className ?? "Your class"} — choose a scenario to practice your pitch.`
+                : `${classCount} classes enrolled — choose a scenario to practice your pitch.`}
           </p>
         </div>
-        <input
-          type="search"
-          placeholder="Search simulations…"
-          disabled
-          aria-label="Search simulations"
-          className="input-field max-w-xs opacity-60 cursor-not-allowed"
-          title="Search coming soon"
-        />
+        <JoinClassButton />
       </div>
 
-      {list.length === 0 ? (
+      {classCount === 0 ? (
+        <EmptyState
+          icon="🎓"
+          title="No classes yet."
+          description="Use the Join a Class button above with your professor's class code to get started."
+        />
+      ) : totalSimulations === 0 ? (
         <EmptyState
           icon="🎯"
           title="No simulations available yet."
-          description="Your professor hasn't assigned any published simulations to your class yet."
+          description="Your professors haven't assigned any published simulations to your classes yet."
         />
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
-          {list.map((sim) => {
-            const existing = attemptBySim.get(sim.id);
-            const stagesCompleted = existing
-              ? stageCountByAttempt.get(existing.id) ?? 0
-              : 0;
-            return (
-              <SimulationCard
-                key={sim.id}
-                simulation={sim}
-                className={classRow?.name}
-                actionLabel={existing ? "Continue" : "Start Simulation"}
-                href={`/student/simulation/${sim.id}${existing ? `?attempt=${existing.id}` : ""}`}
-                stagesCompleted={stagesCompleted}
-              />
-            );
-          })}
+        <div className="mt-8 space-y-10">
+          {classSections.map((section) => (
+            <section key={section.classId}>
+              <h2 className="text-lg font-semibold text-text-primary mb-4">{section.className}</h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {section.simulations.map((sim) => {
+                  const existing = attemptBySimClass.get(attemptKey(sim.id, section.classId));
+                  const stagesCompleted = existing
+                    ? stageCountByAttempt.get(existing.id) ?? 0
+                    : 0;
+                  const query = new URLSearchParams({ classId: section.classId });
+                  if (existing) {
+                    query.set("attempt", existing.id);
+                  }
+                  return (
+                    <SimulationCard
+                      key={`${section.classId}-${sim.id}`}
+                      simulation={sim}
+                      className={section.className}
+                      actionLabel={existing ? "Continue" : "Start Simulation"}
+                      href={`/student/simulation/${sim.id}?${query.toString()}`}
+                      stagesCompleted={stagesCompleted}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 

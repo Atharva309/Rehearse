@@ -51,6 +51,8 @@ export type Attempt = {
   id: string;
   student_id: string;
   simulation_id: string;
+  class_id?: string;
+  student_class_id?: string;
   status: AttemptStatus;
   current_stage: SimulationStage;
   total_score: number;
@@ -80,8 +82,6 @@ export type LeaderboardEntry = {
 
 export type StudentSession = {
   studentId: string;
-  classId: string;
-  professorId: string;
   username: string;
   displayName: string;
 };
@@ -98,11 +98,25 @@ export type Class = {
 
 export type Student = {
   id: string;
-  class_id: string;
-  professor_id: string;
   username: string;
-  display_name: string;
-  joined_at: string;
+  displayName: string;
+  createdAt: string;
+};
+
+export type StudentClass = {
+  id: string;
+  studentId: string;
+  classId: string;
+  professorId: string;
+  joinedAt: string;
+};
+
+/** Student enrolled in a class — used in professor class management UI. */
+export type EnrolledStudent = {
+  id: string;
+  username: string;
+  displayName: string;
+  joinedAt: string;
 };
 
 export type ClassSimulation = {

@@ -41,12 +41,12 @@ export async function GET(): Promise<NextResponse> {
   const simulationCounts = new Map<string, number>();
 
   if (classIds.length > 0) {
-    const { data: students } = await supabase
-      .from("students")
+    const { data: enrollments } = await supabase
+      .from("student_classes")
       .select("class_id")
       .in("class_id", classIds);
 
-    (students ?? []).forEach((row) => {
+    (enrollments ?? []).forEach((row) => {
       studentCounts.set(row.class_id, (studentCounts.get(row.class_id) ?? 0) + 1);
     });
 

@@ -11,7 +11,7 @@ import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 
 /**
- * Student layout wrapper — class-based auth (no Supabase auth).
+ * Student layout wrapper — JWT session auth (no Supabase auth).
  */
 export default async function StudentLayout({
   children,
@@ -24,17 +24,24 @@ export default async function StudentLayout({
   }
 
   const supabase = createServiceClient();
-  const { data: classRow } = await supabase
-    .from("classes")
-    .select("name")
-    .eq("id", session.classId)
-    .single();
+  const { count } = await supabase
+    .from("student_classes")
+    .select("*", { count: "exact", head: true })
+    .eq("student_id", session.studentId);
+
+  const classCount = count ?? 0;
+  const subtitle =
+    classCount === 0
+      ? "Student Portal"
+      : classCount === 1
+        ? "1 class enrolled"
+        : `${classCount} classes enrolled`;
 
   return (
     <div className="flex min-h-dvh flex-col">
       <AppHeader
         userName={session.displayName}
-        subtitle={classRow?.name ?? undefined}
+        subtitle={subtitle}
         homeHref="/student/dashboard"
         logoutMode="student"
       />

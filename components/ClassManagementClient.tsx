@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/useToast";
 import { STUDENT_JOIN_PATH } from "@/lib/constants";
-import type { Simulation, Student } from "@/types";
+import type { EnrolledStudent, Simulation } from "@/types";
 
 type AssignedSimulation = {
   id: string;
@@ -21,7 +21,7 @@ type AssignedSimulation = {
 type ClassManagementClientProps = {
   classId: string;
   joinCode: string;
-  initialStudents: Pick<Student, "id" | "username" | "display_name" | "joined_at">[];
+  initialStudents: EnrolledStudent[];
   initialAssignments: AssignedSimulation[];
   professorSimulations: Simulation[];
 };
@@ -158,9 +158,9 @@ export function ClassManagementClient({
                 {initialStudents.map((student) => (
                   <tr key={student.id} className="border-t border-border">
                     <td className="font-mono text-text-primary">{student.username}</td>
-                    <td>{student.display_name}</td>
+                    <td>{student.displayName}</td>
                     <td className="text-text-secondary">
-                      {new Date(student.joined_at).toLocaleDateString()}
+                      {new Date(student.joinedAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}

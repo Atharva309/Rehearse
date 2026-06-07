@@ -11,7 +11,7 @@ import type { Attempt, Simulation, StageScore } from "@/types";
 
 type PageProps = {
   params: { id: string };
-  searchParams: { attempt?: string };
+  searchParams: { attempt?: string; classId?: string };
 };
 
 /**
@@ -26,12 +26,28 @@ export default async function StudentSimulationPage({
     redirect("/student-login");
   }
 
+  const classId = searchParams.classId?.trim();
+  if (!classId) {
+    redirect("/student/dashboard");
+  }
+
   const supabase = createServiceClient();
+
+  const { data: enrollment } = await supabase
+    .from("student_classes")
+    .select("id")
+    .eq("student_id", session.studentId)
+    .eq("class_id", classId)
+    .single();
+
+  if (!enrollment) {
+    redirect("/student/dashboard");
+  }
 
   const { data: classRow } = await supabase
     .from("classes")
     .select("name")
-    .eq("id", session.classId)
+    .eq("id", classId)
     .single();
 
   const { data: assignment } = await supabase
@@ -42,7 +58,7 @@ export default async function StudentSimulationPage({
       simulations (*)
     `
     )
-    .eq("class_id", session.classId)
+    .eq("class_id", classId)
     .eq("simulation_id", params.id)
     .single();
 
@@ -61,6 +77,7 @@ export default async function StudentSimulationPage({
       .select("*")
       .eq("id", searchParams.attempt)
       .eq("student_id", session.studentId)
+      .eq("class_id", classId)
       .single();
     attempt = data as Attempt | null;
   }
@@ -71,6 +88,7 @@ export default async function StudentSimulationPage({
       .select("*")
       .eq("simulation_id", params.id)
       .eq("student_id", session.studentId)
+      .eq("class_id", classId)
       .eq("status", "in_progress")
       .maybeSingle();
 
@@ -81,7 +99,8 @@ export default async function StudentSimulationPage({
         .from("attempts")
         .insert({
           student_id: session.studentId,
-          class_id: session.classId,
+          class_id: classId,
+          student_class_id: enrollment.id,
           simulation_id: params.id,
           current_stage: "lead_gen",
         })

@@ -7,9 +7,17 @@ import { ProfessorClassManagementView } from "@/components/shared/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
-import type { Simulation } from "@/types";
+import type { EnrolledStudent, Simulation } from "@/types";
 
 type PageProps = { params: { classId: string } };
+
+type StudentClassRow = {
+  joined_at: string;
+  students:
+    | { id: string; username: string; display_name: string; joined_at: string }
+    | { id: string; username: string; display_name: string; joined_at: string }[]
+    | null;
+};
 
 /**
  * Class management page for professors.
@@ -31,11 +39,35 @@ export default async function ClassManagementPage({
     redirect("/teacher/dashboard");
   }
 
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, username, display_name, joined_at")
+  const { data: enrollmentRows } = await supabase
+    .from("student_classes")
+    .select(
+      `
+      joined_at,
+      students (
+        id,
+        username,
+        display_name,
+        joined_at
+      )
+    `
+    )
     .eq("class_id", params.classId)
     .order("joined_at", { ascending: false });
+
+  const students: EnrolledStudent[] = ((enrollmentRows ?? []) as StudentClassRow[])
+    .map((row) => {
+      const studentRaw = row.students;
+      const student = Array.isArray(studentRaw) ? studentRaw[0] : studentRaw;
+      if (!student) return null;
+      return {
+        id: student.id,
+        username: student.username,
+        displayName: student.display_name,
+        joinedAt: row.joined_at,
+      };
+    })
+    .filter((row): row is EnrolledStudent => row !== null);
 
   const { data: assignments } = await supabase
     .from("class_simulations")
@@ -63,7 +95,7 @@ export default async function ClassManagementPage({
       classDescription={classRow.description}
       classId={classRow.id}
       joinCode={classRow.join_code}
-      initialStudents={students ?? []}
+      initialStudents={students}
       initialAssignments={(assignments ?? []) as Parameters<
         typeof ProfessorClassManagementView
       >[0]["initialAssignments"]}
