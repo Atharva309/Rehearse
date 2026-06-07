@@ -60,10 +60,34 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: "dashboard", href: "/teacher/dashboard" },
-  { key: "classes", label: "My Classes", icon: "school", href: "/teacher/dashboard" },
-  { key: "library", label: "Library", icon: "book_5", href: "/teacher/dashboard" },
-  { key: "analytics", label: "Analytics", icon: "analytics", href: "/teacher/dashboard" },
+  { key: "classes", label: "My Classes", icon: "school", href: "/teacher/classes" },
+  { key: "library", label: "Library", icon: "book_5", href: "/teacher/library" },
+  { key: "analytics", label: "Analytics", icon: "analytics", href: "/teacher/analytics" },
 ];
+
+const FOOTER_NAV = [
+  { key: "settings", label: "Settings", icon: "settings", href: "/teacher/settings" },
+  { key: "support", label: "Support", icon: "help", href: "/teacher/support" },
+] as const;
+
+/**
+ * Maps the current pathname to the active professor nav item.
+ */
+export function resolveProfessorNav(pathname: string): ProfessorNavKey {
+  if (pathname.startsWith("/teacher/classes")) return "classes";
+  if (pathname.startsWith("/teacher/library") || pathname.startsWith("/teacher/simulation")) {
+    return "library";
+  }
+  if (pathname.startsWith("/teacher/analytics")) return "analytics";
+  return "dashboard";
+}
+
+/**
+ * Returns whether a nav item should render as active for the given path.
+ */
+function isNavItemActive(item: NavItem, pathname: string): boolean {
+  return resolveProfessorNav(pathname) === item.key;
+}
 
 type ProfessorSidebarProps = {
   activeNav?: ProfessorNavKey;
@@ -74,9 +98,12 @@ type ProfessorSidebarProps = {
  * Fixed left sidebar for the professor portal (256px).
  */
 export function ProfessorSidebar({
-  activeNav = "dashboard",
+  activeNav,
   onNewClass,
 }: ProfessorSidebarProps): React.ReactElement {
+  const pathname = usePathname();
+  const resolvedNav = activeNav ?? resolveProfessorNav(pathname);
+
   return (
     <aside className="hidden md:flex flex-col h-full w-64 bg-surface-container-low border-r border-outline-variant p-4 gap-2 shrink-0">
       <div className="mb-6 px-2">
@@ -86,7 +113,7 @@ export function ProfessorSidebar({
 
       <nav className="flex flex-col gap-1">
         {NAV_ITEMS.map((item) => {
-          const isActive = item.key === activeNav;
+          const isActive = item.key === resolvedNav;
           return (
             <Link
               key={item.key}
@@ -118,20 +145,23 @@ export function ProfessorSidebar({
       )}
 
       <div className="mt-auto pt-4 border-t border-outline-variant flex flex-col gap-1">
-        <Link
-          href="/teacher/dashboard"
-          className="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-all"
-        >
-          <MaterialIcon name="settings" className="text-[20px]" />
-          <span className="font-label-sm text-label-sm">Settings</span>
-        </Link>
-        <Link
-          href="/teacher/dashboard"
-          className="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-all"
-        >
-          <MaterialIcon name="help" className="text-[20px]" />
-          <span className="font-label-sm text-label-sm">Support</span>
-        </Link>
+        {FOOTER_NAV.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.key}
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                isActive
+                  ? "bg-primary-container text-on-primary-container font-bold"
+                  : "text-on-surface-variant hover:bg-surface-container-highest"
+              }`}
+            >
+              <MaterialIcon name={item.icon} className="text-[20px]" />
+              <span className="font-label-sm text-label-sm">{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </aside>
   );
@@ -192,7 +222,7 @@ export function ProfessorDashboardHeader({
           </Link>
           <nav className="hidden md:flex gap-8">
             {NAV_ITEMS.map((item) => {
-              const isActive = item.key === "dashboard" && pathname.startsWith("/teacher/dashboard");
+              const isActive = isNavItemActive(item, pathname);
               return (
                 <Link
                   key={item.key}
@@ -252,16 +282,26 @@ type ProfessorPortalLayoutProps = {
  */
 export function ProfessorPortalLayout({
   userName,
-  activeNav = "dashboard",
+  activeNav,
   onNewClass,
   children,
   showSidebar = true,
 }: ProfessorPortalLayoutProps): React.ReactElement {
+  const pathname = usePathname();
+  const resolvedNav = activeNav ?? resolveProfessorNav(pathname);
+  const showNewClass =
+    onNewClass && (resolvedNav === "dashboard" || resolvedNav === "classes");
+
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-background overflow-hidden font-body-md text-body-md text-on-surface">
-      <ProfessorDashboardHeader userName={userName} onNewClass={onNewClass} />
+      <ProfessorDashboardHeader userName={userName} onNewClass={showNewClass ? onNewClass : undefined} />
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {showSidebar && <ProfessorSidebar activeNav={activeNav} onNewClass={onNewClass} />}
+        {showSidebar && (
+          <ProfessorSidebar
+            activeNav={resolvedNav}
+            onNewClass={showNewClass ? onNewClass : undefined}
+          />
+        )}
         <main className="flex-1 overflow-y-auto custom-scrollbar bg-surface-bright">
           {children}
         </main>
@@ -426,18 +466,26 @@ export function ProfessorDashboardView({
         {/* ── My Classes ─── */}
         <section className="space-y-lg">
           <div className="flex items-center justify-between border-b border-outline-variant pb-md">
-            <div className="flex items-center gap-2">
+            <Link href="/teacher/classes" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <MaterialIcon name="school" className="text-primary" />
               <h2 className="font-headline-md text-headline-md text-primary">My Classes</h2>
+            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/teacher/classes"
+                className="text-secondary font-label-md hover:underline hidden sm:inline"
+              >
+                View all
+              </Link>
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="flex items-center gap-2 px-md py-2.5 bg-primary-container text-white rounded-lg hover:opacity-90 transition-all font-label-md active:scale-95"
+              >
+                <MaterialIcon name="add" />
+                Create New Class
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="flex items-center gap-2 px-md py-2.5 bg-primary-container text-white rounded-lg hover:opacity-90 transition-all font-label-md active:scale-95"
-            >
-              <MaterialIcon name="add" />
-              Create New Class
-            </button>
           </div>
 
           {isLoadingClasses ? (
@@ -529,17 +577,25 @@ export function ProfessorDashboardView({
         {/* ── My Simulations ─── */}
         <section className="space-y-lg">
           <div className="flex items-center justify-between border-b border-outline-variant pb-md">
-            <div className="flex items-center gap-2">
+            <Link href="/teacher/library" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <MaterialIcon name="model_training" className="text-primary" />
               <h2 className="font-headline-md text-headline-md text-primary">My Simulations</h2>
-            </div>
-            <Link
-              href="/teacher/simulation/new"
-              className="flex items-center gap-2 px-md py-2.5 border-2 border-primary text-primary rounded-lg hover:bg-primary-container hover:text-white transition-all font-label-md active:scale-95"
-            >
-              <MaterialIcon name="rocket_launch" />
-              Create New Simulation
             </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/teacher/library"
+                className="text-secondary font-label-md hover:underline hidden sm:inline"
+              >
+                View all
+              </Link>
+              <Link
+                href="/teacher/simulation/new"
+                className="flex items-center gap-2 px-md py-2.5 border-2 border-primary text-primary rounded-lg hover:bg-primary-container hover:text-white transition-all font-label-md active:scale-95"
+              >
+                <MaterialIcon name="rocket_launch" />
+                Create New Simulation
+              </Link>
+            </div>
           </div>
 
           {simulations.length === 0 ? (
@@ -879,7 +935,7 @@ export function ProfessorClassManagementView({
   const displayedStudents = showAllStudents ? initialStudents : initialStudents.slice(0, 4);
 
   return (
-    <ProfessorPortalLayout userName={userName} activeNav="classes">
+    <ProfessorPortalLayout userName={userName}>
       <div className="max-w-container-max mx-auto px-margin-desktop py-8">
         <div className="mb-6">
           <Link
@@ -1209,7 +1265,7 @@ export function ProfessorSimulationFormView({
         <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
           <div className="flex items-center gap-4">
             <Link
-              href="/teacher/dashboard"
+              href="/teacher/library"
               className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high transition-colors"
             >
               <MaterialIcon name="arrow_back" className="text-primary" />
@@ -1555,12 +1611,12 @@ export function ProfessorResultsView({
 
   return (
     <div className="fixed inset-0 z-40 flex h-screen overflow-hidden bg-background font-body-md text-on-surface">
-      <ProfessorSidebar activeNav="classes" />
+      <ProfessorSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex justify-between items-center w-full px-margin-desktop py-4 bg-surface border-b border-outline-variant">
           <div className="flex items-center gap-4">
             <Link
-              href="/teacher/dashboard"
+              href="/teacher/library"
               className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high transition-colors"
             >
               <MaterialIcon name="arrow_back" />
@@ -1856,5 +1912,694 @@ export function ProfessorResultsView({
         </div>
       </main>
     </div>
+  );
+}
+
+// ── Shared create-class modal ────────────────────────────────────────────────────
+
+type CreateClassModalPanelProps = {
+  open: boolean;
+  name: string;
+  description: string;
+  isCreating: boolean;
+  onClose: () => void;
+  onNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
+};
+
+/**
+ * Modal panel for creating a new teaching class.
+ */
+function CreateClassModalPanel({
+  open,
+  name,
+  description,
+  isCreating,
+  onClose,
+  onNameChange,
+  onDescriptionChange,
+  onSubmit,
+}: CreateClassModalPanelProps): React.ReactElement | null {
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center modal-overlay px-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="presentation"
+    >
+      <div className="bg-surface-container-lowest w-full max-w-[560px] rounded-xl shadow-xl border border-outline-variant overflow-hidden">
+        <div className="px-xl py-lg border-b border-outline-variant flex justify-between items-center">
+          <h2 className="font-headline-md text-headline-md text-primary">Create New Class</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-on-surface-variant hover:text-primary transition-colors"
+          >
+            <MaterialIcon name="close" />
+          </button>
+        </div>
+        <form onSubmit={onSubmit} className="p-xl space-y-lg">
+          <div className="space-y-sm">
+            <label htmlFor="className" className="block font-label-md text-label-md text-on-surface-variant">
+              Class Name <span className="text-error">*</span>
+            </label>
+            <input
+              id="className"
+              type="text"
+              required
+              className="w-full h-10 px-md rounded-lg border border-outline-variant bg-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none font-body-md"
+              placeholder="e.g. Advanced AI - Fall 2024"
+              value={name}
+              onChange={(e) => onNameChange(e.target.value)}
+            />
+          </div>
+          <div className="space-y-sm">
+            <label htmlFor="classDesc" className="block font-label-md text-label-md text-on-surface-variant">
+              Description
+            </label>
+            <textarea
+              id="classDesc"
+              rows={4}
+              className="w-full p-md rounded-lg border border-outline-variant bg-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none font-body-md resize-none"
+              placeholder="Briefly describe the course objectives and requirements..."
+              value={description}
+              onChange={(e) => onDescriptionChange(e.target.value)}
+            />
+          </div>
+          <div className="bg-secondary-fixed/20 border border-secondary-fixed/30 p-md rounded-lg flex gap-md items-start">
+            <MaterialIcon name="info" className="text-secondary shrink-0" />
+            <p className="font-body-md text-on-secondary-container">
+              A unique 6-character join code will be generated automatically upon creation.
+              Students can use this code to enroll in your class instantly.
+            </p>
+          </div>
+          <div className="pt-lg flex justify-end items-center gap-md">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-lg h-10 rounded-lg border border-outline-variant text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isCreating}
+              className="px-lg h-10 rounded-lg bg-primary-container text-white font-bold font-label-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+            >
+              {isCreating ? "Creating…" : "Create Class"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── My Classes page ──────────────────────────────────────────────────────────────
+
+type ProfessorClassesViewProps = {
+  userName: string;
+};
+
+/**
+ * Dedicated My Classes page — all cohorts with create-class flow.
+ */
+export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): React.ReactElement {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const [showModal, setShowModal] = useState(false);
+  const [classes, setClasses] = useState<ClassWithCounts[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+
+  const loadClasses = useCallback(async (): Promise<void> => {
+    const res = await fetch("/api/professor/classes");
+    if (!res.ok) {
+      setIsLoading(false);
+      return;
+    }
+    const body = (await res.json()) as { classes: ClassWithCounts[] };
+    setClasses(body.classes ?? []);
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void loadClasses();
+  }, [loadClasses]);
+
+  const joinUrl = (): string => {
+    if (typeof window === "undefined") return STUDENT_JOIN_PATH;
+    return `${window.location.origin}${STUDENT_JOIN_PATH}`;
+  };
+
+  const copyToClipboard = async (text: string, label: string): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(`${label} copied`, "success");
+    } catch {
+      showToast("Could not copy to clipboard", "error");
+    }
+  };
+
+  const handleCreateClass = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    setIsCreating(true);
+    const res = await fetch("/api/professor/classes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description }),
+    });
+    setIsCreating(false);
+
+    if (!res.ok) {
+      showToast("Could not create class", "error");
+      return;
+    }
+
+    setShowModal(false);
+    setName("");
+    setDescription("");
+    showToast("Class created", "success");
+    await loadClasses();
+    router.refresh();
+  };
+
+  return (
+    <ProfessorPortalLayout userName={userName} onNewClass={() => setShowModal(true)}>
+      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
+        <section>
+          <h1 className="font-display text-display text-primary">My Classes</h1>
+          <p className="text-on-surface-variant mt-1">
+            Organize teaching cohorts, share join codes, and assign simulations.
+          </p>
+        </section>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-md py-2.5 bg-primary-container text-white rounded-lg hover:opacity-90 font-label-md active:scale-95"
+          >
+            <MaterialIcon name="add" />
+            Create New Class
+          </button>
+        </div>
+
+        {isLoading ? (
+          <p className="text-on-surface-variant font-body-md">Loading classes…</p>
+        ) : classes.length === 0 ? (
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-xl flex flex-col items-center justify-center text-center min-h-[400px] empty-state-gradient">
+            <MaterialIcon name="school" className="text-primary text-5xl mb-4" />
+            <h2 className="font-headline-md text-primary">No classes yet</h2>
+            <p className="text-on-surface-variant font-body-md mt-2 mb-lg max-w-sm">
+              You haven&apos;t organized any teaching cohorts yet. Create your first class to get a
+              join code for students.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="px-lg h-10 bg-primary-container text-white font-bold rounded-lg hover:opacity-90 flex items-center gap-2"
+            >
+              <MaterialIcon name="add_circle" className="text-[20px]" />
+              Create Class
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+            {classes.map((classRow) => (
+              <div
+                key={classRow.id}
+                className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow p-md flex flex-col h-full"
+              >
+                <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded self-start">
+                  Active
+                </span>
+                <h3 className="font-headline-md text-primary mt-3">{classRow.name}</h3>
+                {classRow.description && (
+                  <p className="text-body-md text-on-surface-variant mt-1 line-clamp-2">
+                    {classRow.description}
+                  </p>
+                )}
+                <div className="flex gap-4 mt-4 text-on-surface-variant text-label-sm">
+                  <span className="flex items-center gap-1">
+                    <MaterialIcon name="group" className="text-[18px]" />
+                    {classRow.student_count} students
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MaterialIcon name="rocket_launch" className="text-[18px]" />
+                    {classRow.simulation_count} sims
+                  </span>
+                </div>
+                <div className="mt-auto pt-4 space-y-md">
+                  <div className="bg-surface-container-low p-md rounded-lg flex items-center justify-between border border-dashed border-outline">
+                    <code className="font-code-lg text-primary">{classRow.join_code}</code>
+                    <button
+                      type="button"
+                      onClick={() => void copyToClipboard(classRow.join_code, "Join code")}
+                      className="text-secondary font-label-sm flex items-center gap-1 hover:underline"
+                    >
+                      <MaterialIcon name="content_copy" className="text-[18px]" />
+                      Copy
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void copyToClipboard(joinUrl(), "Join link")}
+                      className="flex-1 py-2 border border-outline text-primary font-label-md rounded hover:bg-surface-container-high"
+                    >
+                      Copy Join Link
+                    </button>
+                    <Link
+                      href={`/teacher/classes/${classRow.id}`}
+                      className="flex-1 py-2 bg-primary text-white font-label-md rounded flex items-center justify-center gap-1 hover:opacity-90"
+                    >
+                      Manage
+                      <MaterialIcon name="arrow_forward" className="text-[16px]" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <CreateClassModalPanel
+        open={showModal}
+        name={name}
+        description={description}
+        isCreating={isCreating}
+        onClose={() => setShowModal(false)}
+        onNameChange={setName}
+        onDescriptionChange={setDescription}
+        onSubmit={(e) => void handleCreateClass(e)}
+      />
+    </ProfessorPortalLayout>
+  );
+}
+
+// ── Library page ─────────────────────────────────────────────────────────────────
+
+type ProfessorLibraryViewProps = {
+  userName: string;
+  initialSimulations: Simulation[];
+  simulationStats: Record<string, SimulationStats>;
+};
+
+/**
+ * Simulation library — manage all professor scenarios.
+ */
+export function ProfessorLibraryView({
+  userName,
+  initialSimulations,
+  simulationStats,
+}: ProfessorLibraryViewProps): React.ReactElement {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const [simulations, setSimulations] = useState(initialSimulations);
+  const [deleteTarget, setDeleteTarget] = useState<Simulation | null>(null);
+  const [isBusy, setIsBusy] = useState<string | null>(null);
+
+  const handleTogglePublish = async (sim: Simulation): Promise<void> => {
+    setIsBusy(sim.id);
+    const supabase = createClient();
+    const nextPublished = !sim.is_published;
+    const { error } = await supabase
+      .from("simulations")
+      .update({ is_published: nextPublished })
+      .eq("id", sim.id);
+    setIsBusy(null);
+    if (error) {
+      showToast("Something went wrong. Please try again.", "error");
+      return;
+    }
+    setSimulations((prev) =>
+      prev.map((s) => (s.id === sim.id ? { ...s, is_published: nextPublished } : s))
+    );
+    showToast(nextPublished ? "Simulation published" : "Simulation unpublished", "success");
+    router.refresh();
+  };
+
+  const handleConfirmDelete = async (): Promise<void> => {
+    if (!deleteTarget) return;
+    if (deleteTarget.is_published) {
+      showToast("Unpublish this simulation before deleting it", "error");
+      setDeleteTarget(null);
+      return;
+    }
+    setIsBusy(deleteTarget.id);
+    const supabase = createClient();
+    const { error } = await supabase.from("simulations").delete().eq("id", deleteTarget.id);
+    setIsBusy(null);
+    setDeleteTarget(null);
+    if (error) {
+      showToast("Something went wrong. Please try again.", "error");
+      return;
+    }
+    setSimulations((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+    showToast("Simulation deleted", "success");
+    router.refresh();
+  };
+
+  return (
+    <ProfessorPortalLayout userName={userName}>
+      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-display text-primary">Simulation Library</h1>
+            <p className="text-on-surface-variant mt-1">
+              Create, publish, and manage pitch training scenarios for your students.
+            </p>
+          </div>
+          <Link
+            href="/teacher/simulation/new"
+            className="flex items-center gap-2 px-md py-2.5 border-2 border-primary text-primary rounded-lg hover:bg-primary-container hover:text-white font-label-md"
+          >
+            <MaterialIcon name="rocket_launch" />
+            Create New Simulation
+          </Link>
+        </div>
+
+        {simulations.length === 0 ? (
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-xl flex flex-col items-center justify-center text-center min-h-[400px] empty-state-gradient">
+            <MaterialIcon name="model_training" className="text-primary text-5xl mb-4" />
+            <h2 className="font-headline-md text-primary">Your library is empty</h2>
+            <p className="text-on-surface-variant font-body-md mt-2 mb-lg max-w-sm">
+              Design your first pitch scenario to assign it to your classes.
+            </p>
+            <Link
+              href="/teacher/simulation/new"
+              className="px-lg h-10 bg-primary-container text-white font-bold rounded-lg hover:opacity-90 flex items-center gap-2"
+            >
+              <MaterialIcon name="bolt" className="text-[20px]" />
+              Create Simulation
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-hidden bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-surface-container-low">
+                <tr>
+                  <th className="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider">Title</th>
+                  <th className="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider">Persona</th>
+                  <th className="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
+                  <th className="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider">Attempts</th>
+                  <th className="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider">Avg Score</th>
+                  <th className="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant">
+                {simulations.map((sim) => {
+                  const stats = simulationStats[sim.id];
+                  const avgPct = stats?.avgPercent;
+                  return (
+                    <tr key={sim.id} className="hover:bg-secondary-fixed/10 transition-colors">
+                      <td className="px-lg py-md font-bold text-primary">{sim.title}</td>
+                      <td className="px-lg py-md">{sim.persona_name}</td>
+                      <td className="px-lg py-md">
+                        <span
+                          className={`px-2 py-0.5 font-bold text-[10px] uppercase rounded ${
+                            sim.is_published
+                              ? "bg-tertiary-fixed text-on-tertiary-fixed"
+                              : "bg-surface-container-highest text-on-surface-variant"
+                          }`}
+                        >
+                          {sim.is_published ? "Published" : "Draft"}
+                        </span>
+                      </td>
+                      <td className="px-lg py-md">
+                        {stats ? `${stats.completed} / ${stats.attempted}` : "0 / 0"}
+                      </td>
+                      <td className="px-lg py-md">
+                        {avgPct != null ? (
+                          <span className="font-code-md">{avgPct}%</span>
+                        ) : (
+                          <span className="text-on-surface-variant">--</span>
+                        )}
+                      </td>
+                      <td className="px-lg py-md text-right">
+                        <div className="flex items-center justify-end gap-2 text-on-surface-variant">
+                          <Link href={`/teacher/simulation/${sim.id}/edit`} className="p-2 hover:bg-surface-container hover:text-primary rounded" title="Edit">
+                            <MaterialIcon name="edit" className="text-[20px]" />
+                          </Link>
+                          <Link href={`/teacher/simulation/${sim.id}/results`} className="p-2 hover:bg-surface-container hover:text-primary rounded" title="Results">
+                            <MaterialIcon name="bar_chart" className="text-[20px]" />
+                          </Link>
+                          <button type="button" disabled={isBusy === sim.id} onClick={() => void handleTogglePublish(sim)} className="p-2 hover:bg-surface-container hover:text-primary rounded disabled:opacity-50" title={sim.is_published ? "Unpublish" : "Publish"}>
+                            <MaterialIcon name={sim.is_published ? "toggle_on" : "toggle_off"} className="text-[20px]" />
+                          </button>
+                          <button type="button" disabled={isBusy === sim.id} onClick={() => setDeleteTarget(sim)} className="p-2 hover:bg-error-container hover:text-error rounded" title="Delete">
+                            <MaterialIcon name="delete" className="text-[20px]" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete simulation?"
+          message="Are you sure you want to delete this simulation? This cannot be undone."
+          confirmLabel="Delete"
+          isDestructive
+          onConfirm={() => void handleConfirmDelete()}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+    </ProfessorPortalLayout>
+  );
+}
+
+// ── Analytics page ───────────────────────────────────────────────────────────────
+
+export type ProfessorAnalyticsData = {
+  classCount: number;
+  studentCount: number;
+  simulationCount: number;
+  publishedCount: number;
+  totalAttempts: number;
+  completedAttempts: number;
+  avgScorePercent: number | null;
+};
+
+type ProfessorAnalyticsViewProps = {
+  userName: string;
+  data: ProfessorAnalyticsData;
+};
+
+/**
+ * Analytics overview — cohort and simulation performance metrics.
+ */
+export function ProfessorAnalyticsView({
+  userName,
+  data,
+}: ProfessorAnalyticsViewProps): React.ReactElement {
+  const completionRate =
+    data.totalAttempts > 0
+      ? Math.round((data.completedAttempts / data.totalAttempts) * 100)
+      : null;
+
+  return (
+    <ProfessorPortalLayout userName={userName}>
+      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-xl">
+        <section>
+          <h1 className="font-display text-display text-primary">Analytics</h1>
+          <p className="text-on-surface-variant mt-1">
+            Track enrollment, simulation usage, and student performance across your portal.
+          </p>
+        </section>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+          {[
+            { label: "Active Classes", value: data.classCount, icon: "school" },
+            { label: "Enrolled Students", value: data.studentCount, icon: "group" },
+            { label: "Simulations", value: data.simulationCount, icon: "model_training" },
+            { label: "Published", value: data.publishedCount, icon: "publish" },
+          ].map((card) => (
+            <div
+              key={card.label}
+              className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm"
+            >
+              <div className="flex items-center gap-2 text-on-surface-variant mb-2">
+                <MaterialIcon name={card.icon} className="text-[20px]" />
+                <span className="font-label-sm uppercase tracking-wider">{card.label}</span>
+              </div>
+              <p className="font-display text-display text-primary">{card.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg">
+            <p className="font-label-sm text-on-surface-variant uppercase tracking-wider">Total Attempts</p>
+            <p className="font-headline-lg text-primary mt-2">{data.totalAttempts}</p>
+          </div>
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg">
+            <p className="font-label-sm text-on-surface-variant uppercase tracking-wider">Completion Rate</p>
+            <p className="font-headline-lg text-primary mt-2">
+              {completionRate != null ? `${completionRate}%` : "—"}
+            </p>
+          </div>
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg">
+            <p className="font-label-sm text-on-surface-variant uppercase tracking-wider">Average Score</p>
+            <p className="font-headline-lg text-primary mt-2">
+              {data.avgScorePercent != null ? `${data.avgScorePercent}%` : "—"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-md">
+          <Link
+            href="/teacher/classes"
+            className="px-lg h-10 bg-primary-container text-white font-label-md rounded-lg hover:opacity-90 flex items-center gap-2"
+          >
+            <MaterialIcon name="school" />
+            View Classes
+          </Link>
+          <Link
+            href="/teacher/library"
+            className="px-lg h-10 border border-outline text-primary font-label-md rounded-lg hover:bg-surface-container-high flex items-center gap-2"
+          >
+            <MaterialIcon name="book_5" />
+            View Library
+          </Link>
+        </div>
+      </div>
+    </ProfessorPortalLayout>
+  );
+}
+
+// ── Settings page ────────────────────────────────────────────────────────────────
+
+type ProfessorSettingsViewProps = {
+  userName: string;
+  email: string;
+};
+
+/**
+ * Professor account settings page.
+ */
+export function ProfessorSettingsView({
+  userName,
+  email,
+}: ProfessorSettingsViewProps): React.ReactElement {
+  return (
+    <ProfessorPortalLayout userName={userName}>
+      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
+        <section>
+          <h1 className="font-display text-display text-primary">Settings</h1>
+          <p className="text-on-surface-variant mt-1">Manage your professor account preferences.</p>
+        </section>
+
+        <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm max-w-xl space-y-md">
+          <h2 className="font-headline-md text-primary">Profile</h2>
+          <div>
+            <label className="font-label-md text-on-surface-variant">Display Name</label>
+            <input
+              readOnly
+              value={userName}
+              className="mt-1 w-full h-10 px-md border border-outline-variant rounded-lg bg-surface-container-low font-body-md"
+            />
+          </div>
+          <div>
+            <label className="font-label-md text-on-surface-variant">Email</label>
+            <input
+              readOnly
+              value={email}
+              className="mt-1 w-full h-10 px-md border border-outline-variant rounded-lg bg-surface-container-low font-body-md"
+            />
+          </div>
+          <p className="font-label-sm text-on-surface-variant">
+            Contact your administrator to update profile details.
+          </p>
+        </section>
+
+        <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm max-w-xl">
+          <h2 className="font-headline-md text-primary mb-md">Session</h2>
+          <ProfessorLogoutButton className="px-lg h-10 border border-outline text-primary font-label-md rounded-lg hover:bg-surface-container-high" />
+        </section>
+      </div>
+    </ProfessorPortalLayout>
+  );
+}
+
+// ── Support page ─────────────────────────────────────────────────────────────────
+
+/**
+ * Professor support and help resources.
+ */
+export function ProfessorSupportView({ userName }: { userName: string }): React.ReactElement {
+  const faqs = [
+    {
+      q: "How do students join my class?",
+      a: "Share the join link and class code separately. Students register at the student portal and enter the code to enroll.",
+    },
+    {
+      q: "How do I assign a simulation?",
+      a: "Open Manage Class on any cohort, then use the Add simulation dropdown to assign scenarios from your library.",
+    },
+    {
+      q: "When do results appear?",
+      a: "Results populate after students complete a simulation. AI scoring typically finishes within a few minutes.",
+    },
+  ];
+
+  return (
+    <ProfessorPortalLayout userName={userName}>
+      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
+        <section>
+          <h1 className="font-display text-display text-primary">Support</h1>
+          <p className="text-on-surface-variant mt-1">Quick answers and resources for the professor portal.</p>
+        </section>
+
+        <section className="bg-secondary-fixed/30 border border-secondary-fixed rounded-xl p-lg max-w-2xl">
+          <div className="flex items-center gap-2 mb-2">
+            <MaterialIcon name="mail" />
+            <h2 className="font-headline-md text-primary">Need help?</h2>
+          </div>
+          <p className="font-body-md text-on-surface-variant">
+            Email{" "}
+            <a href="mailto:support@pitchlab.app" className="text-secondary font-medium hover:underline">
+              support@pitchlab.app
+            </a>{" "}
+            and include your class name or simulation title.
+          </p>
+        </section>
+
+        <section className="space-y-md max-w-2xl">
+          <h2 className="font-headline-md text-primary">Frequently Asked Questions</h2>
+          {faqs.map((item) => (
+            <div
+              key={item.q}
+              className="bg-surface-container-lowest border border-outline-variant rounded-lg p-lg"
+            >
+              <h3 className="font-label-md text-primary font-bold">{item.q}</h3>
+              <p className="font-body-md text-on-surface-variant mt-2">{item.a}</p>
+            </div>
+          ))}
+        </section>
+
+        <Link
+          href="/teacher/dashboard"
+          className="inline-flex items-center gap-2 text-secondary font-label-md hover:underline"
+        >
+          <MaterialIcon name="arrow_back" className="text-[18px]" />
+          Back to Dashboard
+        </Link>
+      </div>
+    </ProfessorPortalLayout>
   );
 }
