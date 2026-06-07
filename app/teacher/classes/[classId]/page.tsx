@@ -1,10 +1,9 @@
 /**
  * classes/[classId]/page.tsx — teacher
- * Manage a single class — students, simulations, join link.
+ * Manage a single class — students, simulations, join link (Stitch layout).
  */
 
-import { BackButton } from "@/components/BackButton";
-import { ClassManagementClient } from "@/components/ClassManagementClient";
+import { ProfessorClassManagementView } from "@/components/shared/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
@@ -58,22 +57,17 @@ export default async function ClassManagementPage({
     .order("created_at", { ascending: false });
 
   return (
-    <div>
-      <BackButton label="Back to Dashboard" href="/teacher/dashboard" />
-      <h1 className="text-2xl font-bold text-text-primary mt-2">{classRow.name}</h1>
-      {classRow.description && (
-        <p className="text-sm text-text-secondary mt-1">{classRow.description}</p>
-      )}
-
-      <ClassManagementClient
-        classId={classRow.id}
-        joinCode={classRow.join_code}
-        initialStudents={students ?? []}
-        initialAssignments={(assignments ?? []) as Parameters<
-          typeof ClassManagementClient
-        >[0]["initialAssignments"]}
-        professorSimulations={(professorSimulations ?? []) as Simulation[]}
-      />
-    </div>
+    <ProfessorClassManagementView
+      userName={profile.full_name}
+      className={classRow.name}
+      classDescription={classRow.description}
+      classId={classRow.id}
+      joinCode={classRow.join_code}
+      initialStudents={students ?? []}
+      initialAssignments={(assignments ?? []) as Parameters<
+        typeof ProfessorClassManagementView
+      >[0]["initialAssignments"]}
+      professorSimulations={(professorSimulations ?? []) as Simulation[]}
+    />
   );
 }

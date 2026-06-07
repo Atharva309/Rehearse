@@ -1,21 +1,24 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-primary: #1a1a2e;
-  --color-accent: #4f8ef7;
+  --color-primary: #00000b;
+  --color-primary-container: #1a1a2e;
+  --color-accent: #005bbf;
   --color-gold: #c9a84c;
   --color-success: #22c55e;
-  --color-error: #ef4444;
-  --color-background: #ffffff;
-  --color-surface: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #64748b;
+  --color-error: #ba1a1a;
+  --color-background: #f7f9fb;
+  --color-surface: #f2f4f6;
+  --color-border: #c8c5cd;
+  --color-text-primary: #191c1e;
+  --color-text-secondary: #47464c;
   --color-call-background: #0a0a0a;
   --color-pipeline-complete: #c9a84c;
-  --color-pipeline-active: #4f8ef7;
+  --color-pipeline-active: #005bbf;
   --color-pipeline-inactive: #94a3b8;
   --shadow-card: 0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.08);
 }
@@ -23,7 +26,48 @@
 body {
   color: var(--color-text-primary);
   background: var(--color-background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  display: inline-block;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.empty-state-gradient {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(242, 244, 246, 0.5) 100%);
+}
+
+.modal-overlay {
+  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 11, 0.4);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.expanding-row-content {
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.expanding-row-content.active {
+  max-height: 1000px;
+  opacity: 1;
 }
 
 @layer components {
@@ -38,7 +82,7 @@ body {
   }
 
   .btn-primary {
-    @apply px-6 py-3 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity;
+    @apply px-6 py-3 bg-primary-container text-white text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity;
   }
 
   .btn-accent {

@@ -1,10 +1,10 @@
 /**
  * simulation/[id]/results/page.tsx — teacher
+ * Student attempts and leaderboard with Stitch results layout.
  */
 
-import { BackButton } from "@/components/BackButton";
 import { redirect } from "next/navigation";
-import { TeacherResultsClient } from "@/components/TeacherResultsClient";
+import { ProfessorResultsView } from "@/components/shared/Sidebar";
 import { LEADERBOARD_QUERY_LIMIT } from "@/lib/constants";
 import { buildLeaderboard } from "@/lib/leaderboard";
 import { createClient } from "@/lib/supabase/server";
@@ -19,12 +19,12 @@ type PageProps = { params: { id: string } };
 export default async function TeacherResultsPage({
   params,
 }: PageProps): Promise<React.ReactElement> {
-  await requireRole("teacher");
+  const profile = await requireRole("teacher");
   const supabase = createClient();
 
   const { data: simulation } = await supabase
     .from("simulations")
-    .select("title")
+    .select("title, persona_name, persona_role, product_context")
     .eq("id", params.id)
     .single();
 
@@ -66,18 +66,16 @@ export default async function TeacherResultsPage({
     }
   });
 
+  const subtitle = `${simulation.persona_name} · ${simulation.persona_role}`;
+
   return (
-    <div>
-      <BackButton label="Back to My Simulations" href="/teacher/dashboard" />
-      <h1 className="text-2xl font-bold text-text-primary mt-2">{simulation.title} — Results</h1>
-      <p className="text-sm text-text-secondary mt-1">Student attempts and leaderboard</p>
-      <div className="mt-8">
-        <TeacherResultsClient
-          attempts={(attempts ?? []) as Parameters<typeof TeacherResultsClient>[0]["attempts"]}
-          leaderboard={leaderboard}
-          stageScoresByAttempt={stageScoresByAttempt}
-        />
-      </div>
-    </div>
+    <ProfessorResultsView
+      userName={profile.full_name}
+      simulationTitle={simulation.title}
+      simulationSubtitle={subtitle}
+      attempts={(attempts ?? []) as Parameters<typeof ProfessorResultsView>[0]["attempts"]}
+      leaderboard={leaderboard}
+      stageScoresByAttempt={stageScoresByAttempt}
+    />
   );
 }

@@ -1,17 +1,23 @@
 /**
  * dashboard/page.tsx — teacher
- * Lists teacher simulations with publish, edit, delete actions.
+ * Professor dashboard with classes grid, create-class modal, and simulations table.
+ * Stitch layout — sidebar, header, class cards, and simulation management.
  */
 
-import Link from "next/link";
-import { TeacherClassesSection } from "@/components/TeacherClassesSection";
-import { TeacherDashboardClient } from "@/components/TeacherDashboardClient";
+import { ProfessorDashboardView } from "@/components/shared/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
+import { scorePercent } from "@/lib/grades";
 import type { Simulation } from "@/types";
 
+type SimulationStats = {
+  attempted: number;
+  completed: number;
+  avgPercent: number | null;
+};
+
 /**
- * Teacher dashboard — manage simulations.
+ * Teacher dashboard — manage classes and simulations.
  */
 export default async function TeacherDashboardPage(): Promise<React.ReactElement> {
   const profile = await requireRole("teacher");
@@ -24,22 +30,37 @@ export default async function TeacherDashboardPage(): Promise<React.ReactElement
     .order("created_at", { ascending: false });
 
   const list = (simulations ?? []) as Simulation[];
+  const simIds = list.map((s) => s.id);
+
+  const statsBySim: Record<string, SimulationStats> = {};
+  if (simIds.length > 0) {
+    const { data: attempts } = await supabase
+      .from("attempts")
+      .select("simulation_id, status, total_score")
+      .in("simulation_id", simIds);
+
+    for (const sim of list) {
+      const simAttempts = (attempts ?? []).filter((a) => a.simulation_id === sim.id);
+      const completed = simAttempts.filter((a) => a.status === "completed");
+      const avgPercent =
+        completed.length > 0
+          ? Math.round(
+              completed.reduce((sum, a) => sum + scorePercent(a.total_score), 0) / completed.length
+            )
+          : null;
+      statsBySim[sim.id] = {
+        attempted: simAttempts.length,
+        completed: completed.length,
+        avgPercent,
+      };
+    }
+  }
 
   return (
-    <div>
-      <TeacherClassesSection />
-
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">My simulations</h1>
-          <p className="text-sm text-text-secondary mt-1">Create and manage training scenarios</p>
-        </div>
-        <Link href="/teacher/simulation/new" className="btn-primary shrink-0">
-          Create New Simulation
-        </Link>
-      </div>
-
-      <TeacherDashboardClient initialSimulations={list} />
-    </div>
+    <ProfessorDashboardView
+      userName={profile.full_name}
+      initialSimulations={list}
+      simulationStats={statsBySim}
+    />
   );
 }
