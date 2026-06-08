@@ -3,6 +3,7 @@
  * Manage a single class — students, simulations, join link (Stitch layout).
  */
 
+import type { Metadata } from "next";
 import { ProfessorClassManagementView } from "@/components/shared/Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
@@ -10,6 +11,13 @@ import { redirect } from "next/navigation";
 import type { EnrolledStudent, Simulation } from "@/types";
 
 type PageProps = { params: { classId: string } };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const supabase = createClient();
+  const { data } = await supabase.from("classes").select("name").eq("id", params.classId).single();
+  const name = data?.name ?? "Class";
+  return { title: `${name} — PitchLab` };
+}
 
 type StudentClassRow = {
   joined_at: string;

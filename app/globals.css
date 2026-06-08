@@ -70,6 +70,123 @@ body {
   opacity: 1;
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.25s ease-out forwards;
+}
+
+.animate-fade-in-up-delay-1 {
+  animation-delay: 50ms;
+}
+
+.animate-fade-in-up-delay-2 {
+  animation-delay: 100ms;
+}
+
+.animate-fade-in-up-delay-3 {
+  animation-delay: 150ms;
+}
+
+.animate-fade-in-up-delay-4 {
+  animation-delay: 200ms;
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes overlayOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.animate-overlay-in {
+  animation: overlayIn 0.2s ease-out forwards;
+}
+
+.animate-overlay-out {
+  animation: overlayOut 0.15s ease-in forwards;
+}
+
+.animate-modal-in {
+  animation: modalIn 0.25s ease-out forwards;
+}
+
+.animate-modal-out {
+  animation: modalOut 0.15s ease-in forwards;
+}
+
+.animate-toast-in {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+.animate-toast-out {
+  animation: slideOutRight 0.25s ease-in forwards;
+}
+
 @layer components {
   /* ── Pipeline chevrons ─── */
   .pipeline-chevron {

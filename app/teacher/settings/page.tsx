@@ -3,7 +3,10 @@
  * Professor account settings page.
  */
 
+import type { Metadata } from "next";
 import { ProfessorSettingsView } from "@/components/shared/Sidebar";
+
+export const metadata: Metadata = { title: "Settings — PitchLab" };
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 

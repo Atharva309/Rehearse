@@ -3,7 +3,10 @@
  * Professor analytics overview — classes, students, and simulation metrics.
  */
 
+import type { Metadata } from "next";
 import { ProfessorAnalyticsView, type ProfessorAnalyticsData } from "@/components/shared/Sidebar";
+
+export const metadata: Metadata = { title: "Analytics — PitchLab" };
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 import { scorePercent } from "@/lib/grades";

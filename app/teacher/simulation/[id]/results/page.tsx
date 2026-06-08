@@ -3,6 +3,7 @@
  * Student attempts and leaderboard with Stitch results layout.
  */
 
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ProfessorResultsView } from "@/components/shared/Sidebar";
 import { LEADERBOARD_QUERY_LIMIT } from "@/lib/constants";
@@ -12,6 +13,13 @@ import { requireRole } from "@/lib/auth-helpers";
 import type { StageScore } from "@/types";
 
 type PageProps = { params: { id: string } };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const supabase = createClient();
+  const { data } = await supabase.from("simulations").select("title").eq("id", params.id).single();
+  const title = data?.title ?? "Simulation";
+  return { title: `Results: ${title} — PitchLab` };
+}
 
 /**
  * Teacher view of student attempts and leaderboard.

@@ -4,7 +4,10 @@
  * Stitch layout — sidebar, header, class cards, and simulation management.
  */
 
+import type { Metadata } from "next";
 import { ProfessorDashboardView } from "@/components/shared/Sidebar";
+
+export const metadata: Metadata = { title: "Dashboard — PitchLab" };
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 import { scorePercent } from "@/lib/grades";

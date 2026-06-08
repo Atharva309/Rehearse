@@ -10,6 +10,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { FadeIn } from "@/components/professor/FadeIn";
+import { ProfessorEmptyState } from "@/components/professor/ProfessorEmptyState";
+import { ProfessorButtonContent } from "@/components/professor/ProfessorSpinner";
+import { ClassCardSkeleton } from "@/components/professor/skeletons/ClassCardSkeleton";
 import { useToast } from "@/hooks/useToast";
 import { SCORED_STAGES, STAGE_LABELS, STUDENT_JOIN_PATH } from "@/lib/constants";
 import { downloadLeaderboardCsv, type CsvExportRow } from "@/lib/export-leaderboard-csv";
@@ -118,7 +122,7 @@ export function ProfessorSidebar({
             <Link
               key={item.key}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
                 isActive
                   ? "bg-primary-container text-on-primary-container font-bold"
                   : "text-on-surface-variant hover:bg-surface-container-highest"
@@ -151,7 +155,7 @@ export function ProfessorSidebar({
             <Link
               key={item.key}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
                 isActive
                   ? "bg-primary-container text-on-primary-container font-bold"
                   : "text-on-surface-variant hover:bg-surface-container-highest"
@@ -348,6 +352,7 @@ export function ProfessorDashboardView({
   const [simulations, setSimulations] = useState(initialSimulations);
   const [deleteTarget, setDeleteTarget] = useState<Simulation | null>(null);
   const [isBusy, setIsBusy] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadClasses = useCallback(async (): Promise<void> => {
     const res = await fetch("/api/professor/classes");
@@ -372,7 +377,7 @@ export function ProfessorDashboardView({
   const copyToClipboard = async (text: string, label: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(text);
-      showToast(`${label} copied`, "success");
+      showToast(`${label} copied to clipboard`, "success");
     } catch {
       showToast("Could not copy to clipboard", "error");
     }
@@ -396,7 +401,7 @@ export function ProfessorDashboardView({
     setShowModal(false);
     setName("");
     setDescription("");
-    showToast("Class created", "success");
+    showToast("Class created successfully", "success");
     await loadClasses();
     router.refresh();
   };
@@ -419,7 +424,12 @@ export function ProfessorDashboardView({
     setSimulations((prev) =>
       prev.map((s) => (s.id === sim.id ? { ...s, is_published: nextPublished } : s))
     );
-    showToast(nextPublished ? "Simulation published" : "Simulation unpublished", "success");
+    showToast(
+      nextPublished
+        ? "Simulation published — students can now see it"
+        : "Simulation unpublished",
+      "success"
+    );
     router.refresh();
   };
 
@@ -432,10 +442,12 @@ export function ProfessorDashboardView({
       return;
     }
 
+    setIsDeleting(true);
     setIsBusy(deleteTarget.id);
     const supabase = createClient();
     const { error } = await supabase.from("simulations").delete().eq("id", deleteTarget.id);
     setIsBusy(null);
+    setIsDeleting(false);
     setDeleteTarget(null);
 
     if (error) {
@@ -452,7 +464,7 @@ export function ProfessorDashboardView({
 
   return (
     <ProfessorPortalLayout userName={userName} onNewClass={openCreateModal}>
-      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-xl">
+      <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-xl">
         {/* ── Welcome ─── */}
         <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -489,13 +501,18 @@ export function ProfessorDashboardView({
           </div>
 
           {isLoadingClasses ? (
-            <p className="text-on-surface-variant font-body-md">Loading classes…</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+              <ClassCardSkeleton delay={1} />
+              <ClassCardSkeleton delay={2} />
+              <ClassCardSkeleton delay={3} />
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-              {classes.map((classRow) => (
-                <div
+              {classes.map((classRow, index) => (
+                <FadeIn
                   key={classRow.id}
-                  className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+                  delay={(Math.min(index, 3) as 0 | 1 | 2 | 3)}
+                  className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-150 group"
                 >
                   <div className="p-md flex flex-col h-full">
                     <div className="flex justify-between items-start mb-base">
@@ -554,15 +571,15 @@ export function ProfessorDashboardView({
                       </div>
                     </div>
                   </div>
-                </div>
+                </FadeIn>
               ))}
 
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="bg-surface-container-low border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center p-xl text-center hover:bg-surface-container-high transition-colors cursor-pointer group"
+                className="bg-surface-container-low border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center p-xl text-center hover:bg-surface-container-high transition-colors duration-150 cursor-pointer group"
               >
-                <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-sm mb-md group-hover:scale-110 transition-transform">
+                <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-sm mb-md group-hover:scale-110 transition-transform duration-200">
                   <MaterialIcon name="add_box" className="text-[32px] text-primary" />
                 </div>
                 <p className="font-headline-md text-headline-md text-primary">Add a Cohort</p>
@@ -599,26 +616,20 @@ export function ProfessorDashboardView({
           </div>
 
           {simulations.length === 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-              <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-xl flex flex-col items-center justify-center text-center space-y-md min-h-[320px] shadow-sm empty-state-gradient">
-                <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-2">
-                  <MaterialIcon name="model_training" className="text-primary text-4xl" />
-                </div>
-                <div>
-                  <h3 className="font-headline-md text-headline-md text-primary mb-1">My Simulations</h3>
-                  <p className="text-on-surface-variant font-body-md max-w-xs">
-                    Your library is currently empty. Design your first pitch scenario.
-                  </p>
-                </div>
+            <ProfessorEmptyState
+              icon="model_training"
+              heading="My Simulations"
+              description="Your library is currently empty. Design your first pitch scenario."
+              action={
                 <Link
                   href="/teacher/simulation/new"
-                  className="px-lg h-10 bg-primary-container text-white font-bold rounded-lg hover:opacity-90 active:scale-95 transition-all flex items-center gap-2"
+                  className="bg-primary-container text-white font-bold rounded-lg px-6 h-10 flex items-center gap-2 hover:opacity-90 transition-opacity duration-150"
                 >
                   <MaterialIcon name="bolt" className="text-[20px]" />
                   Create Simulation
                 </Link>
-              </div>
-            </div>
+              }
+            />
           ) : (
             <div className="overflow-hidden bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm">
               <table className="w-full text-left border-collapse">
@@ -649,7 +660,7 @@ export function ProfessorDashboardView({
                     const stats = simulationStats[sim.id];
                     const avgPct = stats?.avgPercent;
                     return (
-                      <tr key={sim.id} className="hover:bg-secondary-fixed/10 transition-colors">
+                      <tr key={sim.id} className="hover:bg-secondary-fixed/10 transition-colors duration-150">
                         <td className="px-lg py-md">
                           <div className="flex flex-col">
                             <span className="font-bold text-primary">{sim.title}</span>
@@ -710,13 +721,17 @@ export function ProfessorDashboardView({
                               type="button"
                               disabled={isBusy === sim.id}
                               onClick={() => void handleTogglePublish(sim)}
-                              className="p-2 hover:bg-surface-container hover:text-primary rounded disabled:opacity-50"
+                              className="p-2 hover:bg-surface-container hover:text-primary rounded disabled:opacity-50 min-w-[36px] min-h-[36px] flex items-center justify-center"
                               title={sim.is_published ? "Unpublish" : "Publish"}
                             >
-                              <MaterialIcon
-                                name={sim.is_published ? "toggle_on" : "toggle_off"}
-                                className="text-[20px]"
-                              />
+                              {isBusy === sim.id ? (
+                                <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <MaterialIcon
+                                  name={sim.is_published ? "toggle_on" : "toggle_off"}
+                                  className="text-[20px]"
+                                />
+                              )}
                             </button>
                             <button
                               type="button"
@@ -737,7 +752,7 @@ export function ProfessorDashboardView({
             </div>
           )}
         </section>
-      </div>
+      </FadeIn>
 
       {deleteTarget && (
         <ConfirmModal
@@ -745,86 +760,23 @@ export function ProfessorDashboardView({
           message="Are you sure you want to delete this simulation? This cannot be undone."
           confirmLabel="Delete"
           isDestructive
+          isConfirming={isDeleting}
+          confirmingLabel="Deleting..."
           onConfirm={() => void handleConfirmDelete()}
           onCancel={() => setDeleteTarget(null)}
         />
       )}
 
-      {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center modal-overlay px-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowModal(false);
-          }}
-          onKeyDown={() => undefined}
-          role="presentation"
-        >
-          <div className="bg-surface-container-lowest w-full max-w-[560px] rounded-xl shadow-xl border border-outline-variant overflow-hidden">
-            <div className="px-xl py-lg border-b border-outline-variant flex justify-between items-center">
-              <h2 className="font-headline-md text-headline-md text-primary">Create New Class</h2>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="text-on-surface-variant hover:text-primary transition-colors"
-              >
-                <MaterialIcon name="close" />
-              </button>
-            </div>
-            <form onSubmit={(e) => void handleCreateClass(e)} className="p-xl space-y-lg">
-              <div className="space-y-sm">
-                <label htmlFor="className" className="block font-label-md text-label-md text-on-surface-variant">
-                  Class Name <span className="text-error">*</span>
-                </label>
-                <input
-                  id="className"
-                  type="text"
-                  required
-                  className="w-full h-10 px-md rounded-lg border border-outline-variant bg-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none font-body-md"
-                  placeholder="e.g. Advanced AI - Fall 2024"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-sm">
-                <label htmlFor="classDesc" className="block font-label-md text-label-md text-on-surface-variant">
-                  Description
-                </label>
-                <textarea
-                  id="classDesc"
-                  rows={4}
-                  className="w-full p-md rounded-lg border border-outline-variant bg-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none font-body-md resize-none"
-                  placeholder="Briefly describe the course objectives and requirements..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-              <div className="bg-secondary-fixed/20 border border-secondary-fixed/30 p-md rounded-lg flex gap-md items-start">
-                <MaterialIcon name="info" className="text-secondary shrink-0" />
-                <p className="font-body-md text-on-secondary-container">
-                  A unique 6-character join code will be generated automatically upon creation.
-                  Students can use this code to enroll in your class instantly.
-                </p>
-              </div>
-              <div className="pt-lg flex justify-end items-center gap-md">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-lg h-10 rounded-lg border border-outline-variant text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className="px-lg h-10 rounded-lg bg-primary-container text-white font-bold font-label-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
-                >
-                  {isCreating ? "Creating…" : "Create Class"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateClassModalPanel
+        open={showModal}
+        name={name}
+        description={description}
+        isCreating={isCreating}
+        onClose={() => setShowModal(false)}
+        onNameChange={setName}
+        onDescriptionChange={setDescription}
+        onSubmit={(e) => void handleCreateClass(e)}
+      />
     </ProfessorPortalLayout>
   );
 }
@@ -868,7 +820,7 @@ export function ProfessorClassManagementView({
   const { showToast } = useToast();
   const [assignments, setAssignments] = useState(initialAssignments);
   const [selectedSimId, setSelectedSimId] = useState("");
-  const [isBusy, setIsBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"add" | "remove" | null>(null);
   const [showAllStudents, setShowAllStudents] = useState(false);
 
   const assignedIds = new Set(assignments.map((a) => a.simulation_id));
@@ -882,7 +834,7 @@ export function ProfessorClassManagementView({
   const copyText = async (text: string, label: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(text);
-      showToast(`${label} copied`, "success");
+      showToast(`${label} copied to clipboard`, "success");
     } catch {
       showToast("Could not copy", "error");
     }
@@ -895,32 +847,32 @@ export function ProfessorClassManagementView({
 
   const handleAdd = async (): Promise<void> => {
     if (!selectedSimId) return;
-    setIsBusy(true);
+    setBusyAction("add");
     const res = await fetch(`/api/professor/classes/${classId}/simulations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ simulationId: selectedSimId }),
     });
-    setIsBusy(false);
+    setBusyAction(null);
 
     if (!res.ok) {
       showToast("Could not assign simulation", "error");
       return;
     }
 
-    showToast("Simulation assigned", "success");
+    showToast("Simulation added to class", "success");
     setSelectedSimId("");
     router.refresh();
   };
 
   const handleRemove = async (simulationId: string): Promise<void> => {
-    setIsBusy(true);
+    setBusyAction("remove");
     const res = await fetch(`/api/professor/classes/${classId}/simulations`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ simulationId }),
     });
-    setIsBusy(false);
+    setBusyAction(null);
 
     if (!res.ok) {
       showToast("Could not remove simulation", "error");
@@ -928,7 +880,7 @@ export function ProfessorClassManagementView({
     }
 
     setAssignments((prev) => prev.filter((a) => a.simulation_id !== simulationId));
-    showToast("Simulation removed", "success");
+    showToast("Simulation removed from class", "success");
     router.refresh();
   };
 
@@ -936,7 +888,7 @@ export function ProfessorClassManagementView({
 
   return (
     <ProfessorPortalLayout userName={userName}>
-      <div className="max-w-container-max mx-auto px-margin-desktop py-8">
+      <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-8">
         <div className="mb-6">
           <Link
             href="/teacher/dashboard"
@@ -1003,29 +955,21 @@ export function ProfessorClassManagementView({
                 <MaterialIcon name="download" className="text-on-surface-variant" />
               </div>
               {initialStudents.length === 0 ? (
-                <div className="min-h-[400px] flex flex-col items-center justify-center p-xl">
-                  <MaterialIcon name="group_off" className="text-outline-variant text-5xl mb-4" />
-                  <p className="text-headline-md font-headline-md text-on-surface-variant">
-                    No students have joined yet
-                  </p>
-                  <p className="text-on-surface-variant font-body-md mt-2 mb-lg">
-                    Share your class code with students to start tracking progress.
-                  </p>
-                  <div className="inline-flex flex-col items-center p-lg bg-surface-container-low border border-dashed border-outline rounded-lg">
-                    <span className="text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">
-                      Class Join Code
-                    </span>
-                    <code className="font-code-lg text-code-lg text-secondary select-all">{joinCode}</code>
+                <ProfessorEmptyState
+                  icon="group_off"
+                  heading="No students have joined yet"
+                  description="Share your class code with students to start tracking progress."
+                  action={
                     <button
                       type="button"
-                      onClick={() => void copyText(joinCode, "Class code")}
-                      className="mt-md text-secondary font-label-sm flex items-center gap-1 hover:underline"
+                      onClick={() => void copyText(joinCode, "Join code")}
+                      className="bg-primary-container text-white font-bold rounded-lg px-6 h-10 flex items-center gap-2 hover:opacity-90 transition-opacity duration-150"
                     >
-                      <MaterialIcon name="content_copy" className="text-[16px]" />
-                      Copy Code
+                      <MaterialIcon name="content_copy" className="text-[18px]" />
+                      Copy Join Code
                     </button>
-                  </div>
-                </div>
+                  }
+                />
               ) : (
                 <>
                   <div className="overflow-x-auto">
@@ -1046,7 +990,7 @@ export function ProfessorClassManagementView({
                       </thead>
                       <tbody className="divide-y divide-outline-variant">
                         {displayedStudents.map((student) => (
-                          <tr key={student.id} className="hover:bg-secondary-fixed/10 transition-colors">
+                          <tr key={student.id} className="hover:bg-secondary-fixed/10 transition-colors duration-150">
                             <td className="px-lg py-4 font-body-md text-on-surface font-medium">
                               {student.username}
                             </td>
@@ -1115,12 +1059,19 @@ export function ProfessorClassManagementView({
                         </div>
                         <button
                           type="button"
-                          disabled={isBusy}
+                          disabled={busyAction !== null}
                           onClick={() => void handleRemove(row.simulation_id)}
-                          className="text-error font-label-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 hover:bg-error-container/20 px-2 py-1 rounded"
+                          className="text-error font-label-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1 hover:bg-error-container/20 px-2 py-1 rounded disabled:opacity-50"
                         >
-                          <MaterialIcon name="delete" className="text-[16px]" />
-                          Remove
+                          <ProfessorButtonContent
+                            isLoading={busyAction === "remove"}
+                            loadingText="Removing..."
+                          >
+                            <>
+                              <MaterialIcon name="delete" className="text-[16px]" />
+                              Remove
+                            </>
+                          </ProfessorButtonContent>
                         </button>
                       </div>
                     );
@@ -1134,7 +1085,7 @@ export function ProfessorClassManagementView({
                     className="flex-grow bg-white border border-outline-variant rounded-lg px-3 py-2 font-body-md focus:ring-2 focus:ring-secondary outline-none"
                     value={selectedSimId}
                     onChange={(e) => setSelectedSimId(e.target.value)}
-                    disabled={isBusy || availableSims.length === 0}
+                    disabled={busyAction !== null || availableSims.length === 0}
                   >
                     <option value="">Select from library</option>
                     {availableSims.map((sim) => (
@@ -1145,18 +1096,22 @@ export function ProfessorClassManagementView({
                   </select>
                   <button
                     type="button"
-                    disabled={!selectedSimId || isBusy}
+                    disabled={!selectedSimId || busyAction !== null}
                     onClick={() => void handleAdd()}
-                    className="bg-primary-container text-white px-4 py-2 rounded-lg font-label-md hover:opacity-90 active:scale-95 disabled:opacity-50"
+                    className={`bg-primary-container text-white px-4 py-2 rounded-lg font-label-md hover:opacity-90 active:scale-95 transition-all duration-150 min-w-[88px] ${
+                      busyAction !== null ? "opacity-70 cursor-not-allowed" : ""
+                    }`}
                   >
-                    Add
+                    <ProfessorButtonContent isLoading={busyAction === "add"} loadingText="Adding...">
+                      Add
+                    </ProfessorButtonContent>
                   </button>
                 </div>
               </div>
             </section>
           </div>
         </div>
-      </div>
+      </FadeIn>
     </ProfessorPortalLayout>
   );
 }
@@ -1193,17 +1148,20 @@ export function ProfessorSimulationFormView({
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [saveMode, setSaveMode] = useState<"draft" | "publish" | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
   const markDirty = (): void => setIsDirty(true);
 
-  const handleSave = async (): Promise<void> => {
+  const handleSave = async (mode: "draft" | "publish"): Promise<void> => {
+    setSaveMode(mode);
     setIsLoading(true);
     setError("");
 
     if (!title || !personaName || !personaRole || !personaPrompt || !productContext || !simliFaceId) {
       setError("Please fill in all required fields.");
       setIsLoading(false);
+      setSaveMode(null);
       return;
     }
 
@@ -1230,9 +1188,10 @@ export function ProfessorSimulationFormView({
         setError(updateError.message);
         showToast("Something went wrong. Please try again.", "error");
         setIsLoading(false);
+        setSaveMode(null);
         return;
       }
-      showToast("Simulation saved successfully", "success");
+      showToast("Simulation saved", "success");
       router.push(`/teacher/simulation/${initial.id}/edit`);
     } else {
       const { data, error: insertError } = await supabase
@@ -1244,20 +1203,22 @@ export function ProfessorSimulationFormView({
         setError(insertError.message);
         showToast("Something went wrong. Please try again.", "error");
         setIsLoading(false);
+        setSaveMode(null);
         return;
       }
-      showToast("Simulation saved successfully", "success");
+      showToast("Simulation saved", "success");
       router.push(`/teacher/simulation/${data.id}/edit`);
     }
     setIsDirty(false);
     router.refresh();
     setIsLoading(false);
+    setSaveMode(null);
   };
 
   const inputClass =
-    "h-10 px-md border border-outline-variant rounded-md focus:ring-2 focus:ring-secondary focus:outline-none bg-surface transition-all w-full font-body-md";
+    "w-full h-10 px-4 border border-outline-variant rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all duration-150 font-body-md text-body-md";
   const textareaClass =
-    "p-md border border-outline-variant rounded-md focus:ring-2 focus:ring-secondary focus:outline-none bg-surface transition-all w-full font-body-md";
+    "w-full p-4 border border-outline-variant rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all duration-150 font-body-md resize-none";
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-surface overflow-hidden font-body-md text-on-surface antialiased">
@@ -1290,6 +1251,7 @@ export function ProfessorSimulationFormView({
       </header>
 
       <main className="flex-1 overflow-y-auto custom-scrollbar max-w-container-max mx-auto px-margin-desktop py-lg pb-32 w-full">
+        <FadeIn>
         <form onSubmit={(e) => e.preventDefault()}>
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-gutter items-start">
             <div className="lg:col-span-6 flex flex-col gap-lg">
@@ -1367,6 +1329,9 @@ export function ProfessorSimulationFormView({
                       markDirty();
                     }}
                   />
+                  <span className="text-xs text-on-surface-variant text-right">
+                    {personaPrompt.length} characters
+                  </span>
                 </div>
                 <div className="flex flex-col gap-xs">
                   <label className="font-label-md text-on-surface-variant">Simli Face ID</label>
@@ -1507,6 +1472,7 @@ export function ProfessorSimulationFormView({
             </div>
           </div>
         </form>
+        </FadeIn>
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant z-40">
@@ -1523,18 +1489,32 @@ export function ProfessorSimulationFormView({
             <button
               type="button"
               disabled={isLoading}
-              onClick={() => void handleSave()}
-              className="px-lg h-10 border border-outline-variant text-primary font-bold rounded-lg hover:bg-surface-container-high transition-all active:scale-95 disabled:opacity-50"
+              onClick={() => void handleSave("draft")}
+              className={`px-lg h-10 border border-outline-variant text-primary font-bold rounded-lg hover:bg-surface-container-high transition-all duration-150 active:scale-95 ${
+                isLoading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
-              Save Draft
+              <ProfessorButtonContent
+                isLoading={isLoading && saveMode === "draft"}
+                loadingText="Saving..."
+              >
+                Save Draft
+              </ProfessorButtonContent>
             </button>
             <button
               type="button"
               disabled={isLoading}
-              onClick={() => void handleSave()}
-              className="px-lg h-10 bg-primary-container text-white font-bold rounded-lg hover:opacity-90 active:scale-95 disabled:opacity-50"
+              onClick={() => void handleSave("publish")}
+              className={`px-lg h-10 bg-primary-container text-white font-bold rounded-lg hover:opacity-90 active:scale-95 transition-all duration-150 ${
+                isLoading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
-              {isLoading ? "Saving…" : "Save & Publish"}
+              <ProfessorButtonContent
+                isLoading={isLoading && saveMode === "publish"}
+                loadingText="Publishing..."
+              >
+                Save & Publish
+              </ProfessorButtonContent>
             </button>
           </div>
         </div>
@@ -1639,7 +1619,7 @@ export function ProfessorResultsView({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-margin-desktop bg-surface-bright">
+        <FadeIn className="flex-1 overflow-y-auto custom-scrollbar p-margin-desktop bg-surface-bright">
           <div className="flex items-center border-b border-outline-variant mb-lg">
             <button
               type="button"
@@ -1667,16 +1647,11 @@ export function ProfessorResultsView({
 
           {tab === "attempts" ? (
             attempts.length === 0 ? (
-              <section className="min-h-[500px] flex items-center justify-center border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-low/30">
-                <div className="max-w-md w-full p-xl text-center space-y-lg">
-                  <MaterialIcon name="bar_chart_off" className="text-primary text-5xl" />
-                  <h2 className="font-headline-lg text-primary">No attempts yet</h2>
-                  <p className="text-on-surface-variant font-body-lg">
-                    The simulation results will populate here once students begin submitting their
-                    pitches and AI analysis is complete.
-                  </p>
-                </div>
-              </section>
+              <ProfessorEmptyState
+                icon="bar_chart_off"
+                heading="No attempts yet"
+                description="Results will populate here once students complete this simulation and AI scoring finishes."
+              />
             ) : (
               <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
                 <table className="w-full text-left border-collapse">
@@ -1710,7 +1685,7 @@ export function ProfessorResultsView({
                       return (
                         <Fragment key={row.id}>
                           <tr
-                            className="hover:bg-secondary-fixed/10 transition-colors cursor-pointer"
+                            className="hover:bg-secondary-fixed/10 transition-colors duration-150 cursor-pointer"
                             onClick={() => toggleDetails(row.id)}
                           >
                             <td className="px-md py-4">
@@ -1909,7 +1884,7 @@ export function ProfessorResultsView({
               </table>
             </div>
           )}
-        </div>
+        </FadeIn>
       </main>
     </div>
   );
@@ -1941,23 +1916,49 @@ function CreateClassModalPanel({
   onDescriptionChange,
   onSubmit,
 }: CreateClassModalPanelProps): React.ReactElement | null {
-  if (!open) return null;
+  const [isClosing, setIsClosing] = useState(false);
+  const [visible, setVisible] = useState(open);
+
+  useEffect(() => {
+    if (open) {
+      setVisible(true);
+      setIsClosing(false);
+    } else if (visible) {
+      setIsClosing(true);
+      const timer = window.setTimeout(() => setVisible(false), 150);
+      return () => window.clearTimeout(timer);
+    }
+  }, [open, visible]);
+
+  const requestClose = (): void => {
+    if (isCreating) return;
+    setIsClosing(true);
+    window.setTimeout(onClose, 150);
+  };
+
+  if (!visible) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center modal-overlay px-4"
+      className={`fixed inset-0 z-50 flex items-center justify-center modal-overlay px-4 ${
+        isClosing ? "animate-overlay-out" : "animate-overlay-in"
+      }`}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) requestClose();
       }}
       role="presentation"
     >
-      <div className="bg-surface-container-lowest w-full max-w-[560px] rounded-xl shadow-xl border border-outline-variant overflow-hidden">
+      <div
+        className={`bg-surface-container-lowest w-full max-w-[560px] rounded-xl shadow-xl border border-outline-variant overflow-hidden ${
+          isClosing ? "animate-modal-out" : "animate-modal-in"
+        }`}
+      >
         <div className="px-xl py-lg border-b border-outline-variant flex justify-between items-center">
           <h2 className="font-headline-md text-headline-md text-primary">Create New Class</h2>
           <button
             type="button"
-            onClick={onClose}
-            className="text-on-surface-variant hover:text-primary transition-colors"
+            onClick={requestClose}
+            className="text-on-surface-variant hover:text-primary transition-colors duration-150"
           >
             <MaterialIcon name="close" />
           </button>
@@ -1971,7 +1972,7 @@ function CreateClassModalPanel({
               id="className"
               type="text"
               required
-              className="w-full h-10 px-md rounded-lg border border-outline-variant bg-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none font-body-md"
+              className="w-full h-10 px-4 border border-outline-variant rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all duration-150 font-body-md"
               placeholder="e.g. Advanced AI - Fall 2024"
               value={name}
               onChange={(e) => onNameChange(e.target.value)}
@@ -2000,17 +2001,21 @@ function CreateClassModalPanel({
           <div className="pt-lg flex justify-end items-center gap-md">
             <button
               type="button"
-              onClick={onClose}
-              className="px-lg h-10 rounded-lg border border-outline-variant text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors"
+              onClick={requestClose}
+              className="px-lg h-10 rounded-lg border border-outline-variant text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isCreating}
-              className="px-lg h-10 rounded-lg bg-primary-container text-white font-bold font-label-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+              className={`px-lg h-10 rounded-lg bg-primary-container text-white font-bold font-label-md hover:opacity-90 active:scale-95 transition-all duration-150 ${
+                isCreating ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
-              {isCreating ? "Creating…" : "Create Class"}
+              <ProfessorButtonContent isLoading={isCreating} loadingText="Creating...">
+                Create Class
+              </ProfessorButtonContent>
             </button>
           </div>
         </form>
@@ -2061,7 +2066,7 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
   const copyToClipboard = async (text: string, label: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(text);
-      showToast(`${label} copied`, "success");
+      showToast(`${label} copied to clipboard`, "success");
     } catch {
       showToast("Could not copy to clipboard", "error");
     }
@@ -2085,14 +2090,14 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
     setShowModal(false);
     setName("");
     setDescription("");
-    showToast("Class created", "success");
+    showToast("Class created successfully", "success");
     await loadClasses();
     router.refresh();
   };
 
   return (
     <ProfessorPortalLayout userName={userName} onNewClass={() => setShowModal(true)}>
-      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
+      <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
         <section>
           <h1 className="font-display text-display text-primary">My Classes</h1>
           <p className="text-on-surface-variant mt-1">
@@ -2112,30 +2117,34 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
         </div>
 
         {isLoading ? (
-          <p className="text-on-surface-variant font-body-md">Loading classes…</p>
-        ) : classes.length === 0 ? (
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-xl flex flex-col items-center justify-center text-center min-h-[400px] empty-state-gradient">
-            <MaterialIcon name="school" className="text-primary text-5xl mb-4" />
-            <h2 className="font-headline-md text-primary">No classes yet</h2>
-            <p className="text-on-surface-variant font-body-md mt-2 mb-lg max-w-sm">
-              You haven&apos;t organized any teaching cohorts yet. Create your first class to get a
-              join code for students.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowModal(true)}
-              className="px-lg h-10 bg-primary-container text-white font-bold rounded-lg hover:opacity-90 flex items-center gap-2"
-            >
-              <MaterialIcon name="add_circle" className="text-[20px]" />
-              Create Class
-            </button>
-          </div>
-        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-            {classes.map((classRow) => (
-              <div
+            <ClassCardSkeleton delay={1} />
+            <ClassCardSkeleton delay={2} />
+            <ClassCardSkeleton delay={3} />
+          </div>
+        ) : classes.length === 0 ? (
+          <ProfessorEmptyState
+            icon="school"
+            heading="No classes yet"
+            description="You haven't organized any teaching cohorts yet. Create your first class to get a join code for students."
+            action={
+              <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                className="bg-primary-container text-white font-bold rounded-lg px-6 h-10 flex items-center gap-2 hover:opacity-90 transition-opacity duration-150"
+              >
+                <MaterialIcon name="add_circle" className="text-[20px]" />
+                Create Class
+              </button>
+            }
+          />
+        ) : (
+          <FadeIn className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+            {classes.map((classRow, index) => (
+              <FadeIn
                 key={classRow.id}
-                className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow p-md flex flex-col h-full"
+                delay={(Math.min(index, 3) as 0 | 1 | 2 | 3)}
+                className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow duration-150 p-md flex flex-col h-full"
               >
                 <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded self-start">
                   Active
@@ -2185,11 +2194,11 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
                     </Link>
                   </div>
                 </div>
-              </div>
+              </FadeIn>
             ))}
-          </div>
+          </FadeIn>
         )}
-      </div>
+      </FadeIn>
 
       <CreateClassModalPanel
         open={showModal}
@@ -2226,6 +2235,7 @@ export function ProfessorLibraryView({
   const [simulations, setSimulations] = useState(initialSimulations);
   const [deleteTarget, setDeleteTarget] = useState<Simulation | null>(null);
   const [isBusy, setIsBusy] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleTogglePublish = async (sim: Simulation): Promise<void> => {
     setIsBusy(sim.id);
@@ -2243,7 +2253,12 @@ export function ProfessorLibraryView({
     setSimulations((prev) =>
       prev.map((s) => (s.id === sim.id ? { ...s, is_published: nextPublished } : s))
     );
-    showToast(nextPublished ? "Simulation published" : "Simulation unpublished", "success");
+    showToast(
+      nextPublished
+        ? "Simulation published — students can now see it"
+        : "Simulation unpublished",
+      "success"
+    );
     router.refresh();
   };
 
@@ -2254,10 +2269,12 @@ export function ProfessorLibraryView({
       setDeleteTarget(null);
       return;
     }
+    setIsDeleting(true);
     setIsBusy(deleteTarget.id);
     const supabase = createClient();
     const { error } = await supabase.from("simulations").delete().eq("id", deleteTarget.id);
     setIsBusy(null);
+    setIsDeleting(false);
     setDeleteTarget(null);
     if (error) {
       showToast("Something went wrong. Please try again.", "error");
@@ -2270,7 +2287,7 @@ export function ProfessorLibraryView({
 
   return (
     <ProfessorPortalLayout userName={userName}>
-      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
+      <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-display text-primary">Simulation Library</h1>
@@ -2288,20 +2305,20 @@ export function ProfessorLibraryView({
         </div>
 
         {simulations.length === 0 ? (
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-xl flex flex-col items-center justify-center text-center min-h-[400px] empty-state-gradient">
-            <MaterialIcon name="model_training" className="text-primary text-5xl mb-4" />
-            <h2 className="font-headline-md text-primary">Your library is empty</h2>
-            <p className="text-on-surface-variant font-body-md mt-2 mb-lg max-w-sm">
-              Design your first pitch scenario to assign it to your classes.
-            </p>
-            <Link
-              href="/teacher/simulation/new"
-              className="px-lg h-10 bg-primary-container text-white font-bold rounded-lg hover:opacity-90 flex items-center gap-2"
-            >
-              <MaterialIcon name="bolt" className="text-[20px]" />
-              Create Simulation
-            </Link>
-          </div>
+          <ProfessorEmptyState
+            icon="model_training"
+            heading="Your library is empty"
+            description="Design your first pitch scenario to assign it to your classes."
+            action={
+              <Link
+                href="/teacher/simulation/new"
+                className="bg-primary-container text-white font-bold rounded-lg px-6 h-10 flex items-center gap-2 hover:opacity-90 transition-opacity duration-150"
+              >
+                <MaterialIcon name="bolt" className="text-[20px]" />
+                Create Simulation
+              </Link>
+            }
+          />
         ) : (
           <div className="overflow-hidden bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm">
             <table className="w-full text-left border-collapse">
@@ -2320,7 +2337,7 @@ export function ProfessorLibraryView({
                   const stats = simulationStats[sim.id];
                   const avgPct = stats?.avgPercent;
                   return (
-                    <tr key={sim.id} className="hover:bg-secondary-fixed/10 transition-colors">
+                    <tr key={sim.id} className="hover:bg-secondary-fixed/10 transition-colors duration-150">
                       <td className="px-lg py-md font-bold text-primary">{sim.title}</td>
                       <td className="px-lg py-md">{sim.persona_name}</td>
                       <td className="px-lg py-md">
@@ -2352,8 +2369,21 @@ export function ProfessorLibraryView({
                           <Link href={`/teacher/simulation/${sim.id}/results`} className="p-2 hover:bg-surface-container hover:text-primary rounded" title="Results">
                             <MaterialIcon name="bar_chart" className="text-[20px]" />
                           </Link>
-                          <button type="button" disabled={isBusy === sim.id} onClick={() => void handleTogglePublish(sim)} className="p-2 hover:bg-surface-container hover:text-primary rounded disabled:opacity-50" title={sim.is_published ? "Unpublish" : "Publish"}>
-                            <MaterialIcon name={sim.is_published ? "toggle_on" : "toggle_off"} className="text-[20px]" />
+                          <button
+                            type="button"
+                            disabled={isBusy === sim.id}
+                            onClick={() => void handleTogglePublish(sim)}
+                            className="p-2 hover:bg-surface-container hover:text-primary rounded disabled:opacity-50 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                            title={sim.is_published ? "Unpublish" : "Publish"}
+                          >
+                            {isBusy === sim.id ? (
+                              <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <MaterialIcon
+                                name={sim.is_published ? "toggle_on" : "toggle_off"}
+                                className="text-[20px]"
+                              />
+                            )}
                           </button>
                           <button type="button" disabled={isBusy === sim.id} onClick={() => setDeleteTarget(sim)} className="p-2 hover:bg-error-container hover:text-error rounded" title="Delete">
                             <MaterialIcon name="delete" className="text-[20px]" />
@@ -2367,7 +2397,7 @@ export function ProfessorLibraryView({
             </table>
           </div>
         )}
-      </div>
+      </FadeIn>
 
       {deleteTarget && (
         <ConfirmModal
@@ -2375,6 +2405,8 @@ export function ProfessorLibraryView({
           message="Are you sure you want to delete this simulation? This cannot be undone."
           confirmLabel="Delete"
           isDestructive
+          isConfirming={isDeleting}
+          confirmingLabel="Deleting..."
           onConfirm={() => void handleConfirmDelete()}
           onCancel={() => setDeleteTarget(null)}
         />
@@ -2414,7 +2446,7 @@ export function ProfessorAnalyticsView({
 
   return (
     <ProfessorPortalLayout userName={userName}>
-      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-xl">
+      <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-xl">
         <section>
           <h1 className="font-display text-display text-primary">Analytics</h1>
           <p className="text-on-surface-variant mt-1">
@@ -2477,7 +2509,7 @@ export function ProfessorAnalyticsView({
             View Library
           </Link>
         </div>
-      </div>
+      </FadeIn>
     </ProfessorPortalLayout>
   );
 }
@@ -2498,7 +2530,7 @@ export function ProfessorSettingsView({
 }: ProfessorSettingsViewProps): React.ReactElement {
   return (
     <ProfessorPortalLayout userName={userName}>
-      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
+      <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
         <section>
           <h1 className="font-display text-display text-primary">Settings</h1>
           <p className="text-on-surface-variant mt-1">Manage your professor account preferences.</p>
@@ -2511,7 +2543,7 @@ export function ProfessorSettingsView({
             <input
               readOnly
               value={userName}
-              className="mt-1 w-full h-10 px-md border border-outline-variant rounded-lg bg-surface-container-low font-body-md"
+              className="mt-1 w-full h-10 px-4 border border-outline-variant rounded-lg bg-surface-container-low font-body-md focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all duration-150"
             />
           </div>
           <div>
@@ -2519,7 +2551,7 @@ export function ProfessorSettingsView({
             <input
               readOnly
               value={email}
-              className="mt-1 w-full h-10 px-md border border-outline-variant rounded-lg bg-surface-container-low font-body-md"
+              className="mt-1 w-full h-10 px-4 border border-outline-variant rounded-lg bg-surface-container-low font-body-md focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all duration-150"
             />
           </div>
           <p className="font-label-sm text-on-surface-variant">
@@ -2531,7 +2563,7 @@ export function ProfessorSettingsView({
           <h2 className="font-headline-md text-primary mb-md">Session</h2>
           <ProfessorLogoutButton className="px-lg h-10 border border-outline text-primary font-label-md rounded-lg hover:bg-surface-container-high" />
         </section>
-      </div>
+      </FadeIn>
     </ProfessorPortalLayout>
   );
 }
@@ -2559,7 +2591,7 @@ export function ProfessorSupportView({ userName }: { userName: string }): React.
 
   return (
     <ProfessorPortalLayout userName={userName}>
-      <div className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
+      <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
         <section>
           <h1 className="font-display text-display text-primary">Support</h1>
           <p className="text-on-surface-variant mt-1">Quick answers and resources for the professor portal.</p>
@@ -2599,7 +2631,7 @@ export function ProfessorSupportView({ userName }: { userName: string }): React.
           <MaterialIcon name="arrow_back" className="text-[18px]" />
           Back to Dashboard
         </Link>
-      </div>
+      </FadeIn>
     </ProfessorPortalLayout>
   );
 }

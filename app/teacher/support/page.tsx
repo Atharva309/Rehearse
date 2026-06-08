@@ -3,7 +3,10 @@
  * Professor support and FAQ page.
  */
 
+import type { Metadata } from "next";
 import { ProfessorSupportView } from "@/components/shared/Sidebar";
+
+export const metadata: Metadata = { title: "Support — PitchLab" };
 import { requireRole } from "@/lib/auth-helpers";
 
 /**

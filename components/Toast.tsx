@@ -1,11 +1,19 @@
 /**
  * Toast.tsx
- * Renders active toast notifications (Stitch — top right, auto-dismiss).
+ * Animated toast notification component.
+ * Slides in from top right, auto-dismisses after 3 seconds.
  */
 
 "use client";
 
 import { useToast } from "@/hooks/useToast";
+import type { ToastVariant } from "@/hooks/useToast";
+
+const BORDER_COLOR: Record<ToastVariant, string> = {
+  success: "#22c55e",
+  error: "#ba1a1a",
+  info: "#005bbf",
+};
 
 /**
  * Fixed toast stack mounted once per app shell.
@@ -23,25 +31,18 @@ export function ToastContainer(): React.ReactElement {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`pointer-events-auto px-4 py-3 rounded-lg border shadow-lg text-sm font-medium ${
-            toast.variant === "success"
-              ? "bg-page border-success/40 text-text-primary"
-              : toast.variant === "error"
-                ? "bg-page border-error/40 text-error"
-                : "bg-page border-border text-text-primary"
-          }`}
+          className="pointer-events-auto bg-surface-container-lowest border border-outline-variant shadow-lg rounded-xl px-5 py-4 flex items-center gap-3 text-sm font-medium text-on-surface animate-toast-in"
+          style={{ borderLeft: `4px solid ${BORDER_COLOR[toast.variant]}` }}
         >
-          <div className="flex items-start justify-between gap-3">
-            <span>{toast.message}</span>
-            <button
-              type="button"
-              onClick={() => dismissToast(toast.id)}
-              className="text-text-secondary hover:text-text-primary shrink-0"
-              aria-label="Dismiss"
-            >
-              ×
-            </button>
-          </div>
+          <span className="flex-1">{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => dismissToast(toast.id)}
+            className="text-on-surface-variant hover:text-on-surface shrink-0 transition-colors duration-150"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
         </div>
       ))}
     </div>

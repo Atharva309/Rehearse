@@ -3,8 +3,11 @@
  * Create new simulation with Stitch form layout and live preview.
  */
 
+import type { Metadata } from "next";
 import { ProfessorSimulationFormView } from "@/components/shared/Sidebar";
 import { requireRole } from "@/lib/auth-helpers";
+
+export const metadata: Metadata = { title: "Create Simulation — PitchLab" };
 
 /**
  * Create new simulation.
