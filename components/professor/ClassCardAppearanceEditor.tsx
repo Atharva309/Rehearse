@@ -19,21 +19,26 @@ import { useToast } from "@/hooks/useToast";
 
 type ImageMode = "preset" | "upload" | "none";
 
+/**
+ * Preset banner images — Pexels License (free for commercial use).
+ * Cropped to 1600×500 and hosted locally in /public/preset-cards/.
+ * @see https://www.pexels.com/license/
+ */
 const PRESET_CARD_IMAGES = [
   {
-    url: "https://t3.ftcdn.net/jpg/02/47/44/10/240_F_247441003_zWguJzxDwzAx3DEY1vQKBeQItT4YAajz.jpg",
-    alt: "Modern workspace flat lay",
+    url: "/preset-cards/workspace.jpg",
+    alt: "Modern workspace flat lay with laptop and books",
   },
   {
-    url: "https://www.shutterstock.com/image-photo/construction-technology-banner-background-site-600nw-2375505543.jpg",
-    alt: "Construction technology banner",
+    url: "/preset-cards/construction.jpg",
+    alt: "Construction site with engineers reviewing plans",
   },
   {
-    url: "https://media.istockphoto.com/id/1411029939/photo/top-view-on-colorful-stacked-books-education-and-learning-concept-background.jpg?s=612x612&w=0&k=20&c=9X5M5RI_aAXvRv4r1OZUSBYSVKx0HK0Sg2dLUN8oQwQ=",
-    alt: "Colorful stacked books",
+    url: "/preset-cards/books.jpg",
+    alt: "Colorful books — education and learning",
   },
   {
-    url: "https://t3.ftcdn.net/jpg/04/41/25/62/360_F_441256239_RG2mJkJujtD5ednLx3dz8mFtgbKiAKMt.jpg",
+    url: "/preset-cards/airplane.jpg",
     alt: "Airplane wing over clouds at sunset",
   },
 ] as const;
