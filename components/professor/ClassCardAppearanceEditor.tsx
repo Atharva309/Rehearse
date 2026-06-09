@@ -166,7 +166,7 @@ export function ClassCardAppearanceEditor({
 
         <div className="grid grid-cols-1 lg:grid-cols-[11fr_9fr] gap-xl items-start">
           {/* Left settings */}
-          <div>
+          <div className="pb-xl border-b border-outline-variant lg:pb-0 lg:border-b-0 lg:pr-xl lg:border-r">
           <div className="mb-xl">
             <label className="block font-label-md text-label-md text-on-surface-variant mb-sm">
               Color Scheme
@@ -312,33 +312,10 @@ export function ClassCardAppearanceEditor({
               </p>
             )}
           </div>
-
-          <div className="relative group w-fit">
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={() => void handleSave()}
-              aria-describedby="save-appearance-tooltip"
-              className={`h-8 px-4 bg-primary-container text-on-primary rounded-lg font-label-sm text-label-sm hover:bg-primary transition-colors active:scale-[0.98] duration-150 ${
-                isSaving ? "opacity-70 cursor-not-allowed" : ""
-              }`}
-            >
-              <ProfessorButtonContent isLoading={isSaving} loadingText="Saving...">
-                Save Appearance Settings
-              </ProfessorButtonContent>
-            </button>
-            <p
-              id="save-appearance-tooltip"
-              role="tooltip"
-              className="pointer-events-none absolute left-0 bottom-full mb-2 w-64 px-3 py-2 rounded-lg bg-inverse-surface text-inverse-on-surface font-label-sm text-label-sm leading-snug opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-20 shadow-md"
-            >
-              {saveTooltip}
-            </p>
-          </div>
           </div>
 
           {/* Right live preview */}
-          <div className="flex flex-col gap-md">
+          <div className="flex flex-col gap-md lg:pl-xl">
             <div className="flex items-center gap-sm">
               <h3 className="font-headline-md text-headline-md text-on-surface-variant">Live Preview</h3>
               <span className="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm rounded-full">
@@ -355,6 +332,29 @@ export function ClassCardAppearanceEditor({
                 cardColorScheme={colorScheme}
                 simulationCount={simulationCount}
               />
+            </div>
+
+            <div className="relative group w-fit mx-auto lg:mx-0">
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => void handleSave()}
+                aria-describedby="save-appearance-tooltip"
+                className={`h-8 px-4 bg-primary-container text-on-primary rounded-lg font-label-sm text-label-sm hover:bg-primary transition-colors active:scale-[0.98] duration-150 ${
+                  isSaving ? "opacity-70 cursor-not-allowed" : ""
+                }`}
+              >
+                <ProfessorButtonContent isLoading={isSaving} loadingText="Saving...">
+                  Save Appearance Settings
+                </ProfessorButtonContent>
+              </button>
+              <p
+                id="save-appearance-tooltip"
+                role="tooltip"
+                className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-56 px-2 py-1.5 rounded bg-gray-600 text-gray-100 text-[10px] leading-tight shadow-sm opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-20"
+              >
+                {saveTooltip}
+              </p>
             </div>
           </div>
         </div>
