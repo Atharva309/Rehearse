@@ -115,7 +115,8 @@ CREATE POLICY "professors_read_enrolled_students" ON students
     )
   );
 
--- 10) Student-facing class card appearance
+-- 10) Student-facing class card appearance (adds columns TO existing classes table)
+-- Verify: Table Editor → classes → should show card_image_url + card_color_scheme
 ALTER TABLE classes ADD COLUMN IF NOT EXISTS card_image_url text;
 ALTER TABLE classes ADD COLUMN IF NOT EXISTS card_color_scheme text DEFAULT 'default';
 

@@ -89,9 +89,11 @@ export function ClassCardAppearanceEditor({
 
       {!appearanceReady && (
         <div className="mx-lg mt-lg p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
-          <p className="font-label-md font-semibold">Database setup required</p>
+          <p className="font-label-md font-semibold">Add two columns to your existing classes table</p>
           <p className="font-body-md text-sm">
-            Open Supabase → SQL Editor, paste and run this, then Settings → API → Reload schema:
+            The <code className="text-xs bg-white/80 px-1 rounded">classes</code> table is already
+            there — it needs <strong>card_image_url</strong> and <strong>card_color_scheme</strong>.
+            In Supabase → SQL Editor, run this, then Settings → API → Reload schema:
           </p>
           <pre className="text-xs bg-white/80 border border-amber-200 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre">
             {CLASS_APPEARANCE_SETUP_SQL}
