@@ -1042,6 +1042,8 @@ export function ProfessorClassManagementView({
               initialImageUrl={cardImageUrl}
               initialColorScheme={cardColorScheme}
               appearanceStatus={appearanceStatus}
+              simulationCount={assignments.length}
+              studentCount={students.length}
             />
 
             <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">

@@ -1,11 +1,11 @@
 /**
  * ClassCardAppearanceEditor.tsx
- * Edit student-facing class card image and color scheme with live preview.
+ * Stitch layout — color scheme, card image, and live student preview.
  */
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ProfessorButtonContent } from "@/components/professor/ProfessorSpinner";
 import {
   CLASS_APPEARANCE_SETUP_SQL,
@@ -16,16 +16,61 @@ import {
 } from "@/lib/class-appearance";
 import { useToast } from "@/hooks/useToast";
 
+type ImageMode = "preset" | "upload" | "none";
+
+const PRESET_CARD_IMAGES = [
+  {
+    url: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
+    alt: "Modern office workspace",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&q=80",
+    alt: "Bright corporate office",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1524758631624-e2822e304bf0?w=800&q=80",
+    alt: "Conference room",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80",
+    alt: "Team collaboration space",
+  },
+] as const;
+
 type ClassCardAppearanceEditorProps = {
   classId: string;
   className: string;
   initialImageUrl: string | null;
   initialColorScheme: ClassColorSchemeId;
   appearanceStatus?: ClassAppearanceStatus;
+  simulationCount?: number;
+  studentCount?: number;
 };
 
+function MaterialIcon({
+  name,
+  className = "",
+  filled = false,
+}: {
+  name: string;
+  className?: string;
+  filled?: boolean;
+}): React.ReactElement {
+  return (
+    <span
+      className={`material-symbols-outlined ${className}`}
+      style={
+        filled ? { fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" } : undefined
+      }
+      aria-hidden
+    >
+      {name}
+    </span>
+  );
+}
+
 /**
- * Color scheme picker, optional cover image URL, and student card preview.
+ * Color scheme picker, card image tabs, and live student preview (Stitch layout).
  */
 export function ClassCardAppearanceEditor({
   classId,
@@ -33,14 +78,36 @@ export function ClassCardAppearanceEditor({
   initialImageUrl,
   initialColorScheme,
   appearanceStatus = "ready",
+  simulationCount = 0,
+  studentCount = 0,
 }: ClassCardAppearanceEditorProps): React.ReactElement {
   const { showToast } = useToast();
   const [imageUrl, setImageUrl] = useState(initialImageUrl ?? "");
   const [colorScheme, setColorScheme] = useState<ClassColorSchemeId>(initialColorScheme);
+  const [imageMode, setImageMode] = useState<ImageMode>(
+    initialImageUrl?.trim() ? "upload" : "none"
+  );
+  const [schemeOpen, setSchemeOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const schemeRef = useRef<HTMLDivElement>(null);
 
   const scheme = resolveClassColorScheme(colorScheme);
-  const previewImage = imageUrl.trim() || null;
+  const previewImage =
+    imageMode === "none" ? null : imageUrl.trim() || null;
+  const previewSimLabel =
+    simulationCount === 1 ? "1 simulation" : `${simulationCount} simulations`;
+  const previewStudentLabel =
+    studentCount === 1 ? "1 student" : `${studentCount} students`;
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent): void => {
+      if (schemeRef.current && !schemeRef.current.contains(e.target as Node)) {
+        setSchemeOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
 
   const handleSave = async (): Promise<void> => {
     setIsSaving(true);
@@ -48,7 +115,7 @@ export function ClassCardAppearanceEditor({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        cardImageUrl: imageUrl.trim() || null,
+        cardImageUrl: imageMode === "none" ? null : imageUrl.trim() || null,
         cardColorScheme: colorScheme,
       }),
     });
@@ -63,137 +130,291 @@ export function ClassCardAppearanceEditor({
     showToast("Class appearance saved", "success");
   };
 
+  const setMode = (mode: ImageMode): void => {
+    setImageMode(mode);
+    if (mode === "none") {
+      setImageUrl("");
+    }
+  };
+
   return (
-    <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
-      <div className="px-lg py-md border-b border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-headline-md text-headline-md text-primary-container">
-            Class Card Appearance
-          </h2>
-          <p className="font-body-md text-on-surface-variant mt-1">
-            Students see this card on their dashboard and open the class to view simulations.
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled={isSaving}
-          onClick={() => void handleSave()}
-          className={`px-lg h-10 bg-primary-container text-white font-label-md rounded-lg hover:opacity-90 transition-all duration-150 shrink-0 ${
-            isSaving ? "opacity-70 cursor-not-allowed" : ""
-          }`}
-        >
-          <ProfessorButtonContent isLoading={isSaving} loadingText="Saving...">
-            Save Appearance
-          </ProfessorButtonContent>
-        </button>
+    <div className="space-y-lg">
+      <div className="flex items-center gap-sm">
+        <MaterialIcon name="palette" className="text-primary text-headline-lg" />
+        <h2 className="font-headline-lg text-headline-lg text-on-surface">Class Card Appearance</h2>
       </div>
 
       {appearanceStatus === "stale_schema" && (
-        <div className="mx-lg mt-lg p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
+        <div className="p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
           <p className="font-label-md font-semibold">Reload Supabase API schema</p>
           <p className="font-body-md text-sm">
-            Your columns are in the database, but the API has not picked them up yet. Do one of
-            these:
+            Columns exist in the database but the API cache is stale. Go to Settings → API →
+            Reload schema, or run{" "}
+            <code className="text-xs bg-white/80 px-1 rounded">NOTIFY pgrst, &apos;reload schema&apos;;</code>
           </p>
-          <ol className="text-sm list-decimal list-inside space-y-1">
-            <li>
-              Supabase Dashboard → <strong>Settings → API → Reload schema</strong>
-            </li>
-            <li>
-              Or run in SQL Editor:{" "}
-              <code className="text-xs bg-white/80 px-1 rounded">NOTIFY pgrst, &apos;reload schema&apos;;</code>
-            </li>
-          </ol>
         </div>
       )}
       {appearanceStatus === "missing_columns" && (
-        <div className="mx-lg mt-lg p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
+        <div className="p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
           <p className="font-label-md font-semibold">Database setup required</p>
-          <p className="font-body-md text-sm">Run this in Supabase SQL Editor:</p>
           <pre className="text-xs bg-white/80 border border-amber-200 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre">
             {CLASS_APPEARANCE_SETUP_SQL}
           </pre>
         </div>
       )}
 
-      <div className="p-lg grid grid-cols-1 lg:grid-cols-2 gap-gutter">
-        <div className="space-y-lg">
-          <div>
-            <label className="font-label-md text-on-surface-variant block mb-3">Color scheme</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {CLASS_COLOR_SCHEMES.map((preset) => (
+      <div className="grid grid-cols-1 lg:grid-cols-[11fr_9fr] gap-xl items-start">
+        {/* Left settings panel */}
+        <section className="bg-surface-container-lowest border border-outline-variant rounded-lg p-lg shadow-sm">
+          <div className="mb-xl">
+            <label className="block font-label-md text-label-md text-on-surface-variant mb-sm">
+              Color Scheme
+            </label>
+            <div className="relative" ref={schemeRef}>
+              <button
+                type="button"
+                onClick={() => setSchemeOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-md py-sm bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary-container outline-none transition-all"
+              >
+                <div className="flex items-center gap-sm">
+                  <div
+                    className="w-3 h-3 rounded-full shrink-0"
+                    style={{ backgroundColor: scheme.accent }}
+                  />
+                  <span className="font-body-md text-body-md">{scheme.label}</span>
+                </div>
+                <MaterialIcon
+                  name="expand_more"
+                  className={`text-outline transition-transform ${schemeOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {schemeOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-surface-container-lowest border border-outline-variant rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
+                  {CLASS_COLOR_SCHEMES.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        setColorScheme(preset.id);
+                        setSchemeOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-sm px-md py-2.5 hover:bg-surface-container-low transition-colors text-left ${
+                        colorScheme === preset.id ? "bg-surface-container-low" : ""
+                      }`}
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: preset.accent }}
+                      />
+                      <span className="font-body-md text-body-md">{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="mt-xs font-label-sm text-label-sm text-on-surface-variant/70">
+              Applies as accent color to simulation buttons and borders.
+            </p>
+          </div>
+
+          <div className="mb-xl">
+            <label className="block font-label-md text-label-md text-on-surface-variant mb-sm">
+              Card Image
+            </label>
+            <div className="flex bg-surface-container rounded-lg p-1 mb-md">
+              {(
+                [
+                  { id: "preset" as const, label: "Preset Images" },
+                  { id: "upload" as const, label: "Upload Own" },
+                  { id: "none" as const, label: "No Image" },
+                ] as const
+              ).map((tab) => (
                 <button
-                  key={preset.id}
+                  key={tab.id}
                   type="button"
-                  onClick={() => setColorScheme(preset.id)}
-                  className={`flex items-center gap-2 p-3 rounded-lg border transition-all duration-150 ${
-                    colorScheme === preset.id
-                      ? "border-primary ring-2 ring-primary/20 bg-surface-container-low"
-                      : "border-outline-variant hover:bg-surface-container-low"
+                  onClick={() => setMode(tab.id)}
+                  className={`flex-1 py-1.5 px-3 font-label-md text-label-md rounded-md transition-colors ${
+                    imageMode === tab.id
+                      ? "bg-surface-container-lowest text-primary shadow-sm font-semibold"
+                      : "text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
-                  <span
-                    className="w-8 h-8 rounded-full shrink-0 border border-white shadow-sm"
-                    style={{
-                      background: `linear-gradient(135deg, ${preset.gradientFrom}, ${preset.gradientTo})`,
-                    }}
-                  />
-                  <span className="font-label-sm text-on-surface text-left">{preset.label}</span>
+                  {tab.label}
                 </button>
               ))}
             </div>
-          </div>
 
-          <div>
-            <label htmlFor="cardImageUrl" className="font-label-md text-on-surface-variant block mb-2">
-              Cover image URL (optional)
-            </label>
-            <input
-              id="cardImageUrl"
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/your-class-image.jpg"
-              className="w-full h-10 px-4 border border-outline-variant rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all duration-150 font-body-md"
-            />
-            <p className="font-label-sm text-on-surface-variant mt-2">
-              Paste a link to an image. It appears behind the class name on the student dashboard.
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <p className="font-label-md text-on-surface-variant mb-3">Student preview</p>
-          <div className="rounded-xl border border-outline-variant overflow-hidden bg-page shadow-sm">
-            <div
-              className="relative px-6 py-8 min-h-[120px] flex items-end"
-              style={{
-                background: previewImage
-                  ? `linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0.25)), url(${previewImage}) center/cover`
-                  : `linear-gradient(135deg, ${scheme.gradientFrom}, ${scheme.gradientTo})`,
-              }}
-            >
-              <h3 className="font-headline-md text-white font-bold drop-shadow-sm">{className}</h3>
-            </div>
-            <article
-              className="p-5 flex flex-col gap-3 border-l-4 bg-surface-container-lowest m-4 rounded-lg shadow-sm"
-              style={{ borderLeftColor: scheme.accent }}
-            >
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: scheme.accent }}>
-                {className}
-              </p>
-              <h4 className="font-semibold text-on-surface">Sample Simulation</h4>
-              <p className="text-sm text-on-surface-variant">Alex Chen · VP of Sales</p>
-              <div
-                className="mt-1 inline-flex items-center justify-center px-4 py-2 rounded-lg text-white text-sm font-semibold w-fit"
-                style={{ backgroundColor: scheme.accent }}
-              >
-                Start Simulation
+            {imageMode === "preset" && (
+              <div className="grid grid-cols-2 gap-sm">
+                {PRESET_CARD_IMAGES.map((img) => (
+                  <button
+                    key={img.url}
+                    type="button"
+                    onClick={() => setImageUrl(img.url)}
+                    className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      imageUrl === img.url
+                        ? "border-secondary ring-2 ring-secondary/20"
+                        : "border-outline-variant hover:border-outline"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.url} alt={img.alt} className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
-            </article>
+            )}
+
+            {imageMode === "upload" && (
+              <div className="space-y-md">
+                <div className="flex items-end gap-md">
+                  <div className="flex-1">
+                    <label
+                      htmlFor="cardImageUrl"
+                      className="block font-label-sm text-label-sm text-outline mb-xs"
+                    >
+                      Image URL
+                    </label>
+                    <input
+                      id="cardImageUrl"
+                      type="url"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full h-10 px-md bg-surface-container-lowest border border-outline-variant rounded-lg font-code-md text-code-md focus:ring-2 focus:ring-secondary-container outline-none"
+                    />
+                  </div>
+                  <div className="w-16 h-10 rounded-lg bg-surface-container border border-outline-variant overflow-hidden shrink-0">
+                    {previewImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={previewImage}
+                        alt="Preview thumbnail"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-surface-container-low" />
+                    )}
+                  </div>
+                </div>
+                <div className="p-md bg-surface-container-low rounded-lg border border-dashed border-outline-variant flex flex-col items-center justify-center gap-xs">
+                  <MaterialIcon name="cloud_upload" className="text-outline" />
+                  <span className="font-label-sm text-label-sm text-on-surface-variant">
+                    Paste an image URL above to use as the card cover
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {imageMode === "none" && (
+              <p className="font-label-sm text-label-sm text-on-surface-variant py-md text-center bg-surface-container-low rounded-lg border border-dashed border-outline-variant">
+                No cover image — the color scheme gradient will be used instead.
+              </p>
+            )}
           </div>
-        </div>
+
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={() => void handleSave()}
+            className={`w-full h-10 bg-primary-container text-on-primary rounded-lg font-label-md text-label-md hover:bg-primary transition-colors active:scale-[0.98] duration-150 ${
+              isSaving ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+          >
+            <ProfessorButtonContent isLoading={isSaving} loadingText="Saving...">
+              Save Appearance Settings
+            </ProfessorButtonContent>
+          </button>
+        </section>
+
+        {/* Right live preview */}
+        <section className="flex flex-col gap-lg">
+          <div className="flex items-center justify-between">
+            <h3 className="font-headline-md text-headline-md text-on-surface-variant">Live Preview</h3>
+            <span className="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm rounded-full">
+              Student View
+            </span>
+          </div>
+
+          <div className="max-w-[400px] w-full bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm mx-auto lg:mx-0">
+            <div className="relative h-20 w-full overflow-hidden">
+              {previewImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previewImage}
+                  alt="Card header"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div
+                  className="w-full h-full"
+                  style={{
+                    background: `linear-gradient(135deg, ${scheme.gradientFrom}, ${scheme.gradientTo})`,
+                  }}
+                />
+              )}
+              <div className="absolute inset-0 bg-black/45 flex flex-col justify-center px-lg">
+                <h4 className="text-on-primary font-bold font-body-lg text-body-lg line-clamp-1">
+                  {className}
+                </h4>
+                <p className="text-on-primary/70 font-label-sm text-label-sm">
+                  {previewSimLabel} · {previewStudentLabel}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-md space-y-md">
+              <div className="flex items-center justify-between border-b border-outline-variant pb-base">
+                <span className="font-label-md text-label-md text-on-surface">Course Overview</span>
+                <MaterialIcon name="more_vert" className="text-on-surface-variant text-[18px]" />
+              </div>
+
+              <div
+                className="border-[1.5px] rounded-lg p-md transition-transform hover:-translate-y-0.5 duration-200"
+                style={{
+                  borderColor: scheme.accent,
+                  backgroundColor: `${scheme.accent}12`,
+                }}
+              >
+                <div className="flex justify-between items-start mb-sm">
+                  <div>
+                    <h5 className="font-label-md text-label-md text-primary">Mock Negotiation Phase 1</h5>
+                    <p className="font-label-sm text-label-sm text-on-surface-variant">
+                      Sample simulation preview
+                    </p>
+                  </div>
+                  <span
+                    className="px-2 py-0.5 font-label-sm text-label-sm rounded"
+                    style={{ backgroundColor: `${scheme.accent}20`, color: scheme.accent }}
+                  >
+                    Active
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="w-full py-2 text-white rounded font-label-md text-label-md flex items-center justify-center gap-xs hover:opacity-90 transition-opacity pointer-events-none"
+                  style={{ backgroundColor: scheme.accent }}
+                >
+                  Start Simulation
+                  <MaterialIcon name="arrow_forward" className="text-[16px]" />
+                </button>
+              </div>
+
+              <div className="border border-outline-variant rounded-lg p-md bg-surface-container-low opacity-60">
+                <div className="flex justify-between items-center">
+                  <span className="font-label-md text-label-md text-on-surface-variant">
+                    Objection Handling Drill
+                  </span>
+                  <MaterialIcon name="lock" className="text-outline" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center font-label-sm text-label-sm text-outline px-xl">
+            Changes will be visible to all students enrolled in this class immediately upon saving.
+          </p>
+        </section>
       </div>
-    </section>
+    </div>
   );
 }
