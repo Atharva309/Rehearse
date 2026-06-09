@@ -115,4 +115,8 @@ CREATE POLICY "professors_read_enrolled_students" ON students
     )
   );
 
+-- 10) Student-facing class card appearance
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS card_image_url text;
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS card_color_scheme text DEFAULT 'default';
+
 -- Done. In Supabase Dashboard → Settings → API, click "Reload schema" if joins still fail.

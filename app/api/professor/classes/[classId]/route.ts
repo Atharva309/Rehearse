@@ -15,7 +15,18 @@ type PatchBody = {
   name?: string;
   description?: string;
   isActive?: boolean;
+  cardImageUrl?: string | null;
+  cardColorScheme?: string | null;
 };
+
+const VALID_COLOR_SCHEMES = new Set([
+  "default",
+  "ocean",
+  "forest",
+  "sunset",
+  "violet",
+  "rose",
+]);
 
 /**
  * Loads a single class with enrolled students and assigned simulations.
@@ -119,6 +130,17 @@ export async function PATCH(
   }
   if (body.isActive !== undefined) {
     updates.is_active = body.isActive;
+  }
+  if (body.cardImageUrl !== undefined) {
+    const url = body.cardImageUrl?.trim() ?? "";
+    updates.card_image_url = url || null;
+  }
+  if (body.cardColorScheme !== undefined) {
+    const scheme = body.cardColorScheme?.trim() ?? "default";
+    if (!VALID_COLOR_SCHEMES.has(scheme)) {
+      return NextResponse.json({ error: "Invalid color scheme." }, { status: 400 });
+    }
+    updates.card_color_scheme = scheme;
   }
 
   if (Object.keys(updates).length === 0) {

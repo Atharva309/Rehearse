@@ -6,18 +6,23 @@
 import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { SimulationCard } from "@/components/SimulationCard";
+import { StudentClassHeader } from "@/components/StudentClassHeader";
+import { resolveClassColorScheme } from "@/lib/class-appearance";
 import {
   StudentAttemptHistory,
   type StudentAttemptRow,
 } from "@/components/StudentAttemptHistory";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
-import type { Attempt, Simulation } from "@/types";
+import type { Attempt, ClassColorSchemeId, Simulation } from "@/types";
 import { JoinClassButton } from "./JoinClassButton";
 
 type ClassSection = {
   classId: string;
   className: string;
+  cardImageUrl: string | null;
+  cardColorScheme: ClassColorSchemeId;
+  accentColor: string;
   simulations: Simulation[];
 };
 
@@ -40,7 +45,9 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
       classes (
         id,
         name,
-        join_code
+        join_code,
+        card_image_url,
+        card_color_scheme
       )
     `
     )
@@ -86,9 +93,15 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
         const classRaw = row.classes;
         const cls = Array.isArray(classRaw) ? classRaw[0] : classRaw;
         const classId = row.class_id as string;
+        const scheme = resolveClassColorScheme(
+          (cls?.card_color_scheme as ClassColorSchemeId | null) ?? "default"
+        );
         return {
           classId,
           className: (cls?.name as string) ?? "Class",
+          cardImageUrl: (cls?.card_image_url as string | null) ?? null,
+          cardColorScheme: scheme.id,
+          accentColor: scheme.accent,
           simulations: simsByClass.get(classId) ?? [],
         };
       })
@@ -183,7 +196,11 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
         <div className="mt-8 space-y-10">
           {classSections.map((section) => (
             <section key={section.classId}>
-              <h2 className="text-lg font-semibold text-text-primary mb-4">{section.className}</h2>
+              <StudentClassHeader
+                className={section.className}
+                cardImageUrl={section.cardImageUrl}
+                cardColorScheme={section.cardColorScheme}
+              />
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {section.simulations.map((sim) => {
                   const existing = attemptBySimClass.get(attemptKey(sim.id, section.classId));
@@ -199,6 +216,7 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
                       key={`${section.classId}-${sim.id}`}
                       simulation={sim}
                       className={section.className}
+                      accentColor={section.accentColor}
                       actionLabel={existing ? "Continue" : "Start Simulation"}
                       href={`/student/simulation/${sim.id}?${query.toString()}`}
                       stagesCompleted={stagesCompleted}

@@ -15,6 +15,7 @@ type SimulationCardProps = {
   href: string;
   stagesCompleted?: number;
   className?: string;
+  accentColor?: string;
 };
 
 /**
@@ -26,6 +27,7 @@ export function SimulationCard({
   href,
   stagesCompleted = 0,
   className,
+  accentColor = "#c9a227",
 }: SimulationCardProps): React.ReactElement {
   const hasProgress = stagesCompleted > 0;
   const progressPercent = Math.min(
@@ -34,9 +36,17 @@ export function SimulationCard({
   );
 
   return (
-    <article className="card-surface border-l-4 border-l-gold p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+    <article
+      className="card-surface border-l-4 p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
+      style={{ borderLeftColor: accentColor }}
+    >
       {className && (
-        <p className="text-xs font-semibold uppercase tracking-wider text-accent">{className}</p>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: accentColor }}
+        >
+          {className}
+        </p>
       )}
       <h3 className="font-semibold text-text-primary">{simulation.title}</h3>
       <p className="text-sm text-text-secondary">

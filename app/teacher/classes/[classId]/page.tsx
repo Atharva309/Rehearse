@@ -8,6 +8,7 @@ import { ProfessorClassManagementView } from "@/components/shared/Sidebar";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
+import type { ClassColorSchemeId } from "@/lib/class-appearance";
 import { scorePercent } from "@/lib/grades";
 import type { EnrolledStudent, Simulation } from "@/types";
 
@@ -142,6 +143,10 @@ export default async function ClassManagementPage({
       classDescription={classRow.description}
       classId={classRow.id}
       joinCode={classRow.join_code}
+      cardImageUrl={(classRow.card_image_url as string | null) ?? null}
+      cardColorScheme={
+        ((classRow.card_color_scheme as ClassColorSchemeId | null) ?? "default") as ClassColorSchemeId
+      }
       initialStudents={students}
       initialAssignments={(assignments ?? []) as Parameters<
         typeof ProfessorClassManagementView

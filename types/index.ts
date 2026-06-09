@@ -86,6 +86,14 @@ export type StudentSession = {
   displayName: string;
 };
 
+export type ClassColorSchemeId =
+  | "default"
+  | "ocean"
+  | "forest"
+  | "sunset"
+  | "violet"
+  | "rose";
+
 export type Class = {
   id: string;
   professor_id: string;
@@ -94,6 +102,8 @@ export type Class = {
   join_code: string;
   is_active: boolean;
   created_at: string;
+  card_image_url?: string | null;
+  card_color_scheme?: ClassColorSchemeId | null;
 };
 
 export type Student = {

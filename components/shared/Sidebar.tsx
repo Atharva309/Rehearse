@@ -21,7 +21,9 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { FadeIn } from "@/components/professor/FadeIn";
 import { ProfessorEmptyState } from "@/components/professor/ProfessorEmptyState";
 import { ProfessorButtonContent } from "@/components/professor/ProfessorSpinner";
+import { ClassCardAppearanceEditor } from "@/components/professor/ClassCardAppearanceEditor";
 import { ClassCardSkeleton } from "@/components/professor/skeletons/ClassCardSkeleton";
+import type { ClassColorSchemeId } from "@/lib/class-appearance";
 import { useToast } from "@/hooks/useToast";
 import { SCORED_STAGES, STAGE_LABELS, STUDENT_JOIN_PATH } from "@/lib/constants";
 import { downloadLeaderboardCsv, type CsvExportRow } from "@/lib/export-leaderboard-csv";
@@ -825,6 +827,8 @@ type ProfessorClassManagementViewProps = {
   classDescription: string | null;
   classId: string;
   joinCode: string;
+  cardImageUrl: string | null;
+  cardColorScheme: ClassColorSchemeId;
   initialStudents: EnrolledStudent[];
   initialAssignments: AssignedSimulation[];
   professorSimulations: Simulation[];
@@ -840,6 +844,8 @@ export function ProfessorClassManagementView({
   classDescription,
   classId,
   joinCode,
+  cardImageUrl,
+  cardColorScheme,
   initialStudents,
   initialAssignments,
   professorSimulations,
@@ -848,9 +854,12 @@ export function ProfessorClassManagementView({
   const router = useRouter();
   const { showToast } = useToast();
   const [assignments, setAssignments] = useState(initialAssignments);
+  const [students, setStudents] = useState(initialStudents);
   const [selectedSimId, setSelectedSimId] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [removingSimId, setRemovingSimId] = useState<string | null>(null);
+  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
+  const [removeStudentTarget, setRemoveStudentTarget] = useState<EnrolledStudent | null>(null);
   const [showAllStudents, setShowAllStudents] = useState(false);
 
   const assignedIds = new Set(assignments.map((a) => a.simulation_id));
@@ -877,6 +886,15 @@ export function ProfessorClassManagementView({
 
   const handleAdd = async (): Promise<void> => {
     if (!selectedSimId) return;
+    if (assignedIds.has(selectedSimId)) {
+      showToast("Simulation already assigned to this class", "error");
+      setSelectedSimId("");
+      return;
+    }
+
+    const sim = professorSimulations.find((s) => s.id === selectedSimId);
+    if (!sim) return;
+
     setIsAdding(true);
     const res = await fetch(`/api/professor/classes/${classId}/simulations`, {
       method: "POST",
@@ -886,12 +904,52 @@ export function ProfessorClassManagementView({
     setIsAdding(false);
 
     if (!res.ok) {
-      showToast("Could not assign simulation", "error");
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      showToast(
+        res.status === 409
+          ? "Simulation already assigned to this class"
+          : body.error ?? "Could not assign simulation",
+        "error"
+      );
       return;
     }
 
+    const body = (await res.json()) as {
+      classSimulation: { id: string; simulation_id: string; added_at: string };
+    };
+    setAssignments((prev) => [
+      {
+        id: body.classSimulation.id,
+        simulation_id: selectedSimId,
+        added_at: body.classSimulation.added_at,
+        simulations: sim,
+      },
+      ...prev,
+    ]);
     showToast("Simulation added to class", "success");
     setSelectedSimId("");
+    router.refresh();
+  };
+
+  const handleConfirmRemoveStudent = async (): Promise<void> => {
+    if (!removeStudentTarget) return;
+    const studentId = removeStudentTarget.id;
+    setRemovingStudentId(studentId);
+    const res = await fetch(`/api/professor/classes/${classId}/students`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentId }),
+    });
+    setRemovingStudentId(null);
+    setRemoveStudentTarget(null);
+
+    if (!res.ok) {
+      showToast("Could not remove student", "error");
+      return;
+    }
+
+    setStudents((prev) => prev.filter((s) => s.id !== studentId));
+    showToast("Student removed from class", "success");
     router.refresh();
   };
 
@@ -914,7 +972,7 @@ export function ProfessorClassManagementView({
     router.refresh();
   };
 
-  const displayedStudents = showAllStudents ? initialStudents : initialStudents.slice(0, 4);
+  const displayedStudents = showAllStudents ? students : students.slice(0, 4);
 
   return (
     <ProfessorPortalLayout userName={userName}>
@@ -976,14 +1034,21 @@ export function ProfessorClassManagementView({
               </div>
             </section>
 
+            <ClassCardAppearanceEditor
+              classId={classId}
+              className={className}
+              initialImageUrl={cardImageUrl}
+              initialColorScheme={cardColorScheme}
+            />
+
             <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
               <div className="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-white">
                 <h2 className="font-headline-md text-headline-md text-primary-container">
-                  Enrolled Students ({initialStudents.length})
+                  Enrolled Students ({students.length})
                 </h2>
                 <MaterialIcon name="download" className="text-on-surface-variant" />
               </div>
-              {initialStudents.length === 0 ? (
+              {students.length === 0 ? (
                 <ProfessorEmptyState
                   icon="group_off"
                   heading="No students have joined yet"
@@ -1030,14 +1095,22 @@ export function ProfessorClassManagementView({
                               {new Date(student.joinedAt).toLocaleDateString()}
                             </td>
                             <td className="px-lg py-4 text-right">
-                              <MaterialIcon name="more_vert" className="text-on-surface-variant" />
+                              <button
+                                type="button"
+                                disabled={removingStudentId !== null}
+                                onClick={() => setRemoveStudentTarget(student)}
+                                className="inline-flex items-center gap-1 text-error font-label-sm font-semibold hover:bg-error-container/20 px-2 py-1 rounded transition-colors duration-150 disabled:opacity-50"
+                              >
+                                <MaterialIcon name="person_remove" className="text-[16px]" />
+                                Remove
+                              </button>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                  {initialStudents.length > 4 && (
+                  {students.length > 4 && (
                     <div className="p-4 text-center border-t border-outline-variant">
                       <button
                         type="button"
@@ -1046,7 +1119,7 @@ export function ProfessorClassManagementView({
                       >
                         {showAllStudents
                           ? "Show fewer"
-                          : `View All ${initialStudents.length} Students`}
+                          : `View All ${students.length} Students`}
                       </button>
                     </div>
                   )}
@@ -1208,6 +1281,19 @@ export function ProfessorClassManagementView({
               )}
             </section>
         </div>
+
+        {removeStudentTarget && (
+          <ConfirmModal
+            title="Remove student from class?"
+            message={`Remove ${removeStudentTarget.displayName} (@${removeStudentTarget.username}) from this class? They can re-join with the class code.`}
+            confirmLabel="Remove"
+            isDestructive
+            isConfirming={removingStudentId === removeStudentTarget.id}
+            confirmingLabel="Removing..."
+            onConfirm={() => void handleConfirmRemoveStudent()}
+            onCancel={() => setRemoveStudentTarget(null)}
+          />
+        )}
       </FadeIn>
     </ProfessorPortalLayout>
   );
