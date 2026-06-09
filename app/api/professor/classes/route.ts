@@ -9,10 +9,15 @@ import { requireProfessorApi } from "@/lib/api-auth";
 import { generateJoinCode } from "@/lib/join-code";
 import { createServiceClient } from "@/lib/supabase/server";
 
+import { CLASS_COLOR_SCHEMES, type ClassColorSchemeId } from "@/lib/class-appearance";
+
 type CreateClassBody = {
   name?: string;
   description?: string;
+  cardColorScheme?: string;
 };
+
+const VALID_COLOR_SCHEMES = new Set(CLASS_COLOR_SCHEMES.map((s) => s.id));
 
 const JOIN_CODE_RETRIES = 8;
 
@@ -81,6 +86,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as CreateClassBody;
   const name = body.name?.trim() ?? "";
   const description = body.description?.trim() || null;
+  const schemeRaw = body.cardColorScheme?.trim() ?? "default";
+  const cardColorScheme: ClassColorSchemeId = VALID_COLOR_SCHEMES.has(schemeRaw as ClassColorSchemeId)
+    ? (schemeRaw as ClassColorSchemeId)
+    : "default";
 
   if (!name) {
     return NextResponse.json({ error: "Class name is required." }, { status: 400 });
@@ -97,6 +106,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         name,
         description,
         join_code: joinCode,
+        card_color_scheme: cardColorScheme,
       })
       .select("*")
       .single();

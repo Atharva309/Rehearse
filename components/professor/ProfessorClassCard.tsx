@@ -17,8 +17,9 @@ type ProfessorClassCardProps = {
   cardImageUrl?: string | null;
   cardColorScheme?: ClassColorSchemeId | null;
   simulationCount: number;
-  onCopyJoinCode: () => void;
-  onCopyJoinLink: () => void;
+  onCopyJoinCode?: () => void;
+  onCopyJoinLink?: () => void;
+  previewMode?: boolean;
 };
 
 function MaterialIcon({
@@ -48,12 +49,19 @@ export function ProfessorClassCard({
   simulationCount,
   onCopyJoinCode,
   onCopyJoinLink,
+  previewMode = false,
 }: ProfessorClassCardProps): React.ReactElement {
   const scheme = resolveClassColorScheme(cardColorScheme);
   const image = cardImageUrl?.trim() || null;
+  const displayName = className.trim() || "Class Name";
+  const displayJoinCode = previewMode ? "------" : joinCode;
 
   return (
-    <div className="flex flex-col h-full rounded-xl overflow-hidden border border-border bg-page shadow-sm hover:shadow-md transition-shadow duration-150">
+    <div
+      className={`flex flex-col h-full rounded-xl overflow-hidden border border-border bg-page shadow-sm ${
+        previewMode ? "" : "hover:shadow-md transition-shadow duration-150"
+      }`}
+    >
       <div
         className="relative min-h-[140px] flex items-end px-5 py-5 shrink-0"
         style={{
@@ -62,7 +70,7 @@ export function ProfessorClassCard({
             : `linear-gradient(135deg, ${scheme.gradientFrom}, ${scheme.gradientTo})`,
         }}
       >
-        <h2 className="text-xl font-bold text-white drop-shadow-sm line-clamp-2">{className}</h2>
+        <h2 className="text-xl font-bold text-white drop-shadow-sm line-clamp-2">{displayName}</h2>
       </div>
 
       <div
@@ -79,11 +87,14 @@ export function ProfessorClassCard({
         </p>
 
         <div className="mt-4 bg-surface-container-low p-3 rounded-lg flex items-center justify-between border border-dashed border-outline-variant">
-          <code className="font-code-lg text-primary tracking-[0.15em] uppercase">{joinCode}</code>
+          <code className="font-code-lg text-primary tracking-[0.15em] uppercase">{displayJoinCode}</code>
           <button
             type="button"
+            disabled={previewMode}
             onClick={onCopyJoinCode}
-            className="text-secondary font-label-sm flex items-center gap-1 hover:underline shrink-0"
+            className={`text-secondary font-label-sm flex items-center gap-1 shrink-0 ${
+              previewMode ? "opacity-50 cursor-default" : "hover:underline"
+            }`}
           >
             <MaterialIcon name="content_copy" className="text-[18px]" />
             Copy
@@ -93,18 +104,30 @@ export function ProfessorClassCard({
         <div className="mt-auto pt-4 flex gap-2">
           <button
             type="button"
+            disabled={previewMode}
             onClick={onCopyJoinLink}
-            className="flex-1 py-2 border border-outline-variant text-primary font-label-md rounded-lg hover:bg-surface-container-high transition-colors"
+            className={`flex-1 py-2 border border-outline-variant text-primary font-label-md rounded-lg transition-colors ${
+              previewMode
+                ? "opacity-50 cursor-default"
+                : "hover:bg-surface-container-high"
+            }`}
           >
             Copy Join Link
           </button>
-          <Link
-            href={`/teacher/classes/${classId}`}
-            className="flex-1 py-2 bg-primary text-white font-label-md rounded-lg flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
-          >
-            Manage
-            <MaterialIcon name="arrow_forward" className="text-[16px]" />
-          </Link>
+          {previewMode ? (
+            <span className="flex-1 py-2 bg-primary text-white font-label-md rounded-lg flex items-center justify-center gap-1 opacity-50 cursor-default">
+              Manage
+              <MaterialIcon name="arrow_forward" className="text-[16px]" />
+            </span>
+          ) : (
+            <Link
+              href={`/teacher/classes/${classId}`}
+              className="flex-1 py-2 bg-primary text-white font-label-md rounded-lg flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
+            >
+              Manage
+              <MaterialIcon name="arrow_forward" className="text-[16px]" />
+            </Link>
+          )}
         </div>
       </div>
     </div>

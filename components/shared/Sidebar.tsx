@@ -22,6 +22,7 @@ import { FadeIn } from "@/components/professor/FadeIn";
 import { ProfessorEmptyState } from "@/components/professor/ProfessorEmptyState";
 import { ProfessorButtonContent } from "@/components/professor/ProfessorSpinner";
 import { ClassCardAppearanceEditor } from "@/components/professor/ClassCardAppearanceEditor";
+import { CreateClassModalPanel } from "@/components/professor/CreateClassModalPanel";
 import { ProfessorClassCard } from "@/components/professor/ProfessorClassCard";
 import { ClassCardSkeleton } from "@/components/professor/skeletons/ClassCardSkeleton";
 import type { ClassAppearanceStatus, ClassColorSchemeId } from "@/lib/class-appearance";
@@ -413,13 +414,16 @@ export function ProfessorDashboardView({
     }
   };
 
-  const handleCreateClass = async (e: React.FormEvent): Promise<void> => {
+  const handleCreateClass = async (
+    e: React.FormEvent,
+    colorScheme: ClassColorSchemeId
+  ): Promise<void> => {
     e.preventDefault();
     setIsCreating(true);
     const res = await fetch("/api/professor/classes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description }),
+      body: JSON.stringify({ name, description, cardColorScheme: colorScheme }),
     });
     setIsCreating(false);
 
@@ -761,7 +765,7 @@ export function ProfessorDashboardView({
         onClose={() => setShowModal(false)}
         onNameChange={setName}
         onDescriptionChange={setDescription}
-        onSubmit={(e) => void handleCreateClass(e)}
+        onSubmit={(e, colorScheme) => void handleCreateClass(e, colorScheme)}
       />
     </ProfessorPortalLayout>
   );
@@ -2036,140 +2040,6 @@ export function ProfessorResultsView({
   );
 }
 
-// ── Shared create-class modal ────────────────────────────────────────────────────
-
-type CreateClassModalPanelProps = {
-  open: boolean;
-  name: string;
-  description: string;
-  isCreating: boolean;
-  onClose: () => void;
-  onNameChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-};
-
-/**
- * Modal panel for creating a new teaching class.
- */
-function CreateClassModalPanel({
-  open,
-  name,
-  description,
-  isCreating,
-  onClose,
-  onNameChange,
-  onDescriptionChange,
-  onSubmit,
-}: CreateClassModalPanelProps): React.ReactElement | null {
-  const [isClosing, setIsClosing] = useState(false);
-  const [visible, setVisible] = useState(open);
-
-  useEffect(() => {
-    if (open) {
-      setVisible(true);
-      setIsClosing(false);
-    } else if (visible) {
-      setIsClosing(true);
-      const timer = window.setTimeout(() => setVisible(false), 150);
-      return () => window.clearTimeout(timer);
-    }
-  }, [open, visible]);
-
-  const requestClose = (): void => {
-    if (isCreating) return;
-    setIsClosing(true);
-    window.setTimeout(onClose, 150);
-  };
-
-  if (!visible) return null;
-
-  return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center modal-overlay px-4 ${
-        isClosing ? "animate-overlay-out" : "animate-overlay-in"
-      }`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) requestClose();
-      }}
-      role="presentation"
-    >
-      <div
-        className={`bg-surface-container-lowest w-full max-w-[560px] rounded-xl shadow-xl border border-outline-variant overflow-hidden ${
-          isClosing ? "animate-modal-out" : "animate-modal-in"
-        }`}
-      >
-        <div className="px-xl py-lg border-b border-outline-variant flex justify-between items-center">
-          <h2 className="font-headline-md text-headline-md text-primary">Create New Class</h2>
-          <button
-            type="button"
-            onClick={requestClose}
-            className="text-on-surface-variant hover:text-primary transition-colors duration-150"
-          >
-            <MaterialIcon name="close" />
-          </button>
-        </div>
-        <form onSubmit={onSubmit} className="p-xl space-y-lg">
-          <div className="space-y-sm">
-            <label htmlFor="className" className="block font-label-md text-label-md text-on-surface-variant">
-              Class Name <span className="text-error">*</span>
-            </label>
-            <input
-              id="className"
-              type="text"
-              required
-              className="w-full h-10 px-4 border border-outline-variant rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all duration-150 font-body-md"
-              placeholder="e.g. Advanced AI - Fall 2024"
-              value={name}
-              onChange={(e) => onNameChange(e.target.value)}
-            />
-          </div>
-          <div className="space-y-sm">
-            <label htmlFor="classDesc" className="block font-label-md text-label-md text-on-surface-variant">
-              Description
-            </label>
-            <textarea
-              id="classDesc"
-              rows={4}
-              className="w-full p-md rounded-lg border border-outline-variant bg-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none font-body-md resize-none"
-              placeholder="Briefly describe the course objectives and requirements..."
-              value={description}
-              onChange={(e) => onDescriptionChange(e.target.value)}
-            />
-          </div>
-          <div className="bg-secondary-fixed/20 border border-secondary-fixed/30 p-md rounded-lg flex gap-md items-start">
-            <MaterialIcon name="info" className="text-secondary shrink-0" />
-            <p className="font-body-md text-on-secondary-container">
-              A unique 6-character join code will be generated automatically upon creation.
-              Students can use this code to enroll in your class instantly.
-            </p>
-          </div>
-          <div className="pt-lg flex justify-end items-center gap-md">
-            <button
-              type="button"
-              onClick={requestClose}
-              className="px-lg h-10 rounded-lg border border-outline-variant text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isCreating}
-              className={`px-lg h-10 rounded-lg bg-primary-container text-white font-bold font-label-md hover:opacity-90 active:scale-95 transition-all duration-150 ${
-                isCreating ? "opacity-70 cursor-not-allowed" : ""
-              }`}
-            >
-              <ProfessorButtonContent isLoading={isCreating} loadingText="Creating...">
-                Create Class
-              </ProfessorButtonContent>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 // ── My Classes page ──────────────────────────────────────────────────────────────
 
 type ProfessorClassesViewProps = {
@@ -2218,13 +2088,16 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
     }
   };
 
-  const handleCreateClass = async (e: React.FormEvent): Promise<void> => {
+  const handleCreateClass = async (
+    e: React.FormEvent,
+    colorScheme: ClassColorSchemeId
+  ): Promise<void> => {
     e.preventDefault();
     setIsCreating(true);
     const res = await fetch("/api/professor/classes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description }),
+      body: JSON.stringify({ name, description, cardColorScheme: colorScheme }),
     });
     setIsCreating(false);
 
@@ -2317,7 +2190,7 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
         onClose={() => setShowModal(false)}
         onNameChange={setName}
         onDescriptionChange={setDescription}
-        onSubmit={(e) => void handleCreateClass(e)}
+        onSubmit={(e, colorScheme) => void handleCreateClass(e, colorScheme)}
       />
     </ProfessorPortalLayout>
   );
