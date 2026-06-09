@@ -27,6 +27,7 @@ import {
   POST_CONNECT_ACK_WAIT_MS,
   SAMPLE_RATE_HZ,
   SIMLI_CONNECT_TIMEOUT_MS,
+  SIMLI_FACE_ID,
   SIMLI_MAX_IDLE_TIME_SEC,
   SIMLI_MAX_SESSION_LENGTH_SEC,
 } from "@/lib/constants";
@@ -256,7 +257,7 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_SIMLI_API_KEY;
-      const faceId = process.env.NEXT_PUBLIC_SIMLI_FACE_ID;
+      const faceId = SIMLI_FACE_ID;
 
       if (!apiKey || !faceId) {
         setInitError(

@@ -44,6 +44,9 @@ export const POST_CONNECT_ACK_WAIT_MS = 300;
 export const SIMLI_MAX_SESSION_LENGTH_SEC = 3600;
 export const SIMLI_MAX_IDLE_TIME_SEC = 300;
 
+/** Simli avatar face — same id used for video calls and stored on simulations. */
+export const SIMLI_FACE_ID = process.env.NEXT_PUBLIC_SIMLI_FACE_ID ?? "";
+
 /** Brief pause after end call before revealing the stage score UI. */
 export const CALL_SCORE_DELAY_MS = 1500;
 

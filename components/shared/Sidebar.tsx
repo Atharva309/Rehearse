@@ -27,7 +27,7 @@ import { ProfessorClassCard } from "@/components/professor/ProfessorClassCard";
 import { ClassCardSkeleton } from "@/components/professor/skeletons/ClassCardSkeleton";
 import type { ClassAppearanceStatus, ClassColorSchemeId } from "@/lib/class-appearance";
 import { useToast } from "@/hooks/useToast";
-import { SCORED_STAGES, STAGE_LABELS, STUDENT_JOIN_PATH } from "@/lib/constants";
+import { SCORED_STAGES, SIMLI_FACE_ID, STAGE_LABELS, STUDENT_JOIN_PATH } from "@/lib/constants";
 import { downloadLeaderboardCsv, type CsvExportRow } from "@/lib/export-leaderboard-csv";
 import { scoreToGrade } from "@/lib/grades";
 import { formatRankDisplay } from "@/lib/leaderboard";
@@ -1289,7 +1289,6 @@ export function ProfessorSimulationFormView({
   const [personaPrompt, setPersonaPrompt] = useState(
     initial?.persona_system_prompt ?? CHAT_SYSTEM_PROMPT
   );
-  const [simliFaceId, setSimliFaceId] = useState(initial?.simli_face_id ?? "");
   const [productContext, setProductContext] = useState(initial?.product_context ?? "");
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? false);
   const [error, setError] = useState("");
@@ -1304,8 +1303,12 @@ export function ProfessorSimulationFormView({
     setIsLoading(true);
     setError("");
 
-    if (!title || !personaName || !personaRole || !personaPrompt || !productContext || !simliFaceId) {
-      setError("Please fill in all required fields.");
+    if (!title || !personaName || !personaRole || !personaPrompt || !productContext || !SIMLI_FACE_ID) {
+      setError(
+        SIMLI_FACE_ID
+          ? "Please fill in all required fields."
+          : "Add NEXT_PUBLIC_SIMLI_FACE_ID to your environment before saving a simulation."
+      );
       setIsLoading(false);
       setSaveMode(null);
       return;
@@ -1319,7 +1322,7 @@ export function ProfessorSimulationFormView({
       persona_role: personaRole,
       persona_system_prompt: personaPrompt,
       product_context: productContext,
-      simli_face_id: simliFaceId,
+      simli_face_id: SIMLI_FACE_ID,
       is_published: initial?.is_published ?? false,
     };
 
@@ -1462,24 +1465,13 @@ export function ProfessorSimulationFormView({
                   </span>
                 </div>
                 <div className="flex flex-col gap-xs">
-                  <label className="font-label-md text-on-surface-variant">Simli Face ID</label>
-                  <div className="flex gap-base">
-                    <input
-                      className={`${inputClass} font-code-md flex-1`}
-                      value={simliFaceId}
-                      onChange={(e) => {
-                        setSimliFaceId(e.target.value);
-                        markDirty();
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="h-10 px-md border border-outline-variant hover:bg-surface-container-high rounded-lg flex items-center gap-2 font-label-md"
-                    >
-                      <MaterialIcon name="face" className="text-[18px]" />
-                      Preview Face
-                    </button>
+                  <label className="font-label-md text-on-surface-variant">Video Avatar</label>
+                  <div className={`${inputClass} font-code-md bg-surface-container-low text-on-surface-variant`}>
+                    {SIMLI_FACE_ID || "NEXT_PUBLIC_SIMLI_FACE_ID not configured"}
                   </div>
+                  <span className="text-xs text-on-surface-variant">
+                    Uses the same Simli face ID as student video calls.
+                  </span>
                 </div>
               </section>
 
