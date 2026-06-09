@@ -935,8 +935,7 @@ export function ProfessorClassManagementView({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-gutter">
-          <div className="md:col-span-7 flex flex-col gap-8">
+        <div className="flex flex-col gap-8">
             <section className="bg-secondary-fixed/30 border border-secondary-fixed rounded-xl p-lg">
               <div className="flex items-center gap-2 mb-6 text-on-secondary-fixed-variant">
                 <MaterialIcon name="share" />
@@ -1053,10 +1052,8 @@ export function ProfessorClassManagementView({
                 </>
               )}
             </section>
-          </div>
 
-          <div className="md:col-span-5">
-            <section className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm h-fit">
+            <section className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm">
               <div className="px-lg py-md border-b border-outline-variant">
                 <h2 className="font-headline-md text-headline-md text-primary-container">
                   Assigned Simulations
@@ -1138,7 +1135,6 @@ export function ProfessorClassManagementView({
                 </div>
               </div>
             </section>
-          </div>
         </div>
       </FadeIn>
     </ProfessorPortalLayout>

@@ -5,7 +5,7 @@
 
 import type { Metadata } from "next";
 import { ProfessorClassManagementView } from "@/components/shared/Sidebar";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import type { EnrolledStudent, Simulation } from "@/types";
@@ -47,7 +47,9 @@ export default async function ClassManagementPage({
     redirect("/teacher/dashboard");
   }
 
-  const { data: enrollmentRows } = await supabase
+  // Service client: nested students join needs row access on students table (RLS after multi-class migration).
+  const serviceSupabase = createServiceClient();
+  const { data: enrollmentRows } = await serviceSupabase
     .from("student_classes")
     .select(
       `
@@ -61,6 +63,7 @@ export default async function ClassManagementPage({
     `
     )
     .eq("class_id", params.classId)
+    .eq("professor_id", profile.id)
     .order("joined_at", { ascending: false });
 
   const students: EnrolledStudent[] = ((enrollmentRows ?? []) as StudentClassRow[])

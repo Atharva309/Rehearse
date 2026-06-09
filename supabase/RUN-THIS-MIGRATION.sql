@@ -101,4 +101,18 @@ WHERE a.student_id IS NOT NULL
   )
 ON CONFLICT (student_id, class_id) DO NOTHING;
 
+-- 9) Professors can read student profiles for enrollments in their classes
+DROP POLICY IF EXISTS "professors_read_enrolled_students" ON students;
+CREATE POLICY "professors_read_enrolled_students" ON students
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM student_classes sc
+      WHERE sc.student_id = students.id
+        AND sc.professor_id = auth.uid()
+    )
+  );
+
 -- Done. In Supabase Dashboard → Settings → API, click "Reload schema" if joins still fail.
