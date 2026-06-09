@@ -67,7 +67,7 @@ export function ClassCardAppearanceEditor({
             Class Card Appearance
           </h2>
           <p className="font-body-md text-on-surface-variant mt-1">
-            Customize how this class looks on the student dashboard.
+            Students see this card on their dashboard and open the class to view simulations.
           </p>
         </div>
         <button

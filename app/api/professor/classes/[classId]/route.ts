@@ -148,6 +148,18 @@ export async function PATCH(
   }
 
   const supabase = createServiceClient();
+
+  const { data: existing } = await supabase
+    .from("classes")
+    .select("id")
+    .eq("id", params.classId)
+    .eq("professor_id", auth.professorId)
+    .maybeSingle();
+
+  if (!existing) {
+    return NextResponse.json({ error: "Class not found." }, { status: 404 });
+  }
+
   const { data, error } = await supabase
     .from("classes")
     .update(updates)
@@ -156,8 +168,30 @@ export async function PATCH(
     .select("*")
     .single();
 
-  if (error || !data) {
-    return NextResponse.json({ error: "Class not found." }, { status: 404 });
+  if (error) {
+    const message = error.message ?? "";
+    if (
+      message.includes("card_image_url") ||
+      message.includes("card_color_scheme") ||
+      error.code === "42703"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Class appearance columns are missing. Run step 10 in supabase/RUN-THIS-MIGRATION.sql, then reload the schema.",
+        },
+        { status: 503 }
+      );
+    }
+    console.error("[professor/classes PATCH]", error);
+    return NextResponse.json(
+      { error: message || "Could not update class." },
+      { status: 500 }
+    );
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: "Could not update class." }, { status: 500 });
   }
 
   return NextResponse.json({ class: data });
