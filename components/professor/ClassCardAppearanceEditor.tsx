@@ -14,6 +14,7 @@ import {
   type ClassAppearanceStatus,
   type ClassColorSchemeId,
 } from "@/lib/class-appearance";
+import { StudentClassCard } from "@/components/StudentClassCard";
 import { useToast } from "@/hooks/useToast";
 
 type ImageMode = "preset" | "upload" | "none";
@@ -40,11 +41,11 @@ const PRESET_CARD_IMAGES = [
 type ClassCardAppearanceEditorProps = {
   classId: string;
   className: string;
+  classDescription?: string | null;
   initialImageUrl: string | null;
   initialColorScheme: ClassColorSchemeId;
   appearanceStatus?: ClassAppearanceStatus;
   simulationCount?: number;
-  studentCount?: number;
 };
 
 function MaterialIcon({
@@ -75,11 +76,11 @@ function MaterialIcon({
 export function ClassCardAppearanceEditor({
   classId,
   className,
+  classDescription = null,
   initialImageUrl,
   initialColorScheme,
   appearanceStatus = "ready",
   simulationCount = 0,
-  studentCount = 0,
 }: ClassCardAppearanceEditorProps): React.ReactElement {
   const { showToast } = useToast();
   const [imageUrl, setImageUrl] = useState(initialImageUrl ?? "");
@@ -94,10 +95,6 @@ export function ClassCardAppearanceEditor({
   const scheme = resolveClassColorScheme(colorScheme);
   const previewImage =
     imageMode === "none" ? null : imageUrl.trim() || null;
-  const previewSimLabel =
-    simulationCount === 1 ? "1 simulation" : `${simulationCount} simulations`;
-  const previewStudentLabel =
-    studentCount === 1 ? "1 student" : `${studentCount} students`;
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent): void => {
@@ -335,79 +332,15 @@ export function ClassCardAppearanceEditor({
             </span>
           </div>
 
-          <div className="max-w-[400px] w-full bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm mx-auto lg:mx-0">
-            <div className="relative h-20 w-full overflow-hidden">
-              {previewImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={previewImage}
-                  alt="Card header"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div
-                  className="w-full h-full"
-                  style={{
-                    background: `linear-gradient(135deg, ${scheme.gradientFrom}, ${scheme.gradientTo})`,
-                  }}
-                />
-              )}
-              <div className="absolute inset-0 bg-black/45 flex flex-col justify-center px-lg">
-                <h4 className="text-on-primary font-bold font-body-lg text-body-lg line-clamp-1">
-                  {className}
-                </h4>
-                <p className="text-on-primary/70 font-label-sm text-label-sm">
-                  {previewSimLabel} · {previewStudentLabel}
-                </p>
-              </div>
-            </div>
-
-            <div className="p-md space-y-md">
-              <div className="flex items-center justify-between border-b border-outline-variant pb-base">
-                <span className="font-label-md text-label-md text-on-surface">Course Overview</span>
-                <MaterialIcon name="more_vert" className="text-on-surface-variant text-[18px]" />
-              </div>
-
-              <div
-                className="border-[1.5px] rounded-lg p-md transition-transform hover:-translate-y-0.5 duration-200"
-                style={{
-                  borderColor: scheme.accent,
-                  backgroundColor: `${scheme.accent}12`,
-                }}
-              >
-                <div className="flex justify-between items-start mb-sm">
-                  <div>
-                    <h5 className="font-label-md text-label-md text-primary">Mock Negotiation Phase 1</h5>
-                    <p className="font-label-sm text-label-sm text-on-surface-variant">
-                      Sample simulation preview
-                    </p>
-                  </div>
-                  <span
-                    className="px-2 py-0.5 font-label-sm text-label-sm rounded"
-                    style={{ backgroundColor: `${scheme.accent}20`, color: scheme.accent }}
-                  >
-                    Active
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="w-full py-2 text-white rounded font-label-md text-label-md flex items-center justify-center gap-xs hover:opacity-90 transition-opacity pointer-events-none"
-                  style={{ backgroundColor: scheme.accent }}
-                >
-                  Start Simulation
-                  <MaterialIcon name="arrow_forward" className="text-[16px]" />
-                </button>
-              </div>
-
-              <div className="border border-outline-variant rounded-lg p-md bg-surface-container-low opacity-60">
-                <div className="flex justify-between items-center">
-                  <span className="font-label-md text-label-md text-on-surface-variant">
-                    Objection Handling Drill
-                  </span>
-                  <MaterialIcon name="lock" className="text-outline" />
-                </div>
-              </div>
-            </div>
+          <div className="max-w-[400px] w-full mx-auto lg:mx-0 pointer-events-none">
+            <StudentClassCard
+              classId={classId}
+              className={className}
+              description={classDescription}
+              cardImageUrl={previewImage}
+              cardColorScheme={colorScheme}
+              simulationCount={simulationCount}
+            />
           </div>
 
           <p className="text-center font-label-sm text-label-sm text-outline px-xl">

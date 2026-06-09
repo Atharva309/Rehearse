@@ -1039,11 +1039,11 @@ export function ProfessorClassManagementView({
             <ClassCardAppearanceEditor
               classId={classId}
               className={className}
+              classDescription={classDescription}
               initialImageUrl={cardImageUrl}
               initialColorScheme={cardColorScheme}
               appearanceStatus={appearanceStatus}
               simulationCount={assignments.length}
-              studentCount={students.length}
             />
 
             <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
