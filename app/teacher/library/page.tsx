@@ -6,7 +6,7 @@
 import type { Metadata } from "next";
 import { ProfessorLibraryView } from "@/components/shared/Sidebar";
 
-export const metadata: Metadata = { title: "Simulation Library — PitchLab" };
+export const metadata: Metadata = { title: "Simulations — PitchLab" };
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 import { scorePercent } from "@/lib/grades";

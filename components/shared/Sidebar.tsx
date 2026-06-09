@@ -133,7 +133,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: "dashboard", href: "/teacher/dashboard" },
   { key: "classes", label: "My Classes", icon: "school", href: "/teacher/classes" },
-  { key: "library", label: "Library", icon: "book_5", href: "/teacher/library" },
+  { key: "library", label: "Simulations", icon: "model_training", href: "/teacher/library" },
   { key: "analytics", label: "Analytics", icon: "analytics", href: "/teacher/analytics" },
 ];
 
@@ -609,7 +609,7 @@ export function ProfessorDashboardView({
             <ProfessorEmptyState
               icon="model_training"
               heading="My Simulations"
-              description="Your library is currently empty. Design your first pitch scenario."
+              description="No simulations yet. Design your first pitch scenario."
               action={
                 <Link
                   href="/teacher/simulation/new"
@@ -1367,38 +1367,19 @@ export function ProfessorSimulationFormView({
     "w-full p-4 border border-outline-variant rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all duration-150 font-body-md resize-none";
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-surface overflow-hidden font-body-md text-on-surface antialiased">
-      <header className="bg-surface sticky top-0 z-50 border-b border-outline-variant">
-        <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
-          <div className="flex items-center gap-4">
-            <BackButton
-              label="Back"
-              useHistory
-              fallbackHref="/teacher/library"
-              materialIcon
-              iconOnly
-            />
-            <div className="flex flex-col">
-              <h1 className="font-headline-lg text-headline-lg font-bold text-primary">{pageTitle}</h1>
-              <span className="font-label-sm text-label-sm text-on-surface-variant">
-                PitchLab Professor Portal
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex flex-col items-end mr-2">
-              <span className="font-label-md text-on-surface">{userName}</span>
-              <span className="font-label-sm text-on-surface-variant">Professor</span>
-            </div>
-            <div className="w-10 h-10 rounded-full border border-outline-variant bg-surface-container-low flex items-center justify-center font-bold text-primary">
-              {userName.charAt(0).toUpperCase()}
-            </div>
-          </div>
+    <ProfessorPortalLayout userName={userName} activeNav="library">
+      <div className="flex min-h-full flex-col">
+        <FadeIn className="max-w-container-max mx-auto flex-1 px-margin-desktop py-lg pb-28 w-full">
+        <div className="mb-6">
+          <BackButton
+            label="Back"
+            useHistory
+            fallbackHref="/teacher/library"
+            materialIcon
+            className="group inline-flex items-center gap-2 text-secondary font-label-sm hover:underline mb-4 transition-colors"
+          />
+          <h1 className="font-headline-lg text-headline-lg font-bold text-primary">{pageTitle}</h1>
         </div>
-      </header>
-
-      <main className="flex-1 overflow-y-auto custom-scrollbar max-w-container-max mx-auto px-margin-desktop py-lg pb-32 w-full">
-        <FadeIn>
         <form onSubmit={(e) => e.preventDefault()}>
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-gutter items-start">
             <div className="lg:col-span-6 flex flex-col gap-lg">
@@ -1620,9 +1601,8 @@ export function ProfessorSimulationFormView({
           </div>
         </form>
         </FadeIn>
-      </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant z-40">
+      <footer className="sticky bottom-0 bg-surface border-t border-outline-variant z-10">
         <div className="max-w-container-max mx-auto px-margin-desktop py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {isDirty && (
@@ -1666,7 +1646,8 @@ export function ProfessorSimulationFormView({
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </ProfessorPortalLayout>
   );
 }
 
@@ -1714,6 +1695,7 @@ function gradeCircleClass(grade: string): string {
  * Simulation results — student attempts table and leaderboard (Stitch layout).
  */
 export function ProfessorResultsView({
+  userName,
   simulationTitle,
   simulationSubtitle,
   attempts,
@@ -1737,38 +1719,32 @@ export function ProfessorResultsView({
   };
 
   return (
-    <ProfessorShellProvider>
-      <div className="fixed inset-0 z-40 flex h-screen overflow-hidden bg-background font-body-md text-on-surface">
-        <ProfessorSidebar />
-        <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex justify-between items-center w-full px-margin-desktop py-4 bg-surface border-b border-outline-variant">
-          <div className="flex items-center gap-4">
-            <BackButton
-              label="Back"
-              useHistory
-              fallbackHref="/teacher/library"
-              materialIcon
-              iconOnly
-            />
-            <div>
-              <h2 className="font-headline-md text-headline-md text-primary">{simulationTitle}</h2>
-              <p className="font-body-md text-on-surface-variant">{simulationSubtitle}</p>
+    <ProfessorPortalLayout userName={userName} activeNav="library">
+        <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-lg">
+            <div className="flex items-start gap-4">
+              <BackButton
+                label="Back"
+                useHistory
+                fallbackHref="/teacher/library"
+                materialIcon
+                iconOnly
+                className="mt-1"
+              />
+              <div>
+                <h1 className="font-headline-lg text-headline-lg text-primary">{simulationTitle}</h1>
+                <p className="font-body-md text-on-surface-variant">{simulationSubtitle}</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={handleExport}
-              className="px-4 py-2 bg-surface border border-outline rounded-lg hover:bg-surface-container-high flex items-center gap-2 font-label-md"
+              className="px-4 py-2 bg-surface border border-outline rounded-lg hover:bg-surface-container-high flex items-center gap-2 font-label-md shrink-0"
             >
               <MaterialIcon name="download" className="text-[18px]" />
               Export CSV
             </button>
-            <ProfessorLogoutButton className="px-4 py-2 bg-primary text-on-primary font-label-md rounded-lg hover:opacity-90" />
           </div>
-        </header>
-
-        <FadeIn className="flex-1 overflow-y-auto custom-scrollbar p-margin-desktop bg-surface-bright">
           <div className="flex items-center border-b border-outline-variant mb-lg">
             <button
               type="button"
@@ -2034,9 +2010,7 @@ export function ProfessorResultsView({
             </div>
           )}
         </FadeIn>
-      </main>
-      </div>
-    </ProfessorShellProvider>
+    </ProfessorPortalLayout>
   );
 }
 
@@ -2196,7 +2170,7 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
   );
 }
 
-// ── Library page ─────────────────────────────────────────────────────────────────
+// ── Simulations page ─────────────────────────────────────────────────────────────
 
 type ProfessorLibraryViewProps = {
   userName: string;
@@ -2205,7 +2179,7 @@ type ProfessorLibraryViewProps = {
 };
 
 /**
- * Simulation library — manage all professor scenarios.
+ * Simulations — manage all professor scenarios.
  */
 export function ProfessorLibraryView({
   userName,
@@ -2272,7 +2246,7 @@ export function ProfessorLibraryView({
       <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-display text-primary">Simulation Library</h1>
+            <h1 className="font-display text-display text-primary">Simulations</h1>
             <p className="text-on-surface-variant mt-1">
               Create, publish, and manage pitch training scenarios for your students.
             </p>
@@ -2289,7 +2263,7 @@ export function ProfessorLibraryView({
         {simulations.length === 0 ? (
           <ProfessorEmptyState
             icon="model_training"
-            heading="Your library is empty"
+            heading="No simulations yet"
             description="Design your first pitch scenario to assign it to your classes."
             action={
               <Link
@@ -2488,7 +2462,7 @@ export function ProfessorAnalyticsView({
             className="px-lg h-10 border border-outline text-primary font-label-md rounded-lg hover:bg-surface-container-high flex items-center gap-2"
           >
             <MaterialIcon name="book_5" />
-            View Library
+            View Simulations
           </Link>
         </div>
       </FadeIn>
@@ -2563,7 +2537,7 @@ export function ProfessorSupportView({ userName }: { userName: string }): React.
     },
     {
       q: "How do I assign a simulation?",
-      a: "Open Manage Class on any class, then use the Add simulation dropdown to assign scenarios from your library.",
+      a: "Open Manage Class on any class, then use the Add simulation dropdown to assign scenarios from Simulations.",
     },
     {
       q: "When do results appear?",
