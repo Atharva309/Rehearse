@@ -1055,10 +1055,38 @@ export function ProfessorClassManagementView({
             </section>
 
             <section className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
-              <div className="px-lg py-md border-b border-outline-variant">
-                <h2 className="font-headline-md text-headline-md text-primary-container">
+              <div className="px-lg py-md border-b border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 className="font-headline-md text-headline-md text-primary-container shrink-0">
                   Assigned Simulations
                 </h2>
+                <div className="flex gap-2 items-center w-full sm:w-auto sm:min-w-[280px]">
+                  <select
+                    className="flex-1 sm:min-w-[180px] bg-white border border-outline-variant rounded-lg px-3 h-10 font-body-md focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all duration-150"
+                    value={selectedSimId}
+                    onChange={(e) => setSelectedSimId(e.target.value)}
+                    disabled={isAdding || removingSimId !== null || availableSims.length === 0}
+                    aria-label="Select simulation to add"
+                  >
+                    <option value="">Add simulation...</option>
+                    {availableSims.map((sim) => (
+                      <option key={sim.id} value={sim.id}>
+                        {sim.title}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!selectedSimId || isAdding || removingSimId !== null}
+                    onClick={() => void handleAdd()}
+                    className={`bg-primary-container text-white px-4 h-10 rounded-lg font-label-md hover:opacity-90 active:scale-95 transition-all duration-150 min-w-[88px] shrink-0 ${
+                      isAdding || removingSimId !== null ? "opacity-70 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <ProfessorButtonContent isLoading={isAdding} loadingText="Adding...">
+                      Add
+                    </ProfessorButtonContent>
+                  </button>
+                </div>
               </div>
               {assignments.length === 0 ? (
                 <p className="p-lg text-on-surface-variant font-body-md">No simulations assigned yet.</p>
@@ -1178,36 +1206,6 @@ export function ProfessorClassManagementView({
                   </table>
                 </div>
               )}
-              <div className="p-lg bg-surface-container-low border-t border-outline-variant">
-                <label className="font-label-sm text-on-surface-variant block mb-2">Add simulation...</label>
-                <div className="flex gap-2">
-                  <select
-                    className="flex-grow bg-white border border-outline-variant rounded-lg px-3 py-2 font-body-md focus:ring-2 focus:ring-secondary outline-none"
-                    value={selectedSimId}
-                    onChange={(e) => setSelectedSimId(e.target.value)}
-                    disabled={isAdding || removingSimId !== null || availableSims.length === 0}
-                  >
-                    <option value="">Select from library</option>
-                    {availableSims.map((sim) => (
-                      <option key={sim.id} value={sim.id}>
-                        {sim.title}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    disabled={!selectedSimId || isAdding || removingSimId !== null}
-                    onClick={() => void handleAdd()}
-                    className={`bg-primary-container text-white px-4 py-2 rounded-lg font-label-md hover:opacity-90 active:scale-95 transition-all duration-150 min-w-[88px] ${
-                      isAdding || removingSimId !== null ? "opacity-70 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    <ProfessorButtonContent isLoading={isAdding} loadingText="Adding...">
-                      Add
-                    </ProfessorButtonContent>
-                  </button>
-                </div>
-              </div>
             </section>
         </div>
       </FadeIn>
