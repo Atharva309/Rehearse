@@ -22,6 +22,7 @@ import { FadeIn } from "@/components/professor/FadeIn";
 import { ProfessorEmptyState } from "@/components/professor/ProfessorEmptyState";
 import { ProfessorButtonContent } from "@/components/professor/ProfessorSpinner";
 import { ClassCardAppearanceEditor } from "@/components/professor/ClassCardAppearanceEditor";
+import { ProfessorClassCard } from "@/components/professor/ProfessorClassCard";
 import { ClassCardSkeleton } from "@/components/professor/skeletons/ClassCardSkeleton";
 import type { ClassAppearanceStatus, ClassColorSchemeId } from "@/lib/class-appearance";
 import { useToast } from "@/hooks/useToast";
@@ -542,65 +543,19 @@ export function ProfessorDashboardView({
                 <FadeIn
                   key={classRow.id}
                   delay={(Math.min(index, 3) as 0 | 1 | 2 | 3)}
-                  className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-150 group"
+                  className="h-full"
                 >
-                  <div className="p-md flex flex-col h-full">
-                    <div className="flex justify-between items-start mb-base">
-                      <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded">
-                        Active
-                      </span>
-                    </div>
-                    <h3 className="font-headline-md text-headline-md text-primary mb-xs">{classRow.name}</h3>
-                    {classRow.description && (
-                      <p className="text-body-md text-on-surface-variant mb-lg line-clamp-2">
-                        {classRow.description}
-                      </p>
-                    )}
-                    <div className="flex gap-4 mb-lg">
-                      <div className="flex items-center gap-1.5 text-on-surface-variant">
-                        <MaterialIcon name="group" className="text-[18px]" />
-                        <span className="text-label-sm font-medium">
-                          {classRow.student_count} Student{classRow.student_count === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-on-surface-variant">
-                        <MaterialIcon name="rocket_launch" className="text-[18px]" />
-                        <span className="text-label-sm font-medium">
-                          {classRow.simulation_count} Simulation
-                          {classRow.simulation_count === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-auto space-y-md">
-                      <div className="bg-surface-container-low p-md rounded-lg flex items-center justify-between border border-dashed border-outline">
-                        <code className="font-code-lg text-code-lg text-primary">{classRow.join_code}</code>
-                        <button
-                          type="button"
-                          onClick={() => void copyToClipboard(classRow.join_code, "Join code")}
-                          className="flex items-center gap-1 text-secondary hover:text-on-secondary-fixed-variant transition-colors font-label-sm"
-                        >
-                          <MaterialIcon name="content_copy" className="text-[18px]" />
-                          Copy
-                        </button>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void copyToClipboard(joinUrl(), "Join link")}
-                          className="flex-1 py-2 text-center border border-outline text-primary font-label-md rounded hover:bg-surface-container-high transition-colors"
-                        >
-                          Copy Join Link
-                        </button>
-                        <Link
-                          href={`/teacher/classes/${classRow.id}`}
-                          className="flex-1 py-2 text-center bg-primary text-white font-label-md rounded flex items-center justify-center gap-1 hover:opacity-90"
-                        >
-                          Manage Class
-                          <MaterialIcon name="arrow_forward" className="text-[16px]" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+                  <ProfessorClassCard
+                    classId={classRow.id}
+                    className={classRow.name}
+                    description={classRow.description}
+                    joinCode={classRow.join_code}
+                    cardImageUrl={classRow.card_image_url}
+                    cardColorScheme={classRow.card_color_scheme}
+                    simulationCount={classRow.simulation_count}
+                    onCopyJoinCode={() => void copyToClipboard(classRow.join_code, "Join code")}
+                    onCopyJoinLink={() => void copyToClipboard(joinUrl(), "Join link")}
+                  />
                 </FadeIn>
               ))}
 
@@ -2335,56 +2290,19 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
               <FadeIn
                 key={classRow.id}
                 delay={(Math.min(index, 3) as 0 | 1 | 2 | 3)}
-                className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow duration-150 p-md flex flex-col h-full"
+                className="h-full"
               >
-                <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest rounded self-start">
-                  Active
-                </span>
-                <h3 className="font-headline-md text-primary mt-3">{classRow.name}</h3>
-                {classRow.description && (
-                  <p className="text-body-md text-on-surface-variant mt-1 line-clamp-2">
-                    {classRow.description}
-                  </p>
-                )}
-                <div className="flex gap-4 mt-4 text-on-surface-variant text-label-sm">
-                  <span className="flex items-center gap-1">
-                    <MaterialIcon name="group" className="text-[18px]" />
-                    {classRow.student_count} students
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MaterialIcon name="rocket_launch" className="text-[18px]" />
-                    {classRow.simulation_count} sims
-                  </span>
-                </div>
-                <div className="mt-auto pt-4 space-y-md">
-                  <div className="bg-surface-container-low p-md rounded-lg flex items-center justify-between border border-dashed border-outline">
-                    <code className="font-code-lg text-primary">{classRow.join_code}</code>
-                    <button
-                      type="button"
-                      onClick={() => void copyToClipboard(classRow.join_code, "Join code")}
-                      className="text-secondary font-label-sm flex items-center gap-1 hover:underline"
-                    >
-                      <MaterialIcon name="content_copy" className="text-[18px]" />
-                      Copy
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void copyToClipboard(joinUrl(), "Join link")}
-                      className="flex-1 py-2 border border-outline text-primary font-label-md rounded hover:bg-surface-container-high"
-                    >
-                      Copy Join Link
-                    </button>
-                    <Link
-                      href={`/teacher/classes/${classRow.id}`}
-                      className="flex-1 py-2 bg-primary text-white font-label-md rounded flex items-center justify-center gap-1 hover:opacity-90"
-                    >
-                      Manage
-                      <MaterialIcon name="arrow_forward" className="text-[16px]" />
-                    </Link>
-                  </div>
-                </div>
+                <ProfessorClassCard
+                  classId={classRow.id}
+                  className={classRow.name}
+                  description={classRow.description}
+                  joinCode={classRow.join_code}
+                  cardImageUrl={classRow.card_image_url}
+                  cardColorScheme={classRow.card_color_scheme}
+                  simulationCount={classRow.simulation_count}
+                  onCopyJoinCode={() => void copyToClipboard(classRow.join_code, "Join code")}
+                  onCopyJoinLink={() => void copyToClipboard(joinUrl(), "Join link")}
+                />
               </FadeIn>
             ))}
           </FadeIn>
