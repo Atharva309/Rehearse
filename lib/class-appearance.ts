@@ -46,3 +46,9 @@ export type ClassAppearance = {
   cardImageUrl: string | null;
   cardColorScheme: ClassColorSchemeId;
 };
+
+export type ClassAppearanceStatus = "ready" | "missing_columns" | "stale_schema";
+
+export const CLASS_APPEARANCE_SETUP_SQL = `ALTER TABLE classes ADD COLUMN IF NOT EXISTS card_image_url text;
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS card_color_scheme text DEFAULT 'default';
+NOTIFY pgrst, 'reload schema';`;

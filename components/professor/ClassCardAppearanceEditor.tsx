@@ -8,15 +8,13 @@
 import { useState } from "react";
 import { ProfessorButtonContent } from "@/components/professor/ProfessorSpinner";
 import {
+  CLASS_APPEARANCE_SETUP_SQL,
   CLASS_COLOR_SCHEMES,
   resolveClassColorScheme,
+  type ClassAppearanceStatus,
   type ClassColorSchemeId,
 } from "@/lib/class-appearance";
 import { useToast } from "@/hooks/useToast";
-import {
-  CLASS_APPEARANCE_SETUP_SQL,
-  type ClassAppearanceStatus,
-} from "@/lib/check-class-appearance-columns";
 
 type ClassCardAppearanceEditorProps = {
   classId: string;

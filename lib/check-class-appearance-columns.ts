@@ -1,21 +1,16 @@
 /**
  * check-class-appearance-columns.ts
- * Probes whether class appearance columns are available via the Supabase API.
+ * Server-only probe for class appearance columns via Supabase API.
  */
 
+import type { ClassAppearanceStatus } from "@/lib/class-appearance";
 import { createServiceClient } from "@/lib/supabase/server";
-
-export const CLASS_APPEARANCE_SETUP_SQL = `ALTER TABLE classes ADD COLUMN IF NOT EXISTS card_image_url text;
-ALTER TABLE classes ADD COLUMN IF NOT EXISTS card_color_scheme text DEFAULT 'default';
-NOTIFY pgrst, 'reload schema';`;
-
-export type ClassAppearanceStatus = "ready" | "missing_columns" | "stale_schema";
 
 function isSchemaCacheError(message: string, code: string | undefined): boolean {
   return (
     code === "PGRST204" ||
     message.includes("schema cache") ||
-    message.includes("Could not find") && message.includes("column")
+    (message.includes("Could not find") && message.includes("column"))
   );
 }
 
@@ -52,9 +47,4 @@ export async function getClassAppearanceStatus(): Promise<ClassAppearanceStatus>
   }
 
   return "ready";
-}
-
-/** @deprecated Use getClassAppearanceStatus */
-export async function classAppearanceColumnsReady(): Promise<boolean> {
-  return (await getClassAppearanceStatus()) === "ready";
 }

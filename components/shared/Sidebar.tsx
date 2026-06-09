@@ -23,8 +23,7 @@ import { ProfessorEmptyState } from "@/components/professor/ProfessorEmptyState"
 import { ProfessorButtonContent } from "@/components/professor/ProfessorSpinner";
 import { ClassCardAppearanceEditor } from "@/components/professor/ClassCardAppearanceEditor";
 import { ClassCardSkeleton } from "@/components/professor/skeletons/ClassCardSkeleton";
-import type { ClassColorSchemeId } from "@/lib/class-appearance";
-import type { ClassAppearanceStatus } from "@/lib/check-class-appearance-columns";
+import type { ClassAppearanceStatus, ClassColorSchemeId } from "@/lib/class-appearance";
 import { useToast } from "@/hooks/useToast";
 import { SCORED_STAGES, STAGE_LABELS, STUDENT_JOIN_PATH } from "@/lib/constants";
 import { downloadLeaderboardCsv, type CsvExportRow } from "@/lib/export-leaderboard-csv";
