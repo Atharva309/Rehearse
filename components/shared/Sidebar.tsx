@@ -151,7 +151,6 @@ export function resolveProfessorNav(pathname: string): ProfessorNavKey {
 
 type ProfessorSidebarProps = {
   activeNav?: ProfessorNavKey;
-  onNewClass?: () => void;
 };
 
 /**
@@ -159,7 +158,6 @@ type ProfessorSidebarProps = {
  */
 export function ProfessorSidebar({
   activeNav,
-  onNewClass,
 }: ProfessorSidebarProps): React.ReactElement {
   const pathname = usePathname();
   const resolvedNav = activeNav ?? resolveProfessorNav(pathname);
@@ -181,13 +179,6 @@ export function ProfessorSidebar({
       >
         <MaterialIcon name={sidebarCollapsed ? "chevron_right" : "chevron_left"} className="text-[20px]" />
       </button>
-
-      {!sidebarCollapsed && (
-        <div className="mb-4 px-2">
-          <h2 className="font-headline-md text-headline-md text-primary font-bold">Professor Portal</h2>
-          <p className="font-label-sm text-label-sm text-on-surface-variant">Manage your curriculum</p>
-        </div>
-      )}
 
       <nav className="flex flex-col gap-1">
         {NAV_ITEMS.map((item) => {
@@ -213,22 +204,6 @@ export function ProfessorSidebar({
           );
         })}
       </nav>
-
-      {onNewClass && (
-        <div className={`${sidebarCollapsed ? "mt-4 mb-2 flex justify-center" : "mt-8 mb-4"}`}>
-          <button
-            type="button"
-            onClick={onNewClass}
-            title={sidebarCollapsed ? "New Class" : undefined}
-            className={`bg-primary-container text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all ${
-              sidebarCollapsed ? "w-10 h-10" : "w-full h-10"
-            }`}
-          >
-            <MaterialIcon name="add" className="text-sm" />
-            {!sidebarCollapsed && <span className="font-label-sm text-label-sm">New Class</span>}
-          </button>
-        </div>
-      )}
 
       <div className="mt-auto pt-4 border-t border-outline-variant flex flex-col gap-1">
         {FOOTER_NAV.map((item) => {
@@ -292,7 +267,6 @@ export function ProfessorLogoutButton({
 
 type ProfessorDashboardHeaderProps = {
   userName: string;
-  onNewClass?: () => void;
 };
 
 /**
@@ -300,22 +274,11 @@ type ProfessorDashboardHeaderProps = {
  */
 export function ProfessorDashboardHeader({
   userName,
-  onNewClass,
 }: ProfessorDashboardHeaderProps): React.ReactElement {
-  const { toggleSidebar } = useProfessorShell();
-
   return (
     <header className="bg-surface border-b border-outline-variant sticky top-0 z-50">
       <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="hidden md:flex items-center justify-center w-10 h-10 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200"
-            aria-label="Toggle sidebar"
-          >
-            <MaterialIcon name="menu" className="text-[22px]" />
-          </button>
           <Link href="/teacher/dashboard" className="flex items-center gap-2 font-headline-lg text-headline-lg font-bold text-primary">
             <span className="inline-flex h-[1.5em] w-[1.5em] shrink-0 items-center justify-center overflow-hidden rounded-full">
               <img src="/pitchlab-logo.png" alt="" className="h-full w-full scale-[1.7] object-cover" aria-hidden />
@@ -334,16 +297,6 @@ export function ProfessorDashboardHeader({
               {userName.charAt(0).toUpperCase()}
             </div>
           </div>
-          {onNewClass && (
-            <button
-              type="button"
-              onClick={onNewClass}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary-container text-white font-label-md text-label-md rounded-lg hover:opacity-90 transition-all"
-            >
-              <MaterialIcon name="add" className="text-[18px]" />
-              New Class
-            </button>
-          )}
           <ProfessorLogoutButton className="px-4 py-2 border border-outline text-primary font-label-md text-label-md rounded hover:bg-surface-container-high transition-colors flex items-center gap-2 active:scale-95" />
         </div>
       </div>
@@ -356,7 +309,6 @@ export function ProfessorDashboardHeader({
 type ProfessorPortalLayoutProps = {
   userName: string;
   activeNav?: ProfessorNavKey;
-  onNewClass?: () => void;
   children: React.ReactNode;
   showSidebar?: boolean;
 };
@@ -367,26 +319,18 @@ type ProfessorPortalLayoutProps = {
 export function ProfessorPortalLayout({
   userName,
   activeNav,
-  onNewClass,
   children,
   showSidebar = true,
 }: ProfessorPortalLayoutProps): React.ReactElement {
   const pathname = usePathname();
   const resolvedNav = activeNav ?? resolveProfessorNav(pathname);
-  const showNewClass =
-    onNewClass && (resolvedNav === "dashboard" || resolvedNav === "classes");
 
   return (
     <ProfessorShellProvider>
       <div className="fixed inset-0 z-40 flex flex-col bg-background overflow-hidden font-body-md text-body-md text-on-surface">
-        <ProfessorDashboardHeader userName={userName} onNewClass={showNewClass ? onNewClass : undefined} />
+        <ProfessorDashboardHeader userName={userName} />
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          {showSidebar && (
-            <ProfessorSidebar
-              activeNav={resolvedNav}
-              onNewClass={showNewClass ? onNewClass : undefined}
-            />
-          )}
+          {showSidebar && <ProfessorSidebar activeNav={resolvedNav} />}
           <main className="flex-1 overflow-y-auto custom-scrollbar bg-surface-bright">
             {children}
           </main>
@@ -545,7 +489,7 @@ export function ProfessorDashboardView({
   const openCreateModal = (): void => setShowModal(true);
 
   return (
-    <ProfessorPortalLayout userName={userName} onNewClass={openCreateModal}>
+    <ProfessorPortalLayout userName={userName}>
       <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-xl">
         {/* ── Welcome ─── */}
         <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -2180,7 +2124,7 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
   };
 
   return (
-    <ProfessorPortalLayout userName={userName} onNewClass={() => setShowModal(true)}>
+    <ProfessorPortalLayout userName={userName}>
       <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-lg">
         <section>
           <h1 className="font-display text-display text-primary">My Classes</h1>
