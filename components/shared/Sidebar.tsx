@@ -2388,8 +2388,23 @@ type ProfessorAnalyticsViewProps = {
   data: ProfessorAnalyticsData;
 };
 
+function analyticsPercentGrade(percent: number): string {
+  if (percent >= 90) return "A";
+  if (percent >= 80) return "B";
+  if (percent >= 70) return "C";
+  if (percent >= 60) return "D";
+  return "F";
+}
+
+function analyticsScoreColorClass(percent: number | null): string {
+  if (percent == null) return "text-secondary";
+  if (percent >= 80) return "text-tertiary";
+  if (percent >= 60) return "text-secondary";
+  return "text-error";
+}
+
 /**
- * Analytics overview — class and simulation performance metrics.
+ * Analytics overview — class and simulation performance metrics (Stitch layout).
  */
 export function ProfessorAnalyticsView({
   userName,
@@ -2399,72 +2414,296 @@ export function ProfessorAnalyticsView({
     data.totalAttempts > 0
       ? Math.round((data.completedAttempts / data.totalAttempts) * 100)
       : null;
+  const inProgressAttempts = data.totalAttempts - data.completedAttempts;
+  const draftCount = data.simulationCount - data.publishedCount;
+  const hasNoData = data.totalAttempts === 0 && data.studentCount === 0;
+  const completedBarWidth =
+    data.totalAttempts > 0 ? (data.completedAttempts / data.totalAttempts) * 100 : 0;
+  const inProgressBarWidth =
+    data.totalAttempts > 0 ? (inProgressAttempts / data.totalAttempts) * 100 : 0;
+  const ringOffset =
+    completionRate != null ? 440 - (440 * completionRate) / 100 : 440;
+  const avgGrade =
+    data.avgScorePercent != null ? analyticsPercentGrade(data.avgScorePercent) : null;
+  const scoreColor = analyticsScoreColorClass(data.avgScorePercent);
 
   return (
-    <ProfessorPortalLayout userName={userName}>
-      <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-lg space-y-xl">
-        <section>
-          <h1 className="font-display text-display text-primary">Analytics</h1>
-          <p className="text-on-surface-variant mt-1">
+    <ProfessorPortalLayout userName={userName} activeNav="analytics">
+      <FadeIn className="max-w-[1440px] mx-auto p-lg lg:p-xl">
+        <header className="mb-xl">
+          <h2 className="font-headline-lg text-headline-lg text-primary mb-xs">Analytics</h2>
+          <p className="font-body-lg text-body-lg text-on-surface-variant">
             Track enrollment, simulation usage, and student performance across your portal.
           </p>
+        </header>
+
+        {/* TODO: filter functionality */}
+        <div className="flex items-center justify-end gap-md mb-xl pb-md border-b border-outline-variant">
+          <button
+            type="button"
+            className="flex items-center gap-sm px-md py-xs border border-outline-variant rounded-lg hover:bg-surface-variant transition-colors text-on-surface-variant"
+          >
+            <MaterialIcon name="calendar_today" className="text-body-lg" />
+            <span className="font-label-md">Last 30 Days</span>
+            <MaterialIcon name="expand_more" className="text-body-lg" />
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-sm px-md py-xs border border-outline-variant rounded-lg hover:bg-surface-variant transition-colors text-on-surface-variant"
+          >
+            <MaterialIcon name="school" className="text-body-lg" />
+            <span className="font-label-md">All Classes</span>
+            <MaterialIcon name="expand_more" className="text-body-lg" />
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-sm px-md py-xs border border-outline-variant rounded-lg hover:bg-surface-variant transition-colors text-on-surface-variant"
+          >
+            <MaterialIcon name="model_training" className="text-body-lg" />
+            <span className="font-label-md">All Simulations</span>
+            <MaterialIcon name="expand_more" className="text-body-lg" />
+          </button>
+        </div>
+
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-xl">
+          <div className="analytics-card bg-surface-container-lowest border border-outline-variant p-md rounded-xl shadow-sm hover:border-secondary transition-all">
+            <div className="flex items-start justify-between mb-md">
+              <div className="p-sm bg-secondary-fixed rounded-lg">
+                <MaterialIcon name="school" className="text-secondary" />
+              </div>
+              <span className="text-secondary font-label-sm flex items-center gap-1">
+                Live <span className="w-1.5 h-1.5 bg-secondary rounded-full animate-pulse" />
+              </span>
+            </div>
+            <div className="font-display text-display text-primary leading-none mb-xs">{data.classCount}</div>
+            <div className="font-headline-md text-headline-md mb-xs">Active Classes</div>
+            <div className="font-body-md text-on-surface-variant">Teaching cohorts</div>
+          </div>
+
+          <div className="analytics-card bg-surface-container-lowest border border-outline-variant p-md rounded-xl shadow-sm hover:border-tertiary transition-all">
+            <div className="flex items-start justify-between mb-md">
+              <div className="p-sm bg-tertiary-fixed rounded-lg">
+                <MaterialIcon name="groups" className="text-tertiary" />
+              </div>
+            </div>
+            <div className="font-display text-display text-primary leading-none mb-xs">{data.studentCount}</div>
+            <div className="font-headline-md text-headline-md mb-xs">Enrolled Students</div>
+            <div className="font-body-md text-on-surface-variant">Across all classes</div>
+          </div>
+
+          <div className="analytics-card bg-surface-container-lowest border border-outline-variant p-md rounded-xl shadow-sm hover:border-tertiary-container transition-all">
+            <div className="flex items-start justify-between mb-md">
+              <div className="p-sm bg-tertiary-fixed-dim rounded-lg">
+                <MaterialIcon name="model_training" className="text-on-tertiary-fixed" />
+              </div>
+            </div>
+            <div className="font-display text-display text-primary leading-none mb-xs">{data.simulationCount}</div>
+            <div className="font-headline-md text-headline-md mb-xs">Simulations</div>
+            <div className="font-body-md text-on-surface-variant">Total in your library</div>
+          </div>
+
+          <div className="analytics-card bg-primary-container border border-outline-variant p-md rounded-xl shadow-sm hover:bg-primary transition-all group">
+            <div className="flex items-start justify-between mb-md">
+              <div className="p-sm bg-on-primary-container rounded-lg">
+                <MaterialIcon name="visibility" className="text-primary-fixed" />
+              </div>
+              {draftCount > 0 && (
+                <span className="bg-on-primary-fixed-variant text-primary-fixed px-sm py-xs rounded-full font-label-sm">
+                  {draftCount} draft{draftCount === 1 ? "" : "s"}
+                </span>
+              )}
+            </div>
+            <div className="font-display text-display text-primary-fixed leading-none mb-xs">
+              {data.publishedCount}
+            </div>
+            <div className="font-headline-md text-headline-md mb-xs text-white">Published</div>
+            <div className="font-body-md text-on-primary-container group-hover:text-primary-fixed-dim">
+              Visible to students
+            </div>
+          </div>
         </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
-          {[
-            { label: "Active Classes", value: data.classCount, icon: "school" },
-            { label: "Enrolled Students", value: data.studentCount, icon: "group" },
-            { label: "Simulations", value: data.simulationCount, icon: "model_training" },
-            { label: "Published", value: data.publishedCount, icon: "publish" },
-          ].map((card) => (
-            <div
-              key={card.label}
-              className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm"
-            >
-              <div className="flex items-center gap-2 text-on-surface-variant mb-2">
-                <MaterialIcon name={card.icon} className="text-[20px]" />
-                <span className="font-label-sm uppercase tracking-wider">{card.label}</span>
-              </div>
-              <p className="font-display text-display text-primary">{card.value}</p>
+        {hasNoData && (
+          <div className="bg-secondary-fixed/30 border border-secondary-fixed rounded-xl p-lg flex flex-col lg:flex-row items-start gap-md mb-xl">
+            <MaterialIcon name="info" className="text-secondary shrink-0" />
+            <div className="flex-1">
+              <p className="font-label-md font-bold text-on-surface mb-1">
+                Your analytics will populate as students join and complete simulations
+              </p>
+              <p className="font-body-md text-on-surface-variant">
+                Start by creating a class, sharing the join code, and assigning a published simulation.
+              </p>
             </div>
-          ))}
-        </div>
+            <div className="flex items-center gap-sm shrink-0">
+              <Link
+                href="/teacher/classes"
+                className="bg-primary-container text-white font-bold rounded-lg px-md h-9 flex items-center text-label-md hover:opacity-90 transition-opacity"
+              >
+                Create a Class
+              </Link>
+              <Link
+                href="/teacher/simulation/new"
+                className="border border-outline-variant text-on-surface font-bold rounded-lg px-md h-9 flex items-center text-label-md hover:bg-surface-container transition-colors"
+              >
+                Create a Simulation
+              </Link>
+            </div>
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg">
-            <p className="font-label-sm text-on-surface-variant uppercase tracking-wider">Total Attempts</p>
-            <p className="font-headline-lg text-primary mt-2">{data.totalAttempts}</p>
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-gutter mb-xl">
+          <div className="analytics-card bg-white border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+            <div className="p-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
+              <h3 className="font-headline-md text-headline-md">Total Attempts</h3>
+              <MaterialIcon name="query_stats" className="opacity-40" />
+            </div>
+            <div className="p-lg">
+              <div className="flex items-baseline gap-md mb-lg">
+                <span className="font-display text-[48px] font-bold text-primary">{data.totalAttempts}</span>
+                <span className="font-body-md text-on-surface-variant">Started or completed</span>
+              </div>
+              <div className="space-y-md">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-label-md text-on-surface-variant">Completed</span>
+                    <span className="font-code-md text-secondary">{data.completedAttempts}</span>
+                  </div>
+                  <div className="w-full h-2 bg-surface-variant rounded-full overflow-hidden mt-1">
+                    <div
+                      className="h-full bg-secondary"
+                      style={{ width: `${completedBarWidth}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-label-md text-on-surface-variant">In progress</span>
+                    <span className="font-code-md text-tertiary">{inProgressAttempts}</span>
+                  </div>
+                  <div className="w-full h-2 bg-surface-variant rounded-full overflow-hidden mt-1">
+                    <div
+                      className="h-full bg-tertiary opacity-60"
+                      style={{ width: `${inProgressBarWidth}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg">
-            <p className="font-label-sm text-on-surface-variant uppercase tracking-wider">Completion Rate</p>
-            <p className="font-headline-lg text-primary mt-2">
-              {completionRate != null ? `${completionRate}%` : "—"}
-            </p>
-          </div>
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg">
-            <p className="font-label-sm text-on-surface-variant uppercase tracking-wider">Average Score</p>
-            <p className="font-headline-lg text-primary mt-2">
-              {data.avgScorePercent != null ? `${data.avgScorePercent}%` : "—"}
-            </p>
-          </div>
-        </div>
 
-        <div className="flex flex-wrap gap-md">
+          <div className="analytics-card bg-white border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+            <div className="p-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
+              <h3 className="font-headline-md text-headline-md">Completion Rate</h3>
+              <MaterialIcon name="task_alt" className="opacity-40" />
+            </div>
+            <div className="p-lg flex flex-col items-center justify-center min-h-[220px]">
+              <div className="relative w-40 h-40 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160" aria-hidden>
+                  <circle
+                    className="text-surface-variant"
+                    cx="80"
+                    cy="80"
+                    r="70"
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                  />
+                  <circle
+                    className="text-secondary transition-all duration-1000"
+                    cx="80"
+                    cy="80"
+                    r="70"
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    strokeDasharray="440"
+                    strokeDashoffset={ringOffset}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-display text-display text-primary">
+                    {completionRate != null ? `${completionRate}%` : "—"}
+                  </span>
+                  <span className="font-label-sm text-on-surface-variant">Efficiency</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="analytics-card bg-white border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+            <div className="p-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
+              <h3 className="font-headline-md text-headline-md">Average Score</h3>
+              <MaterialIcon name="grade" className="opacity-40" />
+            </div>
+            <div className="p-lg">
+              <div className="flex items-center justify-between mb-xl">
+                <div>
+                  <div className={`font-display text-[48px] font-bold ${scoreColor}`}>
+                    {data.avgScorePercent != null ? `${data.avgScorePercent}%` : "—"}
+                  </div>
+                  <p className="font-label-sm text-on-surface-variant mt-1">
+                    Based on {data.completedAttempts} completed run
+                    {data.completedAttempts === 1 ? "" : "s"}
+                  </p>
+                </div>
+                {avgGrade && (
+                  <div className="w-20 h-20 rounded-2xl bg-secondary-fixed flex items-center justify-center">
+                    <span className={`font-display text-display ${scoreColor}`}>{avgGrade}</span>
+                  </div>
+                )}
+              </div>
+              <div className="bg-surface-container-low p-md rounded-lg">
+                <div className="flex items-center gap-md text-on-surface-variant">
+                  <MaterialIcon name="info" className="text-secondary" />
+                  <p className="font-label-sm">
+                    {data.avgScorePercent != null
+                      ? "Average score reflects all completed runs across your simulations."
+                      : "Complete more simulations to see score trends."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
           <Link
             href="/teacher/classes"
-            className="px-lg h-10 bg-primary-container text-white font-label-md rounded-lg hover:opacity-90 flex items-center gap-2"
+            className="analytics-card group block p-xl bg-white border border-outline-variant rounded-xl shadow-sm hover:border-secondary hover:shadow-md transition-all"
           >
-            <MaterialIcon name="school" />
-            View Classes
+            <div className="flex items-center gap-xl">
+              <div className="w-14 h-14 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
+                <MaterialIcon name="view_list" className="!text-3xl" />
+              </div>
+              <div>
+                <h4 className="font-headline-md text-headline-md text-primary group-hover:text-secondary transition-colors">
+                  View Classes →
+                </h4>
+                <p className="font-body-md text-on-surface-variant mt-1">
+                  Manage enrollments, rosters, and specific class cohorts.
+                </p>
+              </div>
+            </div>
           </Link>
           <Link
             href="/teacher/library"
-            className="px-lg h-10 border border-outline text-primary font-label-md rounded-lg hover:bg-surface-container-high flex items-center gap-2"
+            className="analytics-card group block p-xl bg-white border border-outline-variant rounded-xl shadow-sm hover:border-tertiary hover:shadow-md transition-all"
           >
-            <MaterialIcon name="book_5" />
-            View Simulations
+            <div className="flex items-center gap-xl">
+              <div className="w-14 h-14 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary group-hover:scale-110 transition-transform">
+                <MaterialIcon name="rocket_launch" className="!text-3xl" />
+              </div>
+              <div>
+                <h4 className="font-headline-md text-headline-md text-primary group-hover:text-tertiary transition-colors">
+                  View Simulations →
+                </h4>
+                <p className="font-body-md text-on-surface-variant mt-1">
+                  Review active scenario libraries and edit case studies.
+                </p>
+              </div>
+            </div>
           </Link>
-        </div>
+        </section>
       </FadeIn>
     </ProfessorPortalLayout>
   );

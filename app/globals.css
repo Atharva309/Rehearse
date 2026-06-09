@@ -373,4 +373,12 @@ body {
   .stitch-tab-inactive {
     @apply text-text-secondary font-medium hover:text-text-primary;
   }
+
+  .analytics-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .analytics-card:hover {
+    transform: translateY(-2px);
+  }
 }
