@@ -8,7 +8,14 @@ import { ProfessorClassManagementView } from "@/components/shared/Sidebar";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
+import { scorePercent } from "@/lib/grades";
 import type { EnrolledStudent, Simulation } from "@/types";
+
+type SimulationStats = {
+  attempted: number;
+  completed: number;
+  avgPercent: number | null;
+};
 
 type PageProps = { params: { classId: string } };
 
@@ -99,6 +106,35 @@ export default async function ClassManagementPage({
     .eq("teacher_id", profile.id)
     .order("created_at", { ascending: false });
 
+  const assignedSimIds = ((assignments ?? []) as { simulation_id: string }[]).map(
+    (a) => a.simulation_id
+  );
+  const statsBySim: Record<string, SimulationStats> = {};
+  if (assignedSimIds.length > 0) {
+    const { data: attempts } = await supabase
+      .from("attempts")
+      .select("simulation_id, status, total_score")
+      .eq("class_id", params.classId)
+      .in("simulation_id", assignedSimIds);
+
+    for (const simId of assignedSimIds) {
+      const simAttempts = (attempts ?? []).filter((a) => a.simulation_id === simId);
+      const completed = simAttempts.filter((a) => a.status === "completed");
+      const avgPercent =
+        completed.length > 0
+          ? Math.round(
+              completed.reduce((sum, a) => sum + scorePercent(a.total_score), 0) /
+                completed.length
+            )
+          : null;
+      statsBySim[simId] = {
+        attempted: simAttempts.length,
+        completed: completed.length,
+        avgPercent,
+      };
+    }
+  }
+
   return (
     <ProfessorClassManagementView
       userName={profile.full_name}
@@ -111,6 +147,7 @@ export default async function ClassManagementPage({
         typeof ProfessorClassManagementView
       >[0]["initialAssignments"]}
       professorSimulations={(professorSimulations ?? []) as Simulation[]}
+      simulationStats={statsBySim}
     />
   );
 }

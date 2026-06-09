@@ -828,9 +828,8 @@ type ProfessorClassManagementViewProps = {
   initialStudents: EnrolledStudent[];
   initialAssignments: AssignedSimulation[];
   professorSimulations: Simulation[];
+  simulationStats: Record<string, SimulationStats>;
 };
-
-const SIM_ICONS = ["trending_up", "forum", "handshake"] as const;
 
 /**
  * Manage class page — share links, students table, assigned simulations.
@@ -844,12 +843,14 @@ export function ProfessorClassManagementView({
   initialStudents,
   initialAssignments,
   professorSimulations,
+  simulationStats,
 }: ProfessorClassManagementViewProps): React.ReactElement {
   const router = useRouter();
   const { showToast } = useToast();
   const [assignments, setAssignments] = useState(initialAssignments);
   const [selectedSimId, setSelectedSimId] = useState("");
-  const [busyAction, setBusyAction] = useState<"add" | "remove" | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [removingSimId, setRemovingSimId] = useState<string | null>(null);
   const [showAllStudents, setShowAllStudents] = useState(false);
 
   const assignedIds = new Set(assignments.map((a) => a.simulation_id));
@@ -876,13 +877,13 @@ export function ProfessorClassManagementView({
 
   const handleAdd = async (): Promise<void> => {
     if (!selectedSimId) return;
-    setBusyAction("add");
+    setIsAdding(true);
     const res = await fetch(`/api/professor/classes/${classId}/simulations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ simulationId: selectedSimId }),
     });
-    setBusyAction(null);
+    setIsAdding(false);
 
     if (!res.ok) {
       showToast("Could not assign simulation", "error");
@@ -895,13 +896,13 @@ export function ProfessorClassManagementView({
   };
 
   const handleRemove = async (simulationId: string): Promise<void> => {
-    setBusyAction("remove");
+    setRemovingSimId(simulationId);
     const res = await fetch(`/api/professor/classes/${classId}/simulations`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ simulationId }),
     });
-    setBusyAction(null);
+    setRemovingSimId(null);
 
     if (!res.ok) {
       showToast("Could not remove simulation", "error");
@@ -1053,57 +1054,130 @@ export function ProfessorClassManagementView({
               )}
             </section>
 
-            <section className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm">
+            <section className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
               <div className="px-lg py-md border-b border-outline-variant">
                 <h2 className="font-headline-md text-headline-md text-primary-container">
                   Assigned Simulations
                 </h2>
               </div>
-              <div className="divide-y divide-outline-variant max-h-[500px] overflow-y-auto custom-scrollbar">
-                {assignments.length === 0 ? (
-                  <p className="p-lg text-on-surface-variant font-body-md">No simulations assigned yet.</p>
-                ) : (
-                  assignments.map((row, idx) => {
-                    const sim = resolveSim(row);
-                    if (!sim) return null;
-                    const icon = SIM_ICONS[idx % SIM_ICONS.length];
-                    return (
-                      <div
-                        key={row.id}
-                        className="p-lg flex items-center justify-between hover:bg-surface-container-low transition-colors group"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-white">
-                            <MaterialIcon name={icon} />
-                          </div>
-                          <div>
-                            <h3 className="font-label-md text-on-surface">{sim.title}</h3>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-high text-on-surface-variant mt-1">
-                              {sim.is_published ? "PUBLISHED" : "DRAFT"}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          disabled={busyAction !== null}
-                          onClick={() => void handleRemove(row.simulation_id)}
-                          className="text-error font-label-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1 hover:bg-error-container/20 px-2 py-1 rounded disabled:opacity-50"
-                        >
-                          <ProfessorButtonContent
-                            isLoading={busyAction === "remove"}
-                            loadingText="Removing..."
+              {assignments.length === 0 ? (
+                <p className="p-lg text-on-surface-variant font-body-md">No simulations assigned yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-surface-container-low">
+                      <tr>
+                        <th className="px-lg py-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                          Title
+                        </th>
+                        <th className="px-lg py-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                          Persona
+                        </th>
+                        <th className="px-lg py-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-lg py-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                          Students Attempted
+                        </th>
+                        <th className="px-lg py-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                          Avg Score
+                        </th>
+                        <th className="px-lg py-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-right">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant">
+                      {assignments.map((row) => {
+                        const sim = resolveSim(row);
+                        if (!sim) return null;
+                        const stats = simulationStats[sim.id];
+                        const avgPct = stats?.avgPercent;
+                        const isRemoving = removingSimId === row.simulation_id;
+                        const actionsDisabled = isAdding || removingSimId !== null;
+                        return (
+                          <tr
+                            key={row.id}
+                            className="hover:bg-secondary-fixed/10 transition-colors duration-150"
                           >
-                            <>
-                              <MaterialIcon name="delete" className="text-[16px]" />
-                              Remove
-                            </>
-                          </ProfessorButtonContent>
-                        </button>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+                            <td className="px-lg py-md">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-primary">{sim.title}</span>
+                                {sim.description && (
+                                  <span className="text-label-sm text-on-surface-variant line-clamp-1">
+                                    {sim.description}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-lg py-md text-body-md">{sim.persona_name}</td>
+                            <td className="px-lg py-md">
+                              <span
+                                className={`px-2 py-0.5 font-bold text-[10px] uppercase rounded ${
+                                  sim.is_published
+                                    ? "bg-tertiary-fixed text-on-tertiary-fixed"
+                                    : "bg-surface-container-highest text-on-surface-variant"
+                                }`}
+                              >
+                                {sim.is_published ? "Published" : "Draft"}
+                              </span>
+                            </td>
+                            <td className="px-lg py-md text-body-md">
+                              {stats ? `${stats.completed} / ${stats.attempted}` : "0 / 0"}
+                            </td>
+                            <td className="px-lg py-md">
+                              {avgPct != null ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-16 h-2 bg-surface-container-high rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-secondary"
+                                      style={{ width: `${avgPct}%` }}
+                                    />
+                                  </div>
+                                  <span className="font-code-md text-code-md">{avgPct}%</span>
+                                </div>
+                              ) : (
+                                <span className="text-on-surface-variant">--</span>
+                              )}
+                            </td>
+                            <td className="px-lg py-md text-right">
+                              <div className="flex items-center justify-end gap-2 text-on-surface-variant">
+                                <Link
+                                  href={`/teacher/simulation/${sim.id}/edit`}
+                                  className="p-2 hover:bg-surface-container hover:text-primary rounded"
+                                  title="Edit"
+                                >
+                                  <MaterialIcon name="edit" className="text-[20px]" />
+                                </Link>
+                                <Link
+                                  href={`/teacher/simulation/${sim.id}/results`}
+                                  className="p-2 hover:bg-surface-container hover:text-primary rounded"
+                                  title="Results"
+                                >
+                                  <MaterialIcon name="bar_chart" className="text-[20px]" />
+                                </Link>
+                                <button
+                                  type="button"
+                                  disabled={actionsDisabled}
+                                  onClick={() => void handleRemove(row.simulation_id)}
+                                  className="p-2 hover:bg-error-container hover:text-error rounded disabled:opacity-50 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                  title="Remove from class"
+                                >
+                                  {isRemoving ? (
+                                    <span className="w-4 h-4 border-2 border-error border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <MaterialIcon name="delete" className="text-[20px]" />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div className="p-lg bg-surface-container-low border-t border-outline-variant">
                 <label className="font-label-sm text-on-surface-variant block mb-2">Add simulation...</label>
                 <div className="flex gap-2">
@@ -1111,7 +1185,7 @@ export function ProfessorClassManagementView({
                     className="flex-grow bg-white border border-outline-variant rounded-lg px-3 py-2 font-body-md focus:ring-2 focus:ring-secondary outline-none"
                     value={selectedSimId}
                     onChange={(e) => setSelectedSimId(e.target.value)}
-                    disabled={busyAction !== null || availableSims.length === 0}
+                    disabled={isAdding || removingSimId !== null || availableSims.length === 0}
                   >
                     <option value="">Select from library</option>
                     {availableSims.map((sim) => (
@@ -1122,13 +1196,13 @@ export function ProfessorClassManagementView({
                   </select>
                   <button
                     type="button"
-                    disabled={!selectedSimId || busyAction !== null}
+                    disabled={!selectedSimId || isAdding || removingSimId !== null}
                     onClick={() => void handleAdd()}
                     className={`bg-primary-container text-white px-4 py-2 rounded-lg font-label-md hover:opacity-90 active:scale-95 transition-all duration-150 min-w-[88px] ${
-                      busyAction !== null ? "opacity-70 cursor-not-allowed" : ""
+                      isAdding || removingSimId !== null ? "opacity-70 cursor-not-allowed" : ""
                     }`}
                   >
-                    <ProfessorButtonContent isLoading={busyAction === "add"} loadingText="Adding...">
+                    <ProfessorButtonContent isLoading={isAdding} loadingText="Adding...">
                       Add
                     </ProfessorButtonContent>
                   </button>
