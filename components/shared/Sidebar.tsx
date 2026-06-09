@@ -1289,6 +1289,9 @@ export function ProfessorSimulationFormView({
   const [personaPrompt, setPersonaPrompt] = useState(
     initial?.persona_system_prompt ?? CHAT_SYSTEM_PROMPT
   );
+  const [simliFaceId, setSimliFaceId] = useState(
+    initial?.simli_face_id ?? SIMLI_FACE_ID ?? ""
+  );
   const [productContext, setProductContext] = useState(initial?.product_context ?? "");
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? false);
   const [error, setError] = useState("");
@@ -1303,12 +1306,8 @@ export function ProfessorSimulationFormView({
     setIsLoading(true);
     setError("");
 
-    if (!title || !personaName || !personaRole || !personaPrompt || !productContext || !SIMLI_FACE_ID) {
-      setError(
-        SIMLI_FACE_ID
-          ? "Please fill in all required fields."
-          : "Add NEXT_PUBLIC_SIMLI_FACE_ID to your environment before saving a simulation."
-      );
+    if (!title || !personaName || !personaRole || !personaPrompt || !productContext || !simliFaceId.trim()) {
+      setError("Please fill in all required fields.");
       setIsLoading(false);
       setSaveMode(null);
       return;
@@ -1322,7 +1321,7 @@ export function ProfessorSimulationFormView({
       persona_role: personaRole,
       persona_system_prompt: personaPrompt,
       product_context: productContext,
-      simli_face_id: SIMLI_FACE_ID,
+      simli_face_id: simliFaceId.trim(),
       is_published: initial?.is_published ?? false,
     };
 
@@ -1465,12 +1464,27 @@ export function ProfessorSimulationFormView({
                   </span>
                 </div>
                 <div className="flex flex-col gap-xs">
-                  <label className="font-label-md text-on-surface-variant">Video Avatar</label>
-                  <div className={`${inputClass} font-code-md bg-surface-container-low text-on-surface-variant`}>
-                    {SIMLI_FACE_ID || "NEXT_PUBLIC_SIMLI_FACE_ID not configured"}
+                  <label className="font-label-md text-on-surface-variant">Simli Face ID</label>
+                  <div className="flex gap-base">
+                    <input
+                      className={`${inputClass} font-code-md flex-1`}
+                      value={simliFaceId}
+                      onChange={(e) => {
+                        setSimliFaceId(e.target.value);
+                        markDirty();
+                      }}
+                      placeholder="Simli face ID for this simulation's video call"
+                    />
+                    <button
+                      type="button"
+                      className="h-10 px-md border border-outline-variant hover:bg-surface-container-high rounded-lg flex items-center gap-2 font-label-md"
+                    >
+                      <MaterialIcon name="face" className="text-[18px]" />
+                      Preview Face
+                    </button>
                   </div>
                   <span className="text-xs text-on-surface-variant">
-                    Uses the same Simli face ID as student video calls.
+                    Students see this face during discovery and objection video stages.
                   </span>
                 </div>
               </section>

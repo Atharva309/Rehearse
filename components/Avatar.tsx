@@ -175,7 +175,12 @@ function kickMediaPlayback(video: HTMLVideoElement, audio: HTMLAudioElement | nu
   }
 }
 
-export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
+type AvatarProps = {
+  /** Per-simulation Simli face; falls back to NEXT_PUBLIC_SIMLI_FACE_ID when omitted. */
+  faceId?: string;
+};
+
+export const Avatar = forwardRef<AvatarRef, AvatarProps>(function Avatar({ faceId }, ref) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const simliRef = useRef<SimliClient | null>(null);
@@ -257,11 +262,11 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_SIMLI_API_KEY;
-      const faceId = SIMLI_FACE_ID;
+      const resolvedFaceId = faceId?.trim() || SIMLI_FACE_ID;
 
-      if (!apiKey || !faceId) {
+      if (!apiKey || !resolvedFaceId) {
         setInitError(
-          "Add NEXT_PUBLIC_SIMLI_API_KEY and NEXT_PUBLIC_SIMLI_FACE_ID to .env.local."
+          "Add NEXT_PUBLIC_SIMLI_API_KEY and a Simli face ID on this simulation (or NEXT_PUBLIC_SIMLI_FACE_ID in .env.local)."
         );
         return false;
       }
@@ -271,7 +276,7 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
       const tokenRes = await generateSimliSessionToken({
         apiKey,
         config: {
-          faceId,
+          faceId: resolvedFaceId,
           handleSilence: true,
           maxSessionLength: SIMLI_MAX_SESSION_LENGTH_SEC,
           maxIdleTime: SIMLI_MAX_IDLE_TIME_SEC,
@@ -350,7 +355,7 @@ export const Avatar = forwardRef<AvatarRef, object>((_props, ref) => {
       sessionStartingRef.current = false;
       setIsConnecting(false);
     }
-  }, [stopSession, waitForMediaElements]);
+  }, [faceId, stopSession, waitForMediaElements]);
 
   // ── Video inline playback (mobile Safari) ───────────────────────────────────
 

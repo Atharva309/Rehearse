@@ -316,7 +316,7 @@ export function SimliCallStage({
 
       {mountSimli && (
         <div className="absolute inset-0 z-0" style={{ "--call-video-dock-h": `${CALL_VIDEO_BOTTOM_DOCK_PX}px` } as React.CSSProperties}>
-          <Avatar ref={voice.avatarRef} />
+          <Avatar ref={voice.avatarRef} faceId={simulation.simli_face_id} />
         </div>
       )}
 
