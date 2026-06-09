@@ -1261,9 +1261,7 @@ export function ProfessorClassManagementView({
                                   type="button"
                                   disabled={actionsDisabled}
                                   onClick={() => void handleRemove(row.simulation_id)}
-                                  className="p-2 hover:bg-error-container hover:text-error rounded disabled:opacity-50 min-w-[36px] min-h-[36px] flex items-center justify-center text-on-surface-variant"
-                                  title="Remove simulation from class"
-                                  aria-label="Remove simulation from class"
+                                  className="p-2 text-error hover:bg-error-container/20 rounded disabled:opacity-50 min-w-[36px] min-h-[36px] flex items-center justify-center"
                                 >
                                   {isRemoving ? (
                                     <span className="w-4 h-4 border-2 border-error border-t-transparent rounded-full animate-spin" />
