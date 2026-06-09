@@ -20,20 +20,20 @@ type ImageMode = "preset" | "upload" | "none";
 
 const PRESET_CARD_IMAGES = [
   {
-    url: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
-    alt: "Modern office workspace",
+    url: "https://t3.ftcdn.net/jpg/02/47/44/10/240_F_247441003_zWguJzxDwzAx3DEY1vQKBeQItT4YAajz.jpg",
+    alt: "Modern workspace flat lay",
   },
   {
-    url: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&q=80",
-    alt: "Bright corporate office",
+    url: "https://www.shutterstock.com/image-photo/construction-technology-banner-background-site-600nw-2375505543.jpg",
+    alt: "Construction technology banner",
   },
   {
-    url: "https://images.unsplash.com/photo-1524758631624-e2822e304bf0?w=800&q=80",
-    alt: "Conference room",
+    url: "https://media.istockphoto.com/id/1411029939/photo/top-view-on-colorful-stacked-books-education-and-learning-concept-background.jpg?s=612x612&w=0&k=20&c=9X5M5RI_aAXvRv4r1OZUSBYSVKx0HK0Sg2dLUN8oQwQ=",
+    alt: "Colorful stacked books",
   },
   {
-    url: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80",
-    alt: "Team collaboration space",
+    url: "https://t3.ftcdn.net/jpg/04/41/25/62/360_F_441256239_RG2mJkJujtD5ednLx3dz8mFtgbKiAKMt.jpg",
+    alt: "Airplane wing over clouds at sunset",
   },
 ] as const;
 
