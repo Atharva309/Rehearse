@@ -1,6 +1,6 @@
 /**
  * classes/page.tsx — teacher
- * My Classes list page with create-class flow and cohort management links.
+ * My Classes list page with create-class flow and class management links.
  */
 
 import type { Metadata } from "next";

@@ -496,7 +496,7 @@ export function ProfessorDashboardView({
           <div>
             <h1 className="font-display text-display text-primary">Professor Dashboard</h1>
             <p className="text-on-surface-variant mt-1">
-              Manage your curriculum and monitor student progress across your active cohorts.
+              Manage your curriculum and monitor student progress across your active classes.
             </p>
           </div>
         </section>
@@ -511,9 +511,10 @@ export function ProfessorDashboardView({
             <div className="flex items-center gap-3">
               <Link
                 href="/teacher/classes"
-                className="text-secondary font-label-md hover:underline hidden sm:inline"
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 h-10 border border-outline-variant rounded-lg text-primary font-label-md hover:bg-surface-container-high hover:border-outline transition-all duration-150 active:scale-95"
               >
                 View all
+                <MaterialIcon name="arrow_forward" className="text-[16px]" />
               </Link>
               <button
                 type="button"
@@ -608,9 +609,9 @@ export function ProfessorDashboardView({
                 <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-sm mb-md group-hover:scale-110 transition-transform duration-200">
                   <MaterialIcon name="add_box" className="text-[32px] text-primary" />
                 </div>
-                <p className="font-headline-md text-headline-md text-primary">Add a Cohort</p>
+                <p className="font-headline-md text-headline-md text-primary">Add a Class</p>
                 <p className="text-on-surface-variant text-body-md max-w-[200px]">
-                  Create a new section to start tracking simulation performance.
+                  Create a new class to start tracking simulation performance.
                 </p>
               </button>
             </div>
@@ -627,9 +628,10 @@ export function ProfessorDashboardView({
             <div className="flex items-center gap-3">
               <Link
                 href="/teacher/library"
-                className="text-secondary font-label-md hover:underline hidden sm:inline"
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 h-10 border border-outline-variant rounded-lg text-primary font-label-md hover:bg-surface-container-high hover:border-outline transition-all duration-150 active:scale-95"
               >
                 View all
+                <MaterialIcon name="arrow_forward" className="text-[16px]" />
               </Link>
               <Link
                 href="/teacher/simulation/new"
@@ -2059,7 +2061,7 @@ type ProfessorClassesViewProps = {
 };
 
 /**
- * Dedicated My Classes page — all cohorts with create-class flow.
+ * Dedicated My Classes page — all classes with create-class flow.
  */
 export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): React.ReactElement {
   const router = useRouter();
@@ -2129,7 +2131,7 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
         <section>
           <h1 className="font-display text-display text-primary">My Classes</h1>
           <p className="text-on-surface-variant mt-1">
-            Organize teaching cohorts, share join codes, and assign simulations.
+            Organize teaching classes, share join codes, and assign simulations.
           </p>
         </section>
 
@@ -2154,7 +2156,7 @@ export function ProfessorClassesView({ userName }: ProfessorClassesViewProps): R
           <ProfessorEmptyState
             icon="school"
             heading="No classes yet"
-            description="You haven't organized any teaching cohorts yet. Create your first class to get a join code for students."
+            description="You haven't created any classes yet. Create your first class to get a join code for students."
             action={
               <button
                 type="button"
@@ -2461,7 +2463,7 @@ type ProfessorAnalyticsViewProps = {
 };
 
 /**
- * Analytics overview — cohort and simulation performance metrics.
+ * Analytics overview — class and simulation performance metrics.
  */
 export function ProfessorAnalyticsView({
   userName,
@@ -2609,7 +2611,7 @@ export function ProfessorSupportView({ userName }: { userName: string }): React.
     },
     {
       q: "How do I assign a simulation?",
-      a: "Open Manage Class on any cohort, then use the Add simulation dropdown to assign scenarios from your library.",
+      a: "Open Manage Class on any class, then use the Add simulation dropdown to assign scenarios from your library.",
     },
     {
       q: "When do results appear?",
