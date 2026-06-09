@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { BackButton } from "@/components/BackButton";
 import {
   Fragment,
   createContext,
@@ -918,13 +919,13 @@ export function ProfessorClassManagementView({
     <ProfessorPortalLayout userName={userName}>
       <FadeIn className="max-w-container-max mx-auto px-margin-desktop py-8">
         <div className="mb-6">
-          <Link
-            href="/teacher/dashboard"
-            className="group inline-flex items-center gap-2 text-secondary font-label-sm hover:underline"
-          >
-            <MaterialIcon name="arrow_back" className="text-[18px]" />
-            Back to Dashboard
-          </Link>
+          <BackButton
+            label="Back"
+            useHistory
+            fallbackHref="/teacher/classes"
+            materialIcon
+            className="group inline-flex items-center gap-2 text-secondary font-label-sm hover:underline mb-0 transition-colors"
+          />
         </div>
 
         <div className="mb-10">
@@ -1253,12 +1254,13 @@ export function ProfessorSimulationFormView({
       <header className="bg-surface sticky top-0 z-50 border-b border-outline-variant">
         <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
           <div className="flex items-center gap-4">
-            <Link
-              href="/teacher/library"
-              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high transition-colors"
-            >
-              <MaterialIcon name="arrow_back" className="text-primary" />
-            </Link>
+            <BackButton
+              label="Back"
+              useHistory
+              fallbackHref="/teacher/library"
+              materialIcon
+              iconOnly
+            />
             <div className="flex flex-col">
               <h1 className="font-headline-lg text-headline-lg font-bold text-primary">{pageTitle}</h1>
               <span className="font-label-sm text-label-sm text-on-surface-variant">
@@ -1624,12 +1626,13 @@ export function ProfessorResultsView({
         <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex justify-between items-center w-full px-margin-desktop py-4 bg-surface border-b border-outline-variant">
           <div className="flex items-center gap-4">
-            <Link
-              href="/teacher/library"
-              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high transition-colors"
-            >
-              <MaterialIcon name="arrow_back" />
-            </Link>
+            <BackButton
+              label="Back"
+              useHistory
+              fallbackHref="/teacher/library"
+              materialIcon
+              iconOnly
+            />
             <div>
               <h2 className="font-headline-md text-headline-md text-primary">{simulationTitle}</h2>
               <p className="font-body-md text-on-surface-variant">{simulationSubtitle}</p>
@@ -2654,13 +2657,13 @@ export function ProfessorSupportView({ userName }: { userName: string }): React.
           ))}
         </section>
 
-        <Link
-          href="/teacher/dashboard"
-          className="inline-flex items-center gap-2 text-secondary font-label-md hover:underline"
-        >
-          <MaterialIcon name="arrow_back" className="text-[18px]" />
-          Back to Dashboard
-        </Link>
+        <BackButton
+          label="Back"
+          useHistory
+          fallbackHref="/teacher/dashboard"
+          materialIcon
+          className="inline-flex items-center gap-2 text-secondary font-label-md hover:underline mb-0 transition-colors"
+        />
       </FadeIn>
     </ProfessorPortalLayout>
   );
