@@ -1261,17 +1261,15 @@ export function ProfessorClassManagementView({
                                   type="button"
                                   disabled={actionsDisabled}
                                   onClick={() => void handleRemove(row.simulation_id)}
-                                  className="inline-flex items-center gap-1 text-error font-label-sm font-semibold hover:bg-error-container/20 px-2 py-1 rounded transition-colors duration-150 disabled:opacity-50 whitespace-nowrap"
+                                  className="p-2 hover:bg-error-container hover:text-error rounded disabled:opacity-50 min-w-[36px] min-h-[36px] flex items-center justify-center text-on-surface-variant"
+                                  title="Remove simulation from class"
+                                  aria-label="Remove simulation from class"
                                 >
-                                  <ProfessorButtonContent
-                                    isLoading={isRemoving}
-                                    loadingText="Removing..."
-                                  >
-                                    <>
-                                      <MaterialIcon name="link_off" className="text-[16px]" />
-                                      Remove simulation from class
-                                    </>
-                                  </ProfessorButtonContent>
+                                  {isRemoving ? (
+                                    <span className="w-4 h-4 border-2 border-error border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <MaterialIcon name="close" className="text-[20px]" />
+                                  )}
                                 </button>
                               </div>
                             </td>
