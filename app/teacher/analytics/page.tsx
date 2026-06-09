@@ -4,13 +4,14 @@
  */
 
 import type { Metadata } from "next";
-import { ProfessorAnalyticsView, type ProfessorAnalyticsData } from "@/components/shared/Sidebar";
-
-export const metadata: Metadata = { title: "Analytics — PitchLab" };
+import {
+  ProfessorAnalyticsView,
+  type ProfessorAnalyticsPayload,
+} from "@/components/professor/ProfessorAnalyticsView";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
-import { scorePercent } from "@/lib/grades";
-import type { Simulation } from "@/types";
+
+export const metadata: Metadata = { title: "Analytics — PitchLab" };
 
 /**
  * Professor analytics page.
@@ -21,59 +22,61 @@ export default async function TeacherAnalyticsPage(): Promise<React.ReactElement
 
   const { data: classes } = await supabase
     .from("classes")
-    .select("id")
-    .eq("professor_id", profile.id);
+    .select("id, name")
+    .eq("professor_id", profile.id)
+    .order("name");
 
   const classIds = (classes ?? []).map((c) => c.id);
-  let studentCount = 0;
-
-  if (classIds.length > 0) {
-    const { count } = await supabase
-      .from("student_classes")
-      .select("*", { count: "exact", head: true })
-      .in("class_id", classIds);
-    studentCount = count ?? 0;
-  }
 
   const { data: simulations } = await supabase
     .from("simulations")
-    .select("id, is_published")
-    .eq("teacher_id", profile.id);
+    .select("id, title, is_published")
+    .eq("teacher_id", profile.id)
+    .order("title");
 
-  const simList = (simulations ?? []) as Pick<Simulation, "id" | "is_published">[];
-  const simIds = simList.map((s) => s.id);
-  const publishedCount = simList.filter((s) => s.is_published).length;
+  const simIds = (simulations ?? []).map((s) => s.id);
 
-  let totalAttempts = 0;
-  let completedAttempts = 0;
-  let avgScorePercent: number | null = null;
+  let enrollmentRows: ProfessorAnalyticsPayload["enrollmentRows"] = [];
+  let classSimulationRows: ProfessorAnalyticsPayload["classSimulationRows"] = [];
 
-  if (simIds.length > 0) {
-    const { data: attempts } = await supabase
-      .from("attempts")
-      .select("status, total_score")
-      .in("simulation_id", simIds);
+  if (classIds.length > 0) {
+    const { data: enrollments } = await supabase
+      .from("student_classes")
+      .select("class_id, student_id")
+      .in("class_id", classIds);
 
-    totalAttempts = attempts?.length ?? 0;
-    const completed = (attempts ?? []).filter((a) => a.status === "completed");
-    completedAttempts = completed.length;
+    enrollmentRows = (enrollments ?? []) as ProfessorAnalyticsPayload["enrollmentRows"];
 
-    if (completed.length > 0) {
-      avgScorePercent = Math.round(
-        completed.reduce((sum, a) => sum + scorePercent(a.total_score), 0) / completed.length
-      );
-    }
+    const { data: classSims } = await supabase
+      .from("class_simulations")
+      .select("class_id, simulation_id")
+      .in("class_id", classIds);
+
+    classSimulationRows = (classSims ?? []) as ProfessorAnalyticsPayload["classSimulationRows"];
   }
 
-  const data: ProfessorAnalyticsData = {
-    classCount: classIds.length,
-    studentCount,
-    simulationCount: simList.length,
-    publishedCount,
-    totalAttempts,
-    completedAttempts,
-    avgScorePercent,
+  let attempts: ProfessorAnalyticsPayload["attempts"] = [];
+
+  if (simIds.length > 0) {
+    const { data: attemptRows } = await supabase
+      .from("attempts")
+      .select("simulation_id, student_id, status, total_score, started_at")
+      .in("simulation_id", simIds);
+
+    attempts = (attemptRows ?? []) as ProfessorAnalyticsPayload["attempts"];
+  }
+
+  const payload: ProfessorAnalyticsPayload = {
+    classes: (classes ?? []).map((c) => ({ id: c.id as string, name: c.name as string })),
+    simulations: (simulations ?? []).map((s) => ({
+      id: s.id as string,
+      title: s.title as string,
+      is_published: Boolean(s.is_published),
+    })),
+    attempts,
+    enrollmentRows,
+    classSimulationRows,
   };
 
-  return <ProfessorAnalyticsView userName={profile.full_name} data={data} />;
+  return <ProfessorAnalyticsView userName={profile.full_name} payload={payload} />;
 }
