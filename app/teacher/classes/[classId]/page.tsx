@@ -8,7 +8,7 @@ import { ProfessorClassManagementView } from "@/components/shared/Sidebar";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
-import { classAppearanceColumnsReady } from "@/lib/check-class-appearance-columns";
+import { getClassAppearanceStatus } from "@/lib/check-class-appearance-columns";
 import type { ClassColorSchemeId } from "@/lib/class-appearance";
 import { scorePercent } from "@/lib/grades";
 import type { EnrolledStudent, Simulation } from "@/types";
@@ -43,7 +43,7 @@ export default async function ClassManagementPage({
   params,
 }: PageProps): Promise<React.ReactElement> {
   const profile = await requireRole("teacher");
-  const appearanceReady = await classAppearanceColumnsReady();
+  const appearanceStatus = await getClassAppearanceStatus();
   const supabase = createClient();
 
   const { data: classRow } = await supabase
@@ -149,7 +149,7 @@ export default async function ClassManagementPage({
       cardColorScheme={
         ((classRow.card_color_scheme as ClassColorSchemeId | null) ?? "default") as ClassColorSchemeId
       }
-      appearanceReady={appearanceReady}
+      appearanceStatus={appearanceStatus}
       initialStudents={students}
       initialAssignments={(assignments ?? []) as Parameters<
         typeof ProfessorClassManagementView

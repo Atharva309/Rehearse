@@ -13,14 +13,17 @@ import {
   type ClassColorSchemeId,
 } from "@/lib/class-appearance";
 import { useToast } from "@/hooks/useToast";
-import { CLASS_APPEARANCE_SETUP_SQL } from "@/lib/check-class-appearance-columns";
+import {
+  CLASS_APPEARANCE_SETUP_SQL,
+  type ClassAppearanceStatus,
+} from "@/lib/check-class-appearance-columns";
 
 type ClassCardAppearanceEditorProps = {
   classId: string;
   className: string;
   initialImageUrl: string | null;
   initialColorScheme: ClassColorSchemeId;
-  appearanceReady?: boolean;
+  appearanceStatus?: ClassAppearanceStatus;
 };
 
 /**
@@ -31,7 +34,7 @@ export function ClassCardAppearanceEditor({
   className,
   initialImageUrl,
   initialColorScheme,
-  appearanceReady = true,
+  appearanceStatus = "ready",
 }: ClassCardAppearanceEditorProps): React.ReactElement {
   const { showToast } = useToast();
   const [imageUrl, setImageUrl] = useState(initialImageUrl ?? "");
@@ -87,14 +90,28 @@ export function ClassCardAppearanceEditor({
         </button>
       </div>
 
-      {!appearanceReady && (
+      {appearanceStatus === "stale_schema" && (
         <div className="mx-lg mt-lg p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
-          <p className="font-label-md font-semibold">Add two columns to your existing classes table</p>
+          <p className="font-label-md font-semibold">Reload Supabase API schema</p>
           <p className="font-body-md text-sm">
-            The <code className="text-xs bg-white/80 px-1 rounded">classes</code> table is already
-            there — it needs <strong>card_image_url</strong> and <strong>card_color_scheme</strong>.
-            In Supabase → SQL Editor, run this, then Settings → API → Reload schema:
+            Your columns are in the database, but the API has not picked them up yet. Do one of
+            these:
           </p>
+          <ol className="text-sm list-decimal list-inside space-y-1">
+            <li>
+              Supabase Dashboard → <strong>Settings → API → Reload schema</strong>
+            </li>
+            <li>
+              Or run in SQL Editor:{" "}
+              <code className="text-xs bg-white/80 px-1 rounded">NOTIFY pgrst, &apos;reload schema&apos;;</code>
+            </li>
+          </ol>
+        </div>
+      )}
+      {appearanceStatus === "missing_columns" && (
+        <div className="mx-lg mt-lg p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
+          <p className="font-label-md font-semibold">Database setup required</p>
+          <p className="font-body-md text-sm">Run this in Supabase SQL Editor:</p>
           <pre className="text-xs bg-white/80 border border-amber-200 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre">
             {CLASS_APPEARANCE_SETUP_SQL}
           </pre>

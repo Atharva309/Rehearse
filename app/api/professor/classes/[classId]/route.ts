@@ -170,15 +170,29 @@ export async function PATCH(
 
   if (error) {
     const message = error.message ?? "";
+    const code = error.code;
     if (
-      message.includes("card_image_url") ||
-      message.includes("card_color_scheme") ||
-      error.code === "42703"
+      code === "PGRST204" ||
+      message.includes("schema cache") ||
+      (message.includes("Could not find") && message.includes("column"))
     ) {
       return NextResponse.json(
         {
           error:
-            "Class appearance columns are missing. Run step 10 in supabase/RUN-THIS-MIGRATION.sql, then reload the schema.",
+            "Columns exist but Supabase API cache is stale. In Dashboard go to Settings → API → Reload schema, or run: NOTIFY pgrst, 'reload schema';",
+        },
+        { status: 503 }
+      );
+    }
+    if (
+      message.includes("card_image_url") ||
+      message.includes("card_color_scheme") ||
+      code === "42703"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Class appearance columns are missing. Run supabase/class-appearance.sql in the SQL editor.",
         },
         { status: 503 }
       );
