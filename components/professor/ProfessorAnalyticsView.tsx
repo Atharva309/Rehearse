@@ -369,7 +369,7 @@ export function ProfessorAnalyticsView({
                 </span>
               )}
             </div>
-            <div className="font-display text-display text-primary-fixed leading-none mb-xs">
+            <div className="font-display text-display text-white leading-none mb-xs">
               {data.publishedCount}
             </div>
             <div className="font-headline-md text-headline-md mb-xs text-white">Published</div>
