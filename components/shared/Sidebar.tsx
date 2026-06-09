@@ -829,6 +829,7 @@ type ProfessorClassManagementViewProps = {
   joinCode: string;
   cardImageUrl: string | null;
   cardColorScheme: ClassColorSchemeId;
+  appearanceReady: boolean;
   initialStudents: EnrolledStudent[];
   initialAssignments: AssignedSimulation[];
   professorSimulations: Simulation[];
@@ -846,6 +847,7 @@ export function ProfessorClassManagementView({
   joinCode,
   cardImageUrl,
   cardColorScheme,
+  appearanceReady,
   initialStudents,
   initialAssignments,
   professorSimulations,
@@ -1039,6 +1041,7 @@ export function ProfessorClassManagementView({
               className={className}
               initialImageUrl={cardImageUrl}
               initialColorScheme={cardColorScheme}
+              appearanceReady={appearanceReady}
             />
 
             <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">

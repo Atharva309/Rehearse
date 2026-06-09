@@ -13,12 +13,14 @@ import {
   type ClassColorSchemeId,
 } from "@/lib/class-appearance";
 import { useToast } from "@/hooks/useToast";
+import { CLASS_APPEARANCE_SETUP_SQL } from "@/lib/check-class-appearance-columns";
 
 type ClassCardAppearanceEditorProps = {
   classId: string;
   className: string;
   initialImageUrl: string | null;
   initialColorScheme: ClassColorSchemeId;
+  appearanceReady?: boolean;
 };
 
 /**
@@ -29,6 +31,7 @@ export function ClassCardAppearanceEditor({
   className,
   initialImageUrl,
   initialColorScheme,
+  appearanceReady = true,
 }: ClassCardAppearanceEditorProps): React.ReactElement {
   const { showToast } = useToast();
   const [imageUrl, setImageUrl] = useState(initialImageUrl ?? "");
@@ -83,6 +86,18 @@ export function ClassCardAppearanceEditor({
           </ProfessorButtonContent>
         </button>
       </div>
+
+      {!appearanceReady && (
+        <div className="mx-lg mt-lg p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
+          <p className="font-label-md font-semibold">Database setup required</p>
+          <p className="font-body-md text-sm">
+            Open Supabase → SQL Editor, paste and run this, then Settings → API → Reload schema:
+          </p>
+          <pre className="text-xs bg-white/80 border border-amber-200 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre">
+            {CLASS_APPEARANCE_SETUP_SQL}
+          </pre>
+        </div>
+      )}
 
       <div className="p-lg grid grid-cols-1 lg:grid-cols-2 gap-gutter">
         <div className="space-y-lg">
