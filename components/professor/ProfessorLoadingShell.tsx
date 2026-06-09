@@ -17,13 +17,9 @@ export function ProfessorLoadingShell({
     <div className="fixed inset-0 z-40 flex flex-col bg-background overflow-hidden font-body-md text-on-surface">
       <header className="bg-surface border-b border-outline-variant sticky top-0 z-50">
         <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
-          <div className="flex items-center gap-12">
+          <div className="flex items-center gap-3">
+            <div className="hidden md:block h-10 w-10 bg-surface-container rounded-lg animate-pulse" />
             <div className="h-6 w-24 bg-surface-container rounded animate-pulse" />
-            <div className="hidden md:flex gap-8">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-4 w-16 bg-surface-container rounded animate-pulse" />
-              ))}
-            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden md:block h-10 w-32 bg-surface-container rounded animate-pulse" />

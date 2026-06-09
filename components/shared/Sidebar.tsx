@@ -8,7 +8,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import {
+  Fragment,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { FadeIn } from "@/components/professor/FadeIn";
 import { ProfessorEmptyState } from "@/components/professor/ProfessorEmptyState";
@@ -51,6 +58,62 @@ export function MaterialIcon({
   );
 }
 
+// ── Sidebar collapse state ─────────────────────────────────────────────────────
+
+const SIDEBAR_COLLAPSED_KEY = "pitchlab-professor-sidebar-collapsed";
+
+type ProfessorShellContextValue = {
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+};
+
+const ProfessorShellContext = createContext<ProfessorShellContextValue | null>(null);
+
+/**
+ * Shares professor sidebar collapsed state across header and sidebar.
+ */
+export function ProfessorShellProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.ReactElement {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setSidebarCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true");
+    } catch {
+      /* ignore storage errors */
+    }
+  }, []);
+
+  const toggleSidebar = useCallback((): void => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch {
+        /* ignore storage errors */
+      }
+      return next;
+    });
+  }, []);
+
+  return (
+    <ProfessorShellContext.Provider value={{ sidebarCollapsed, toggleSidebar }}>
+      {children}
+    </ProfessorShellContext.Provider>
+  );
+}
+
+function useProfessorShell(): ProfessorShellContextValue {
+  const ctx = useContext(ProfessorShellContext);
+  if (!ctx) {
+    throw new Error("useProfessorShell must be used within ProfessorShellProvider");
+  }
+  return ctx;
+}
+
 // ── Navigation ─────────────────────────────────────────────────────────────────
 
 export type ProfessorNavKey = "dashboard" | "classes" | "library" | "analytics";
@@ -86,13 +149,6 @@ export function resolveProfessorNav(pathname: string): ProfessorNavKey {
   return "dashboard";
 }
 
-/**
- * Returns whether a nav item should render as active for the given path.
- */
-function isNavItemActive(item: NavItem, pathname: string): boolean {
-  return resolveProfessorNav(pathname) === item.key;
-}
-
 type ProfessorSidebarProps = {
   activeNav?: ProfessorNavKey;
   onNewClass?: () => void;
@@ -107,13 +163,31 @@ export function ProfessorSidebar({
 }: ProfessorSidebarProps): React.ReactElement {
   const pathname = usePathname();
   const resolvedNav = activeNav ?? resolveProfessorNav(pathname);
+  const { sidebarCollapsed, toggleSidebar } = useProfessorShell();
 
   return (
-    <aside className="hidden md:flex flex-col h-full w-64 bg-surface-container-low border-r border-outline-variant p-4 gap-2 shrink-0">
-      <div className="mb-6 px-2">
-        <h2 className="font-headline-md text-headline-md text-primary font-bold">Professor Portal</h2>
-        <p className="font-label-sm text-label-sm text-on-surface-variant">Manage your curriculum</p>
-      </div>
+    <aside
+      className={`hidden md:flex flex-col h-full bg-surface-container-low border-r border-outline-variant shrink-0 transition-all duration-300 ease-in-out gap-2 ${
+        sidebarCollapsed ? "w-[72px] p-2" : "w-64 p-4"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={toggleSidebar}
+        className={`flex items-center rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 h-8 ${
+          sidebarCollapsed ? "justify-center w-full" : "justify-end px-1 w-full"
+        }`}
+        aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <MaterialIcon name={sidebarCollapsed ? "chevron_right" : "chevron_left"} className="text-[20px]" />
+      </button>
+
+      {!sidebarCollapsed && (
+        <div className="mb-4 px-2">
+          <h2 className="font-headline-md text-headline-md text-primary font-bold">Professor Portal</h2>
+          <p className="font-label-sm text-label-sm text-on-surface-variant">Manage your curriculum</p>
+        </div>
+      )}
 
       <nav className="flex flex-col gap-1">
         {NAV_ITEMS.map((item) => {
@@ -122,28 +196,36 @@ export function ProfessorSidebar({
             <Link
               key={item.key}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+              title={sidebarCollapsed ? item.label : undefined}
+              className={`flex items-center py-2 rounded-lg transition-all duration-200 ${
+                sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"
+              } ${
                 isActive
                   ? "bg-primary-container text-on-primary-container font-bold"
                   : "text-on-surface-variant hover:bg-surface-container-highest"
               }`}
             >
-              <MaterialIcon name={item.icon} className="text-[20px]" />
-              <span className="font-label-sm text-label-sm">{item.label}</span>
+              <MaterialIcon name={item.icon} className="text-[20px] shrink-0" />
+              {!sidebarCollapsed && (
+                <span className="font-label-sm text-label-sm">{item.label}</span>
+              )}
             </Link>
           );
         })}
       </nav>
 
       {onNewClass && (
-        <div className="mt-8 mb-4">
+        <div className={`${sidebarCollapsed ? "mt-4 mb-2 flex justify-center" : "mt-8 mb-4"}`}>
           <button
             type="button"
             onClick={onNewClass}
-            className="w-full h-10 bg-primary-container text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all"
+            title={sidebarCollapsed ? "New Class" : undefined}
+            className={`bg-primary-container text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all ${
+              sidebarCollapsed ? "w-10 h-10" : "w-full h-10"
+            }`}
           >
             <MaterialIcon name="add" className="text-sm" />
-            <span className="font-label-sm text-label-sm">New Class</span>
+            {!sidebarCollapsed && <span className="font-label-sm text-label-sm">New Class</span>}
           </button>
         </div>
       )}
@@ -155,14 +237,19 @@ export function ProfessorSidebar({
             <Link
               key={item.key}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+              title={sidebarCollapsed ? item.label : undefined}
+              className={`flex items-center py-2 rounded-lg transition-all duration-200 ${
+                sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"
+              } ${
                 isActive
                   ? "bg-primary-container text-on-primary-container font-bold"
                   : "text-on-surface-variant hover:bg-surface-container-highest"
               }`}
             >
-              <MaterialIcon name={item.icon} className="text-[20px]" />
-              <span className="font-label-sm text-label-sm">{item.label}</span>
+              <MaterialIcon name={item.icon} className="text-[20px] shrink-0" />
+              {!sidebarCollapsed && (
+                <span className="font-label-sm text-label-sm">{item.label}</span>
+              )}
             </Link>
           );
         })}
@@ -215,36 +302,26 @@ export function ProfessorDashboardHeader({
   userName,
   onNewClass,
 }: ProfessorDashboardHeaderProps): React.ReactElement {
-  const pathname = usePathname();
+  const { toggleSidebar } = useProfessorShell();
 
   return (
     <header className="bg-surface border-b border-outline-variant sticky top-0 z-50">
       <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
-        <div className="flex items-center gap-12">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="hidden md:flex items-center justify-center w-10 h-10 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200"
+            aria-label="Toggle sidebar"
+          >
+            <MaterialIcon name="menu" className="text-[22px]" />
+          </button>
           <Link href="/teacher/dashboard" className="flex items-center gap-2 font-headline-lg text-headline-lg font-bold text-primary">
             <span className="inline-flex h-[1.5em] w-[1.5em] shrink-0 items-center justify-center overflow-hidden rounded-full">
               <img src="/pitchlab-logo.png" alt="" className="h-full w-full scale-[1.7] object-cover" aria-hidden />
             </span>
             PitchLab
           </Link>
-          <nav className="hidden md:flex gap-8">
-            {NAV_ITEMS.map((item) => {
-              const isActive = isNavItemActive(item, pathname);
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  className={`font-label-md text-label-md py-1 ${
-                    isActive
-                      ? "text-primary font-bold border-b-2 border-primary"
-                      : "text-on-surface-variant hover:bg-surface-container-high px-2 rounded"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
         </div>
 
         <div className="flex items-center gap-4">
@@ -300,20 +377,22 @@ export function ProfessorPortalLayout({
     onNewClass && (resolvedNav === "dashboard" || resolvedNav === "classes");
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-background overflow-hidden font-body-md text-body-md text-on-surface">
-      <ProfessorDashboardHeader userName={userName} onNewClass={showNewClass ? onNewClass : undefined} />
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {showSidebar && (
-          <ProfessorSidebar
-            activeNav={resolvedNav}
-            onNewClass={showNewClass ? onNewClass : undefined}
-          />
-        )}
-        <main className="flex-1 overflow-y-auto custom-scrollbar bg-surface-bright">
-          {children}
-        </main>
+    <ProfessorShellProvider>
+      <div className="fixed inset-0 z-40 flex flex-col bg-background overflow-hidden font-body-md text-body-md text-on-surface">
+        <ProfessorDashboardHeader userName={userName} onNewClass={showNewClass ? onNewClass : undefined} />
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {showSidebar && (
+            <ProfessorSidebar
+              activeNav={resolvedNav}
+              onNewClass={showNewClass ? onNewClass : undefined}
+            />
+          )}
+          <main className="flex-1 overflow-y-auto custom-scrollbar bg-surface-bright">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </ProfessorShellProvider>
   );
 }
 
@@ -1593,9 +1672,10 @@ export function ProfessorResultsView({
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex h-screen overflow-hidden bg-background font-body-md text-on-surface">
-      <ProfessorSidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
+    <ProfessorShellProvider>
+      <div className="fixed inset-0 z-40 flex h-screen overflow-hidden bg-background font-body-md text-on-surface">
+        <ProfessorSidebar />
+        <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex justify-between items-center w-full px-margin-desktop py-4 bg-surface border-b border-outline-variant">
           <div className="flex items-center gap-4">
             <Link
@@ -1889,7 +1969,8 @@ export function ProfessorResultsView({
           )}
         </FadeIn>
       </main>
-    </div>
+      </div>
+    </ProfessorShellProvider>
   );
 }
 
