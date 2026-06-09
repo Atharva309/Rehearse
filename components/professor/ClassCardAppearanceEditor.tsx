@@ -134,35 +134,39 @@ export function ClassCardAppearanceEditor({
     }
   };
 
+  const saveTooltip =
+    "Changes will be visible to all students enrolled in this class immediately upon saving.";
+
   return (
-    <div className="space-y-lg">
-      <div className="flex items-center gap-sm">
-        <MaterialIcon name="palette" className="text-primary text-headline-lg" />
-        <h2 className="font-headline-lg text-headline-lg text-on-surface">Class Card Appearance</h2>
+    <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+      <div className="px-lg py-md border-b border-outline-variant flex items-center gap-sm bg-white">
+        <MaterialIcon name="palette" className="text-primary" />
+        <h2 className="font-headline-md text-headline-md text-primary-container">Class Card Appearance</h2>
       </div>
 
-      {appearanceStatus === "stale_schema" && (
-        <div className="p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
-          <p className="font-label-md font-semibold">Reload Supabase API schema</p>
-          <p className="font-body-md text-sm">
-            Columns exist in the database but the API cache is stale. Go to Settings → API →
-            Reload schema, or run{" "}
-            <code className="text-xs bg-white/80 px-1 rounded">NOTIFY pgrst, &apos;reload schema&apos;;</code>
-          </p>
-        </div>
-      )}
-      {appearanceStatus === "missing_columns" && (
-        <div className="p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
-          <p className="font-label-md font-semibold">Database setup required</p>
-          <pre className="text-xs bg-white/80 border border-amber-200 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre">
-            {CLASS_APPEARANCE_SETUP_SQL}
-          </pre>
-        </div>
-      )}
+      <div className="p-lg space-y-lg">
+        {appearanceStatus === "stale_schema" && (
+          <div className="p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
+            <p className="font-label-md font-semibold">Reload Supabase API schema</p>
+            <p className="font-body-md text-sm">
+              Columns exist in the database but the API cache is stale. Go to Settings → API →
+              Reload schema, or run{" "}
+              <code className="text-xs bg-white/80 px-1 rounded">NOTIFY pgrst, &apos;reload schema&apos;;</code>
+            </p>
+          </div>
+        )}
+        {appearanceStatus === "missing_columns" && (
+          <div className="p-md rounded-lg border border-amber-300 bg-amber-50 text-amber-950 space-y-2">
+            <p className="font-label-md font-semibold">Database setup required</p>
+            <pre className="text-xs bg-white/80 border border-amber-200 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre">
+              {CLASS_APPEARANCE_SETUP_SQL}
+            </pre>
+          </div>
+        )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[11fr_9fr] gap-xl items-start">
-        {/* Left settings panel */}
-        <section className="bg-surface-container-lowest border border-outline-variant rounded-lg p-lg shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-[11fr_9fr] gap-xl items-start">
+          {/* Left settings */}
+          <div>
           <div className="mb-xl">
             <label className="block font-label-md text-label-md text-on-surface-variant mb-sm">
               Color Scheme
@@ -309,45 +313,52 @@ export function ClassCardAppearanceEditor({
             )}
           </div>
 
-          <button
-            type="button"
-            disabled={isSaving}
-            onClick={() => void handleSave()}
-            className={`w-full h-10 bg-primary-container text-on-primary rounded-lg font-label-md text-label-md hover:bg-primary transition-colors active:scale-[0.98] duration-150 ${
-              isSaving ? "opacity-70 cursor-not-allowed" : ""
-            }`}
-          >
-            <ProfessorButtonContent isLoading={isSaving} loadingText="Saving...">
-              Save Appearance Settings
-            </ProfessorButtonContent>
-          </button>
-        </section>
-
-        {/* Right live preview */}
-        <section className="flex flex-col gap-lg">
-          <div className="flex items-center justify-between">
-            <h3 className="font-headline-md text-headline-md text-on-surface-variant">Live Preview</h3>
-            <span className="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm rounded-full">
-              Student View
-            </span>
+          <div className="relative group w-fit">
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={() => void handleSave()}
+              aria-describedby="save-appearance-tooltip"
+              className={`h-8 px-4 bg-primary-container text-on-primary rounded-lg font-label-sm text-label-sm hover:bg-primary transition-colors active:scale-[0.98] duration-150 ${
+                isSaving ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              <ProfessorButtonContent isLoading={isSaving} loadingText="Saving...">
+                Save Appearance Settings
+              </ProfessorButtonContent>
+            </button>
+            <p
+              id="save-appearance-tooltip"
+              role="tooltip"
+              className="pointer-events-none absolute left-0 bottom-full mb-2 w-64 px-3 py-2 rounded-lg bg-inverse-surface text-inverse-on-surface font-label-sm text-label-sm leading-snug opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-20 shadow-md"
+            >
+              {saveTooltip}
+            </p>
+          </div>
           </div>
 
-          <div className="max-w-[400px] w-full mx-auto lg:mx-0 pointer-events-none">
-            <StudentClassCard
-              classId={classId}
-              className={className}
-              description={classDescription}
-              cardImageUrl={previewImage}
-              cardColorScheme={colorScheme}
-              simulationCount={simulationCount}
-            />
-          </div>
+          {/* Right live preview */}
+          <div className="flex flex-col gap-md">
+            <div className="flex items-center gap-sm">
+              <h3 className="font-headline-md text-headline-md text-on-surface-variant">Live Preview</h3>
+              <span className="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm rounded-full">
+                Student View
+              </span>
+            </div>
 
-          <p className="text-center font-label-sm text-label-sm text-outline px-xl">
-            Changes will be visible to all students enrolled in this class immediately upon saving.
-          </p>
-        </section>
+            <div className="max-w-[400px] w-full mx-auto lg:mx-0 pointer-events-none">
+              <StudentClassCard
+                classId={classId}
+                className={className}
+                description={classDescription}
+                cardImageUrl={previewImage}
+                cardColorScheme={colorScheme}
+                simulationCount={simulationCount}
+              />
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
