@@ -285,7 +285,7 @@ export function ProfessorDashboardHeader({
       <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
         <div className="flex items-center gap-3">
           <Link href="/teacher/dashboard" className="flex items-center gap-2 font-headline-lg text-headline-lg font-bold text-primary">
-            <img src="/pitchlab-logo.png" alt="" className="h-8 w-auto shrink-0 translate-y-[10px]" aria-hidden />
+            <img src="/pitchlab-logo.png" alt="" className="h-16 w-auto shrink-0 translate-y-[4px]" aria-hidden />
             PitchLab
           </Link>
         </div>
