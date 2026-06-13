@@ -46,9 +46,7 @@ export function AppHeader({
     <header className="border-b border-border bg-page sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link href={homeHref} className="flex items-center gap-2 text-xl font-bold text-primary tracking-tight">
-          <span className="inline-flex h-[1.5em] w-[1.5em] shrink-0 items-center justify-center overflow-hidden rounded-full">
-            <img src="/pitchlab-logo.png" alt="" className="h-full w-full scale-[1.7] object-cover" aria-hidden />
-          </span>
+          <img src="/pitchlab-logo.png" alt="" className="h-[1.5em] w-auto shrink-0" aria-hidden />
           PitchLab
         </Link>
         <div className="flex items-center gap-4 text-sm">
