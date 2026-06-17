@@ -6,7 +6,7 @@
 import type { Metadata } from "next";
 import { ProfessorSupportView } from "@/components/shared/Sidebar";
 
-export const metadata: Metadata = { title: "Support — PitchLab" };
+export const metadata: Metadata = { title: "Support — Rehearse" };
 import { requireRole } from "@/lib/auth-helpers";
 
 /**

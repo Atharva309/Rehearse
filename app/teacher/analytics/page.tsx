@@ -11,7 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth-helpers";
 
-export const metadata: Metadata = { title: "Analytics — PitchLab" };
+export const metadata: Metadata = { title: "Analytics — Rehearse" };
 
 /**
  * Professor analytics page.

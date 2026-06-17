@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import { ProfessorSimulationFormView } from "@/components/shared/Sidebar";
 import { requireRole } from "@/lib/auth-helpers";
 
-export const metadata: Metadata = { title: "Create Simulation — PitchLab" };
+export const metadata: Metadata = { title: "Create Simulation — Rehearse" };
 
 /**
  * Create new simulation.

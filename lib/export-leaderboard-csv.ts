@@ -52,7 +52,7 @@ export function downloadLeaderboardCsv(rows: CsvExportRow[]): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "pitchlab-leaderboard.csv";
+  link.download = "rehearse-leaderboard.csv";
   link.click();
   URL.revokeObjectURL(url);
 }

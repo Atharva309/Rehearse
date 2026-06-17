@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const supabase = createClient();
   const { data } = await supabase.from("classes").select("name").eq("id", params.classId).single();
   const name = data?.name ?? "Class";
-  return { title: `${name} — PitchLab` };
+  return { title: `${name} — Rehearse` };
 }
 
 type StudentClassRow = {

@@ -285,8 +285,8 @@ export function ProfessorDashboardHeader({
       <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
         <div className="flex items-center gap-3">
           <Link href="/teacher/dashboard" className="flex items-center gap-2 font-headline-lg text-headline-lg font-bold text-primary">
-            <img src="/pitchlab-logo.png" alt="" className="h-[1.5em] w-auto shrink-0" aria-hidden />
-            PitchLab
+            <img src="/pitchlab-logo-new.png" alt="Rehearse logo" className="h-[1.5em] w-auto shrink-0" />
+            Rehearse
           </Link>
         </div>
 
@@ -2465,8 +2465,8 @@ export function ProfessorSupportView({ userName }: { userName: string }): React.
           </div>
           <p className="font-body-md text-on-surface-variant">
             Email{" "}
-            <a href="mailto:support@pitchlab.app" className="text-secondary font-medium hover:underline">
-              support@pitchlab.app
+            <a href="mailto:support@rehearse.app" className="text-secondary font-medium hover:underline">
+              support@rehearse.app
             </a>{" "}
             and include your class name or simulation title.
           </p>

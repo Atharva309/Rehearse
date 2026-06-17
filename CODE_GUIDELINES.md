@@ -1,4 +1,4 @@
-# PitchLab / version-simli — Code Guidelines
+# Rehearse / version-simli — Code Guidelines
 
 Reference this file for all changes in `version-simli/`. Do **not** modify other version folders.
 

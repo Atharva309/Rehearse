@@ -37,7 +37,7 @@ export function SimulationStartLink({
     <>
       {isLoading && (
         <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-primary text-white">
-          <p className="text-2xl font-bold tracking-tight">PitchLab</p>
+          <p className="text-2xl font-bold tracking-tight">Rehearse</p>
           <p className="text-sm text-white/70 mt-3 max-w-xs text-center px-6">
             {simulationTitle}
           </p>

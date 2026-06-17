@@ -1,4 +1,4 @@
--- PitchLab Supabase schema — run in Supabase SQL editor
+-- Rehearse Supabase schema — run in Supabase SQL editor
 
 -- Profiles (extends auth.users)
 create table if not exists profiles (

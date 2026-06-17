@@ -1,4 +1,4 @@
--- PitchLab multi-class student auth — run in Supabase SQL editor in this exact order
+-- Rehearse multi-class student auth — run in Supabase SQL editor in this exact order
 
 -- Step 1: Create the new junction table FIRST
 CREATE TABLE student_classes (

@@ -1,6 +1,6 @@
-# PitchLab — AI Sales Training Platform
+# Rehearse — AI Sales Training Platform
 
-PitchLab is a full-stack sales training app built on the Simli voice avatar stack. Students complete a 6-stage simulation (lead gen → close); teachers create and publish scenarios.
+Rehearse is a full-stack sales training app built on the Simli voice avatar stack. Students complete a 6-stage simulation (lead gen → close); teachers create and publish scenarios.
 
 ## Stack
 

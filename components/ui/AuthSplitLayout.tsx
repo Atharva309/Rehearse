@@ -15,12 +15,12 @@ type AuthSplitLayoutProps = {
 };
 
 /**
- * Renders the two-column PitchLab auth layout from the Stitch export.
+ * Renders the two-column Rehearse auth layout from the Stitch export.
  */
 export function AuthSplitLayout({
   children,
   accent = "accent",
-  title = "PitchLab",
+  title = "Rehearse",
   subtitle = "AI-powered sales training for students and teachers.",
 }: AuthSplitLayoutProps): React.ReactElement {
   const borderClass = accent === "gold" ? "border-t-gold" : "border-t-accent";

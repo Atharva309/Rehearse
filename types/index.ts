@@ -1,6 +1,6 @@
 /**
  * types/index.ts
- * Shared TypeScript types for PitchLab — auth, simulations, stages, voice, and API payloads.
+ * Shared TypeScript types for Rehearse — auth, simulations, stages, voice, and API payloads.
  */
 
 export type UserRole = "student" | "teacher";

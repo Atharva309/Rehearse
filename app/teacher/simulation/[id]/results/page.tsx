@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const supabase = createClient();
   const { data } = await supabase.from("simulations").select("title").eq("id", params.id).single();
   const title = data?.title ?? "Simulation";
-  return { title: `Results: ${title} — PitchLab` };
+  return { title: `Results: ${title} — Rehearse` };
 }
 
 /**

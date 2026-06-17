@@ -1,6 +1,6 @@
 /**
  * layout.tsx — student section
- * Requires student JWT session; renders PitchLab header with student logout.
+ * Requires student JWT session; renders Rehearse header with student logout.
  */
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export default async function StudentLayout({
   const classCount = count ?? 0;
   const subtitle =
     classCount === 0
-      ? "Student Portal"
+      ? "Rehearse Student Portal"
       : classCount === 1
         ? "1 class enrolled"
         : `${classCount} classes enrolled`;

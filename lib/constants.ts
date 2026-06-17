@@ -1,6 +1,6 @@
 /**
  * constants.ts
- * Named constants for PitchLab — audio, STT, stages, scoring, and Simli tuning.
+ * Named constants for Rehearse — audio, STT, stages, scoring, and Simli tuning.
  */
 
 import type { SimulationStage } from "@/types";
@@ -60,7 +60,7 @@ export const ELEVENLABS_MODEL_ID = "eleven_turbo_v2_5";
 export const ELEVENLABS_STABILITY = 0.5;
 export const ELEVENLABS_SIMILARITY_BOOST = 0.75;
 
-// ── PitchLab stages ───────────────────────────────────────────────────────────
+// ── Rehearse stages ───────────────────────────────────────────────────────────
 
 export const STAGE_LABELS: Record<SimulationStage, string> = {
   lead_gen: "Lead Gen",

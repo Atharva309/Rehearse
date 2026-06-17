@@ -1,5 +1,5 @@
 -- =============================================================================
--- PitchLab: multi-class student enrollment
+-- Rehearse: multi-class student enrollment
 -- Paste this ENTIRE file into Supabase → SQL Editor → Run
 -- Safe to re-run if something failed partway through
 -- =============================================================================

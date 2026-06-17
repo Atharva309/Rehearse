@@ -11,9 +11,9 @@ import { AuthSplitLayout } from "@/components/ui/AuthSplitLayout";
  */
 export default function JoinPage(): React.ReactElement {
   return (
-    <AuthSplitLayout accent="gold" subtitle="Join your class on PitchLab.">
+    <AuthSplitLayout accent="gold" subtitle="Join your class on Rehearse.">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Join Class</p>
-      <h2 className="text-2xl font-bold text-primary mt-2">Welcome to PitchLab</h2>
+      <h2 className="text-2xl font-bold text-primary mt-2">Welcome to Rehearse</h2>
       <p className="text-sm text-text-secondary mt-1">
         Use the class code from your professor when you create an account. Returning students can
         sign in and join additional classes from the dashboard.

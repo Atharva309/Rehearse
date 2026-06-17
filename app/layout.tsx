@@ -1,6 +1,6 @@
 /**
  * layout.tsx
- * Root layout for PitchLab — light theme, toast provider.
+ * Root layout for Rehearse — light theme, toast provider.
  */
 
 import type { Metadata } from "next";
@@ -9,8 +9,8 @@ import { ToastProvider } from "@/hooks/useToast";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PitchLab — AI Sales Training",
-  description: "Practice sales conversations with AI-powered simulations",
+  title: "Rehearse | AI Sales Training",
+  description: "Rehearse — AI sales training simulation platform for universities",
 };
 
 /**

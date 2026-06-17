@@ -42,7 +42,7 @@ export default async function LoginPage(): Promise<React.ReactElement> {
     <AuthSplitLayout accent="accent" subtitle="Sign in to continue your sales training.">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Professor Sign In</p>
       <h2 className="text-2xl font-bold text-primary mt-2">Welcome back</h2>
-      <p className="text-sm text-text-secondary mt-1">Sign in to your PitchLab account</p>
+      <p className="text-sm text-text-secondary mt-1">Sign in to your Rehearse account</p>
       <Suspense fallback={<p className="mt-8 text-sm text-text-secondary">Loading…</p>}>
         <LoginForm />
       </Suspense>

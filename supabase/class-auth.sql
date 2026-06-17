@@ -1,4 +1,4 @@
--- PitchLab class-based student auth — run in Supabase SQL editor after schema.sql
+-- Rehearse class-based student auth — run in Supabase SQL editor after schema.sql
 
 -- Classes created by professors (teachers)
 CREATE TABLE IF NOT EXISTS classes (
