@@ -282,7 +282,7 @@ export function ProfessorDashboardHeader({
 }: ProfessorDashboardHeaderProps): React.ReactElement {
   return (
     <header className="bg-surface border-b border-outline-variant sticky top-0 z-50">
-      <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
+      <div className="flex justify-between items-center w-full pl-4 pr-4 sm:pl-6 sm:pr-6 py-4">
         <div className="flex items-center gap-3">
           <Link href="/teacher/dashboard" className="flex items-center gap-2 font-headline-lg text-headline-lg font-bold text-primary">
             <img src="/pitchlab-logo-new.png" alt="Rehearse logo" className="h-[1.5em] w-auto shrink-0" />

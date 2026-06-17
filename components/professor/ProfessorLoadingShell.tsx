@@ -16,7 +16,7 @@ export function ProfessorLoadingShell({
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-background overflow-hidden font-body-md text-on-surface">
       <header className="bg-surface border-b border-outline-variant sticky top-0 z-50">
-        <div className="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
+        <div className="flex justify-between items-center w-full pl-4 pr-4 sm:pl-6 sm:pr-6 py-4">
           <div className="h-6 w-24 bg-surface-container rounded animate-pulse" />
           <div className="flex items-center gap-4">
             <div className="hidden md:block h-10 w-32 bg-surface-container rounded animate-pulse" />
