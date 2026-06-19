@@ -128,12 +128,19 @@ export const USERNAME_SCOPE = "global" as const;
 
 // ── Default system class ───────────────────────────────────────────────────
 
-/** UUID of the system-seeded Default Simulations class.
+/** UUID of the system-seeded Rehearse Essentials class.
  *  Every student is auto-enrolled in this class on registration.
  *  It belongs to no professor (professor_id = null).
  *  Never delete or reassign this ID.
  */
 export const DEFAULT_CLASS_ID = "00000000-0000-0000-0000-000000000001" as const;
+
+/** Display name for the system class shown in the student UI */
+export const DEFAULT_CLASS_NAME = "Rehearse Essentials" as const;
+
+/** Description for the system class */
+export const DEFAULT_CLASS_DESCRIPTION =
+  "Curated simulations from Rehearse — available to every student." as const;
 
 /** Join code for the default class — reserved, cannot be used by professors */
 export const DEFAULT_CLASS_JOIN_CODE = "DEFAULT" as const;

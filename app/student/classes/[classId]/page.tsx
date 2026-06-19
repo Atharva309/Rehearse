@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { SimulationCard } from "@/components/SimulationCard";
 import { StudentClassHeader } from "@/components/StudentClassHeader";
-import { DEFAULT_CLASS_ID } from "@/lib/constants";
+import { DEFAULT_CLASS_ID, DEFAULT_CLASS_DESCRIPTION, DEFAULT_CLASS_NAME } from "@/lib/constants";
 import { loadStudentClassDetail } from "@/lib/student-class-data";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -62,6 +62,9 @@ export default async function StudentClassPage({
   }
 
   const isDefaultClass = params.classId === DEFAULT_CLASS_ID;
+  const displayDescription = isDefaultClass
+    ? DEFAULT_CLASS_DESCRIPTION
+    : classDetail.description;
 
   return (
     <div>
@@ -74,14 +77,19 @@ export default async function StudentClassPage({
       </Link>
 
       {isDefaultClass ? (
-        <div className="flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-accent text-[20px]" aria-hidden>
-            auto_awesome
-          </span>
-          <h2 className="text-2xl font-bold text-text-primary">Default Simulations</h2>
-          <span className="px-2 py-0.5 bg-accent/10 text-accent font-bold text-[10px] uppercase rounded">
-            Available to all students
-          </span>
+        <div
+          className="rounded-xl overflow-hidden mb-4 min-h-[88px] flex flex-col justify-end px-5 py-4"
+          style={{ background: "linear-gradient(135deg, #000000, #1a1a1a)" }}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="material-symbols-outlined text-white/80 text-[20px]" aria-hidden>
+              auto_awesome
+            </span>
+            <h2 className="text-2xl font-bold text-white">{DEFAULT_CLASS_NAME}</h2>
+            <span className="px-2 py-0.5 bg-white/10 text-white font-bold text-[10px] uppercase rounded">
+              Available to all students
+            </span>
+          </div>
         </div>
       ) : (
         <StudentClassHeader
@@ -91,17 +99,23 @@ export default async function StudentClassPage({
         />
       )}
 
-      {classDetail.description && (
-        <p className="text-sm text-text-secondary mb-6 -mt-2">{classDetail.description}</p>
+      {displayDescription && (
+        <p
+          className={`text-sm mb-6 -mt-2 ${
+            isDefaultClass ? "text-white/70 bg-[#111111] rounded-lg px-4 py-3 border border-white/10" : "text-text-secondary"
+          }`}
+        >
+          {displayDescription}
+        </p>
       )}
 
       {classDetail.simulations.length === 0 ? (
         isDefaultClass ? (
-          <div className="text-center py-12 text-text-secondary">
-            <span className="material-symbols-outlined text-5xl mb-3 block opacity-30" aria-hidden>
+          <div className="text-center py-12 rounded-xl bg-[#111111] border border-white/10 text-white/70">
+            <span className="material-symbols-outlined text-5xl mb-3 block text-white/30" aria-hidden>
               rocket_launch
             </span>
-            <p className="text-base">No default simulations yet.</p>
+            <p className="text-base text-white">No Rehearse Essentials yet.</p>
             <p className="text-sm mt-1">Check back soon.</p>
           </div>
         ) : (

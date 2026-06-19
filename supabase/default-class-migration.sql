@@ -1,4 +1,4 @@
--- Rehearse: Default Simulations system class
+-- Rehearse: Rehearse Essentials system class
 -- Run this ENTIRE file in Supabase → SQL Editor → Run
 -- Safe to re-run (uses ON CONFLICT / IF NOT EXISTS patterns)
 
@@ -21,13 +21,19 @@ INSERT INTO classes (
 ) VALUES (
   '00000000-0000-0000-0000-000000000001',
   NULL,
-  'Default Simulations',
-  'Pre-built simulations available to all students.',
+  'Rehearse Essentials',
+  'Curated simulations from Rehearse — available to every student.',
   'DEFAULT',
   true,
   now()
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- Step 2b: Update name/description if class was already seeded with old values
+UPDATE classes SET
+  name = 'Rehearse Essentials',
+  description = 'Curated simulations from Rehearse — available to every student.'
+WHERE id = '00000000-0000-0000-0000-000000000001';
 
 -- Step 3: Enroll all existing students in the default class
 INSERT INTO student_classes (student_id, class_id, professor_id)

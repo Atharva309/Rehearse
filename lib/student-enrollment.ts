@@ -113,7 +113,7 @@ export async function isStudentEnrolledInClass(
 }
 
 /**
- * Enrolls a student in the system Default Simulations class.
+ * Enrolls a student in the Rehearse Essentials system class.
  * Non-blocking — duplicate enrollments are ignored.
  */
 export async function enrollStudentInDefaultClass(
