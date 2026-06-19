@@ -100,22 +100,16 @@ export default async function StudentClassPage({
       )}
 
       {displayDescription && (
-        <p
-          className={`text-sm mb-6 -mt-2 ${
-            isDefaultClass ? "text-white/70 bg-[#111111] rounded-lg px-4 py-3 border border-white/10" : "text-text-secondary"
-          }`}
-        >
-          {displayDescription}
-        </p>
+        <p className="text-sm text-text-secondary mb-6 -mt-2">{displayDescription}</p>
       )}
 
       {classDetail.simulations.length === 0 ? (
         isDefaultClass ? (
-          <div className="text-center py-12 rounded-xl bg-[#111111] border border-white/10 text-white/70">
-            <span className="material-symbols-outlined text-5xl mb-3 block text-white/30" aria-hidden>
+          <div className="text-center py-12 text-text-secondary">
+            <span className="material-symbols-outlined text-5xl mb-3 block opacity-30" aria-hidden>
               rocket_launch
             </span>
-            <p className="text-base text-white">No Rehearse Essentials yet.</p>
+            <p className="text-base">No Rehearse Essentials yet.</p>
             <p className="text-sm mt-1">Check back soon.</p>
           </div>
         ) : (
