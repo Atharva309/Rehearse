@@ -21,6 +21,8 @@ type RestartSimulationButtonProps = {
   simulationId: string;
   classId: string;
   simulationTitle: string;
+  /** Light styling for dark hero backgrounds (e.g. Tempo entry page). */
+  variant?: "default" | "onDark";
   /**
    * Where to redirect after restart.
    * Defaults to entry page for Tempo/default class, else simulation runner.
@@ -36,6 +38,7 @@ export function RestartSimulationButton({
   simulationId,
   classId,
   simulationTitle,
+  variant = "default",
   redirectHref,
 }: RestartSimulationButtonProps): React.ReactElement {
   const router = useRouter();
@@ -67,12 +70,17 @@ export function RestartSimulationButton({
     router.refresh();
   };
 
+  const buttonClass =
+    variant === "onDark"
+      ? "flex items-center gap-1.5 px-3 py-1.5 text-white font-label-sm text-label-sm border border-white/30 rounded-lg hover:bg-white/10 hover:border-white/60 transition-all duration-150 shrink-0"
+      : "flex items-center gap-1.5 px-3 py-1.5 text-text-secondary font-label-sm text-label-sm border border-border rounded-lg bg-page hover:bg-surface hover:text-error hover:border-error transition-all duration-150 shrink-0";
+
   return (
     <>
       <button
         type="button"
         onClick={() => setShowConfirm(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-on-surface-variant font-label-sm text-label-sm border border-outline-variant rounded-lg hover:bg-surface-container hover:text-error hover:border-error transition-all duration-150"
+        className={buttonClass}
       >
         <MaterialIcon name="restart_alt" className="text-[16px]" />
         Restart

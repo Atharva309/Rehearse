@@ -123,6 +123,7 @@ export function TempoSimulationEntryView({
               simulationId={simulationId}
               classId={classId}
               simulationTitle={simulationTitle}
+              variant="onDark"
               redirectHref={entryRedirectHref}
             />
           </div>

@@ -25,6 +25,7 @@ type SimulationRunnerProps = {
   simulation: Simulation;
   attempt: Attempt;
   stageScores: StageScore[];
+  classId: string;
   className?: string;
 };
 
@@ -37,6 +38,7 @@ export function SimulationRunner({
   simulation,
   attempt: initialAttempt,
   stageScores: initialScores,
+  classId,
   className,
 }: SimulationRunnerProps): React.ReactElement {
   const router = useRouter();
@@ -83,7 +85,6 @@ export function SimulationRunner({
 
   const stage = attempt.current_stage;
   const isCallStage = CALL_STAGES.includes(stage);
-  const classId = attempt.class_id ?? "";
 
   const stageContent = (
     <ErrorBoundary stageName={stage}>
@@ -148,12 +149,13 @@ export function SimulationRunner({
     <div
       className={
         isCallStage
-          ? "relative flex min-h-0 w-full flex-1 flex-col"
-          : "relative w-full px-6"
+          ? "flex min-h-0 w-full flex-1 flex-col"
+          : "w-full px-6"
       }
     >
       {classId && (
-        <div className="absolute top-4 right-4 z-20">
+        <div className="flex items-start justify-between gap-4 shrink-0">
+          <BackButton label="Back to Dashboard" href="/student/dashboard" />
           <RestartSimulationButton
             attemptId={attempt.id}
             simulationId={simulation.id}
@@ -163,7 +165,7 @@ export function SimulationRunner({
         </div>
       )}
 
-      <BackButton label="Back to Dashboard" href="/student/dashboard" />
+      {!classId && <BackButton label="Back to Dashboard" href="/student/dashboard" />}
       {className && isCallStage && (
         <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-accent px-1">
           {className}

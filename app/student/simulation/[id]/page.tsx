@@ -131,6 +131,7 @@ export default async function StudentSimulationPage({
       simulation={simulation}
       attempt={attempt}
       stageScores={(stageScores ?? []) as StageScore[]}
+      classId={classId}
       className={classRow?.name}
     />
   );
