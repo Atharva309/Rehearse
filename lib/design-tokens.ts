@@ -32,6 +32,10 @@ export const COLORS = {
   onErrorContainer: "#93000a",
   onSecondaryContainer: "#002d64",
   background: "#f7f9fb",
+  /** Darker than primary-container — CRM card depth on Tempo entry hero */
+  crmCardDepth: "#0f172a",
+  /** Gold CTA hover on Tempo entry page (10% darker than tertiary-container) */
+  tertiaryGoldHover: "#b8943d",
 } as const;
 
 export const FONT = {

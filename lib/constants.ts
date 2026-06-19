@@ -145,6 +145,12 @@ export const DEFAULT_CLASS_DESCRIPTION =
 /** Join code for the default class — reserved, cannot be used by professors */
 export const DEFAULT_CLASS_JOIN_CODE = "DEFAULT" as const;
 
+/**
+ * ID of the Tempo/Summit Dental simulation seeded in the default class.
+ * Leave empty until seeded; title match ("Tempo") is used as fallback.
+ */
+export const TEMPO_SIMULATION_ID = "" as const;
+
 // ── Stitch UI layout ──────────────────────────────────────────────────────────
 
 export const CALL_OVERLAY_INSET_PX = 16;

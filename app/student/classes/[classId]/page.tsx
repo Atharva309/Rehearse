@@ -8,8 +8,13 @@ import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { SimulationCard } from "@/components/SimulationCard";
 import { StudentClassHeader } from "@/components/StudentClassHeader";
-import { DEFAULT_CLASS_ID, DEFAULT_CLASS_DESCRIPTION, DEFAULT_CLASS_NAME } from "@/lib/constants";
+import {
+  DEFAULT_CLASS_ID,
+  DEFAULT_CLASS_DESCRIPTION,
+  DEFAULT_CLASS_NAME,
+} from "@/lib/constants";
 import { loadStudentClassDetail } from "@/lib/student-class-data";
+import { isTempoDefaultSimulation } from "@/lib/tempo-simulation";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Attempt } from "@/types";
@@ -130,6 +135,15 @@ export default async function StudentClassPage({
             if (existing) {
               query.set("attempt", existing.id);
             }
+
+            const isTempoInDefaultClass =
+              params.classId === DEFAULT_CLASS_ID &&
+              isTempoDefaultSimulation(sim.id, sim.title);
+
+            const href = isTempoInDefaultClass
+              ? `/student/simulation/${sim.id}/entry?classId=${params.classId}`
+              : `/student/simulation/${sim.id}?${query.toString()}`;
+
             return (
               <SimulationCard
                 key={sim.id}
@@ -137,7 +151,7 @@ export default async function StudentClassPage({
                 className={classDetail.className}
                 accentColor={classDetail.accentColor}
                 actionLabel={existing ? "Continue" : "Start Simulation"}
-                href={`/student/simulation/${sim.id}?${query.toString()}`}
+                href={href}
                 stagesCompleted={stagesCompleted}
               />
             );
