@@ -35,10 +35,10 @@ export function StudentClassCard({
   return (
     <Link
       href={`/student/classes/${classId}`}
-      className="block rounded-xl overflow-hidden border border-border bg-page shadow-sm hover:shadow-md transition-shadow duration-150 group"
+      className="flex h-full flex-col rounded-xl overflow-hidden border border-border bg-page shadow-sm hover:shadow-md transition-shadow duration-150 group"
     >
       <div
-        className="relative min-h-[140px] flex items-end px-5 py-5"
+        className="relative min-h-[140px] shrink-0 flex items-end px-5 py-5"
         style={{
           background: image
             ? `linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0.2)), url(${image}) center/cover`
@@ -50,7 +50,7 @@ export function StudentClassCard({
         </h2>
       </div>
       <div
-        className="px-5 py-4 border-l-4 bg-surface"
+        className="flex flex-1 flex-col px-5 py-4 border-l-4 bg-surface"
         style={{ borderLeftColor: scheme.accent }}
       >
         {isSystemDefault && (
@@ -66,14 +66,16 @@ export function StudentClassCard({
         {description && (
           <p className="text-sm text-text-secondary line-clamp-2 mb-2">{description}</p>
         )}
-        <p className="text-sm font-medium" style={{ color: scheme.accent }}>
-          {simulationCount === 0
-            ? "No simulations yet"
-            : `${simulationCount} simulation${simulationCount === 1 ? "" : "s"}`}
-        </p>
-        <p className="text-xs text-text-secondary mt-2 group-hover:text-text-primary transition-colors">
-          Open class →
-        </p>
+        <div className="mt-auto pt-2">
+          <p className="text-sm font-medium" style={{ color: scheme.accent }}>
+            {simulationCount === 0
+              ? "No simulations yet"
+              : `${simulationCount} simulation${simulationCount === 1 ? "" : "s"}`}
+          </p>
+          <p className="text-xs text-text-secondary mt-2 group-hover:text-text-primary transition-colors">
+            Open class →
+          </p>
+        </div>
       </div>
     </Link>
   );
