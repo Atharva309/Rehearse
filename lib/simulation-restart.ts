@@ -1,6 +1,6 @@
 /**
  * simulation-restart.ts
- * Helpers for restart redirect targets after abandoning an attempt.
+ * Helpers for restart redirect targets after resetting an attempt.
  */
 
 import { DEFAULT_CLASS_ID } from "@/lib/constants";

@@ -2,13 +2,12 @@
  * RestartSimulationButton.tsx
  * Always-visible restart button shown in the top right of all
  * simulation stage pages. Shows a confirmation modal before
- * abandoning the current attempt and starting fresh.
+ * clearing progress and resetting to stage 1.
  * Used across all simulations, not just the Tempo simulation.
  */
 
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
@@ -31,7 +30,7 @@ type RestartSimulationButtonProps = {
 };
 
 /**
- * Restarts the simulation after confirmation — abandons current attempt via API.
+ * Restarts the simulation after confirmation — clears scores and resets via API.
  */
 export function RestartSimulationButton({
   attemptId,
@@ -41,7 +40,6 @@ export function RestartSimulationButton({
   variant = "default",
   redirectHref,
 }: RestartSimulationButtonProps): React.ReactElement {
-  const router = useRouter();
   const { showToast } = useToast();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
@@ -56,8 +54,18 @@ export function RestartSimulationButton({
     });
 
     if (!res.ok) {
-      showToast("Could not restart simulation. Please try again.", "error");
+      let message = "Could not restart simulation. Please try again.";
+      try {
+        const body = (await res.json()) as { error?: string };
+        if (body.error) {
+          message = body.error;
+        }
+      } catch {
+        /* ignore parse errors */
+      }
+      showToast(message, "error");
       setIsRestarting(false);
+      setShowConfirm(false);
       return;
     }
 
@@ -66,8 +74,8 @@ export function RestartSimulationButton({
       redirectHref ??
       buildRestartRedirectHref(simulationId, classId, simulationTitle, data.newAttemptId);
 
-    router.push(href);
-    router.refresh();
+    // Full navigation so stage state reloads from the server (same attempt id after reset).
+    window.location.assign(href);
   };
 
   const buttonClass =

@@ -1,7 +1,7 @@
 /**
  * restart/route.ts
- * Abandons the current in-progress attempt and creates a new one.
- * Called when a student clicks "Restart Simulation".
+ * Resets the current in-progress attempt — clears stage scores and
+ * returns the student to lead_gen. Called when a student clicks "Restart Simulation".
  * Requires a valid student session cookie.
  *
  * POST body: { attemptId, simulationId, classId }
@@ -21,7 +21,7 @@ type RestartBody = {
 };
 
 /**
- * Marks the current attempt abandoned and inserts a fresh in-progress attempt.
+ * Clears progress on the current attempt and resets it to the first stage.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const auth = await requireStudentApi();
@@ -46,11 +46,17 @@ export async function POST(request: Request): Promise<NextResponse> {
       .select("id, student_id, simulation_id, class_id, status")
       .eq("id", attemptId)
       .eq("student_id", auth.session.studentId)
-      .eq("simulation_id", simulationId)
-      .eq("class_id", classId)
       .single();
 
     if (attemptError || !attempt) {
+      return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
+    }
+
+    if (attempt.simulation_id !== simulationId) {
+      return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
+    }
+
+    if (attempt.class_id && attempt.class_id !== classId) {
       return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
     }
 
@@ -63,48 +69,58 @@ export async function POST(request: Request): Promise<NextResponse> {
       .select("id")
       .eq("student_id", auth.session.studentId)
       .eq("class_id", classId)
-      .single();
+      .maybeSingle();
 
-    if (!enrollment) {
-      return NextResponse.json({ error: "Not enrolled in this class." }, { status: 403 });
+    const { error: deleteScoresError } = await supabase
+      .from("stage_scores")
+      .delete()
+      .eq("attempt_id", attemptId);
+
+    if (deleteScoresError) {
+      console.error("[simulation/restart] delete scores", deleteScoresError);
+      return NextResponse.json(
+        { error: deleteScoresError.message || "Could not clear stage progress." },
+        { status: 500 }
+      );
     }
 
-    const { error: abandonError } = await supabase
+    const resetPayload: Record<string, unknown> = {
+      current_stage: "lead_gen",
+      total_score: 0,
+      status: ATTEMPT_STATUS.IN_PROGRESS,
+      completed_at: null,
+    };
+
+    if (!attempt.class_id) {
+      resetPayload.class_id = classId;
+    }
+
+    if (enrollment?.id) {
+      resetPayload.student_class_id = enrollment.id;
+    }
+
+    const { error: resetError } = await supabase
       .from("attempts")
-      .update({ status: ATTEMPT_STATUS.ABANDONED })
+      .update(resetPayload)
       .eq("id", attemptId);
 
-    if (abandonError) {
-      console.error("[simulation/restart] abandon", abandonError);
-      return NextResponse.json({ error: "Could not restart simulation." }, { status: 500 });
-    }
-
-    const { data: newAttempt, error: insertError } = await supabase
-      .from("attempts")
-      .insert({
-        student_id: auth.session.studentId,
-        simulation_id: simulationId,
-        class_id: classId,
-        student_class_id: enrollment.id,
-        status: ATTEMPT_STATUS.IN_PROGRESS,
-        current_stage: "lead_gen",
-      })
-      .select("id")
-      .single();
-
-    if (insertError || !newAttempt) {
-      console.error("[simulation/restart] insert", insertError);
-      return NextResponse.json({ error: "Could not create a new attempt." }, { status: 500 });
+    if (resetError) {
+      console.error("[simulation/restart] reset", resetError);
+      return NextResponse.json(
+        { error: resetError.message || "Could not restart simulation." },
+        { status: 500 }
+      );
     }
 
     const payload: RestartSimulationResponse = {
       success: true,
-      newAttemptId: newAttempt.id as string,
+      newAttemptId: attemptId,
     };
 
     return NextResponse.json(payload);
   } catch (err) {
     console.error("[simulation/restart] unexpected", err);
-    return NextResponse.json({ error: "Could not restart simulation." }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Could not restart simulation.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

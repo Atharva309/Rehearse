@@ -99,3 +99,25 @@ VALUES (
   '00000000-0000-0000-0000-000000000002'
 )
 ON CONFLICT (class_id, simulation_id) DO NOTHING;
+
+-- Step 6: Allow abandoned status (required for Restart simulation)
+DO $$
+DECLARE
+  constraint_name text;
+BEGIN
+  FOR constraint_name IN
+    SELECT con.conname
+    FROM pg_constraint con
+    JOIN pg_class rel ON rel.oid = con.conrelid
+    JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND rel.relname = 'attempts'
+      AND con.contype = 'c'
+      AND pg_get_constraintdef(con.oid) ILIKE '%status%'
+  LOOP
+    EXECUTE format('ALTER TABLE attempts DROP CONSTRAINT %I', constraint_name);
+  END LOOP;
+END $$;
+
+ALTER TABLE attempts ADD CONSTRAINT attempts_status_check
+  CHECK (status IN ('in_progress', 'completed', 'abandoned'));
