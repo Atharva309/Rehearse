@@ -1,63 +1,12 @@
--- Rehearse: Rehearse Essentials system class
--- Run this ENTIRE file in Supabase → SQL Editor → Run
--- Safe to re-run (uses ON CONFLICT / IF NOT EXISTS patterns)
+-- Rehearse: Tempo simulation seed for Rehearse Essentials
+-- Run AFTER default-class-migration.sql in Supabase → SQL Editor → Run
+-- Safe to re-run (uses ON CONFLICT patterns)
 
--- Step 1: Allow NULL professor_id for system classes
-ALTER TABLE classes
-  ALTER COLUMN professor_id DROP NOT NULL;
-
-ALTER TABLE student_classes
-  ALTER COLUMN professor_id DROP NOT NULL;
-
--- Step 2: Create the system default class
-INSERT INTO classes (
-  id,
-  professor_id,
-  name,
-  description,
-  join_code,
-  is_active,
-  created_at
-) VALUES (
-  '00000000-0000-0000-0000-000000000001',
-  NULL,
-  'Rehearse Essentials',
-  'Curated simulations from Rehearse — available to every student.',
-  'DEFAULT',
-  true,
-  now()
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Step 2b: Update name/description if class was already seeded with old values
-UPDATE classes SET
-  name = 'Rehearse Essentials',
-  description = 'Curated simulations from Rehearse — available to every student.'
-WHERE id = '00000000-0000-0000-0000-000000000001';
-
--- Step 3: Enroll all existing students in the default class
-INSERT INTO student_classes (student_id, class_id, professor_id)
-SELECT
-  s.id,
-  '00000000-0000-0000-0000-000000000001',
-  NULL
-FROM students s
-WHERE NOT EXISTS (
-  SELECT 1 FROM student_classes sc
-  WHERE sc.student_id = s.id
-  AND sc.class_id = '00000000-0000-0000-0000-000000000001'
-)
-ON CONFLICT (student_id, class_id) DO NOTHING;
-
--- Step 4: Verify default class
-SELECT * FROM classes WHERE id = '00000000-0000-0000-0000-000000000001';
-SELECT COUNT(*) AS default_class_enrollments FROM student_classes
-WHERE class_id = '00000000-0000-0000-0000-000000000001';
-
--- Step 5: Seed Tempo simulation (see tempo-simulation-seed.sql for full details)
+-- Step 1: Allow NULL teacher_id for system-owned simulations
 ALTER TABLE simulations
   ALTER COLUMN teacher_id DROP NOT NULL;
 
+-- Step 2: Seed the Tempo / Summit Dental simulation
 INSERT INTO simulations (
   id,
   teacher_id,
@@ -91,11 +40,24 @@ Stay in character. Short, realistic responses — 2-3 sentences max. Never break
 )
 ON CONFLICT (id) DO UPDATE SET
   title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  persona_name = EXCLUDED.persona_name,
+  persona_role = EXCLUDED.persona_role,
+  persona_system_prompt = EXCLUDED.persona_system_prompt,
+  product_context = EXCLUDED.product_context,
   is_published = true;
 
+-- Step 3: Assign Tempo simulation to Rehearse Essentials (default class)
 INSERT INTO class_simulations (class_id, simulation_id)
 VALUES (
   '00000000-0000-0000-0000-000000000001',
   '00000000-0000-0000-0000-000000000002'
 )
 ON CONFLICT (class_id, simulation_id) DO NOTHING;
+
+-- Step 4: Verify
+SELECT s.id, s.title, s.is_published, c.name AS class_name
+FROM class_simulations cs
+JOIN simulations s ON s.id = cs.simulation_id
+JOIN classes c ON c.id = cs.class_id
+WHERE cs.class_id = '00000000-0000-0000-0000-000000000001';

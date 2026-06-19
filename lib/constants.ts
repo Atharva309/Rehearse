@@ -147,9 +147,9 @@ export const DEFAULT_CLASS_JOIN_CODE = "DEFAULT" as const;
 
 /**
  * ID of the Tempo/Summit Dental simulation seeded in the default class.
- * Leave empty until seeded; title match ("Tempo") is used as fallback.
+ * Never delete or reassign this ID.
  */
-export const TEMPO_SIMULATION_ID = "" as const;
+export const TEMPO_SIMULATION_ID = "00000000-0000-0000-0000-000000000002" as const;
 
 // ── Stitch UI layout ──────────────────────────────────────────────────────────
 
