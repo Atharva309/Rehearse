@@ -14,6 +14,7 @@ type StudentClassCardProps = {
   cardImageUrl?: string | null;
   cardColorScheme?: ClassColorSchemeId | null;
   simulationCount: number;
+  isSystemDefault?: boolean;
 };
 
 /**
@@ -26,6 +27,7 @@ export function StudentClassCard({
   cardImageUrl,
   cardColorScheme,
   simulationCount,
+  isSystemDefault = false,
 }: StudentClassCardProps): React.ReactElement {
   const scheme = resolveClassColorScheme(cardColorScheme);
   const image = cardImageUrl?.trim() || null;
@@ -51,6 +53,16 @@ export function StudentClassCard({
         className="px-5 py-4 border-l-4 bg-surface"
         style={{ borderLeftColor: scheme.accent }}
       >
+        {isSystemDefault && (
+          <div className="flex items-center gap-2 mb-2">
+            <span className="material-symbols-outlined text-accent text-[18px]" aria-hidden>
+              auto_awesome
+            </span>
+            <span className="px-2 py-0.5 bg-accent/10 text-accent font-bold text-[10px] uppercase rounded">
+              Available to all students
+            </span>
+          </div>
+        )}
         {description && (
           <p className="text-sm text-text-secondary line-clamp-2 mb-2">{description}</p>
         )}

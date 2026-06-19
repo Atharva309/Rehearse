@@ -7,6 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { requireProfessorApi } from "@/lib/api-auth";
+import { DEFAULT_CLASS_ID } from "@/lib/constants";
 import { createServiceClient } from "@/lib/supabase/server";
 
 type RouteContext = { params: { classId: string } };
@@ -110,6 +111,13 @@ export async function PATCH(
   request: Request,
   { params }: RouteContext
 ): Promise<NextResponse> {
+  if (params.classId === DEFAULT_CLASS_ID) {
+    return NextResponse.json(
+      { error: "The default class cannot be modified." },
+      { status: 403 }
+    );
+  }
+
   const auth = await requireProfessorApi();
   if (!auth.ok) {
     return auth.response;
@@ -218,6 +226,13 @@ export async function DELETE(
   _request: Request,
   { params }: RouteContext
 ): Promise<NextResponse> {
+  if (params.classId === DEFAULT_CLASS_ID) {
+    return NextResponse.json(
+      { error: "The default class cannot be modified." },
+      { status: 403 }
+    );
+  }
+
   const auth = await requireProfessorApi();
   if (!auth.ok) {
     return auth.response;

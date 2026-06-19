@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import {
+  DEFAULT_CLASS_JOIN_CODE,
   JOIN_CODE_LENGTH,
   PASSWORD_MIN_LENGTH,
   USERNAME_MAX_LENGTH,
@@ -12,7 +13,7 @@ import {
   USERNAME_REGEX,
 } from "@/lib/constants";
 import { hashPassword } from "@/lib/password";
-import { enrollStudentInClass } from "@/lib/student-enrollment";
+import { enrollStudentInClass, enrollStudentInDefaultClass } from "@/lib/student-enrollment";
 import { createStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -54,6 +55,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (!displayName) {
       return NextResponse.json({ error: "Display name is required." }, { status: 400 });
+    }
+
+    if (joinCode.toUpperCase() === DEFAULT_CLASS_JOIN_CODE) {
+      return NextResponse.json({ error: "Invalid class code." }, { status: 404 });
     }
 
     if (joinCode.length !== JOIN_CODE_LENGTH) {
@@ -115,6 +120,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       await supabase.from("students").delete().eq("id", student.id);
       return NextResponse.json({ error: enrollResult.message }, { status: enrollResult.status });
     }
+
+    await enrollStudentInDefaultClass(supabase, student.id);
 
     await createStudentSession({
       studentId: student.id,

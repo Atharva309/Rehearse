@@ -126,6 +126,18 @@ export const STUDENT_SESSION_DAYS = 7;
 /** Username is globally unique — not per class. */
 export const USERNAME_SCOPE = "global" as const;
 
+// ── Default system class ───────────────────────────────────────────────────
+
+/** UUID of the system-seeded Default Simulations class.
+ *  Every student is auto-enrolled in this class on registration.
+ *  It belongs to no professor (professor_id = null).
+ *  Never delete or reassign this ID.
+ */
+export const DEFAULT_CLASS_ID = "00000000-0000-0000-0000-000000000001" as const;
+
+/** Join code for the default class — reserved, cannot be used by professors */
+export const DEFAULT_CLASS_JOIN_CODE = "DEFAULT" as const;
+
 // ── Stitch UI layout ──────────────────────────────────────────────────────────
 
 export const CALL_OVERLAY_INSET_PX = 16;

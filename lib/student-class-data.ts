@@ -4,6 +4,7 @@
  */
 
 import { resolveClassColorScheme } from "@/lib/class-appearance";
+import { DEFAULT_CLASS_ID } from "@/lib/constants";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { ClassColorSchemeId, Simulation } from "@/types";
 
@@ -87,6 +88,10 @@ export async function loadStudentEnrolledClasses(
       accentColor: scheme.accent,
       simulationCount: simCountByClass.get(classId) ?? 0,
     };
+  }).sort((a, b) => {
+    if (a.classId === DEFAULT_CLASS_ID) return -1;
+    if (b.classId === DEFAULT_CLASS_ID) return 1;
+    return 0;
   });
 }
 

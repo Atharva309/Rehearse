@@ -11,6 +11,7 @@ import {
   type StudentAttemptRow,
 } from "@/components/StudentAttemptHistory";
 import { loadStudentEnrolledClasses } from "@/lib/student-class-data";
+import { DEFAULT_CLASS_ID } from "@/lib/constants";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { JoinClassButton } from "./JoinClassButton";
@@ -81,6 +82,7 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
               cardImageUrl={cls.cardImageUrl}
               cardColorScheme={cls.cardColorScheme}
               simulationCount={cls.simulationCount}
+              isSystemDefault={cls.classId === DEFAULT_CLASS_ID}
             />
           ))}
         </div>

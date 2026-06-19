@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { JOIN_CODE_LENGTH } from "@/lib/constants";
+import { DEFAULT_CLASS_JOIN_CODE, JOIN_CODE_LENGTH } from "@/lib/constants";
 import {
   enrollStudentInClass,
   enrollmentErrorMessage,
@@ -29,6 +29,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const body = (await request.json()) as JoinClassBody;
     const joinCode = body.joinCode?.trim().toUpperCase() ?? "";
+
+    if (joinCode.toUpperCase() === DEFAULT_CLASS_JOIN_CODE) {
+      return NextResponse.json({ error: "Invalid class code." }, { status: 404 });
+    }
 
     if (joinCode.length !== JOIN_CODE_LENGTH) {
       return NextResponse.json({ error: "Invalid class code." }, { status: 400 });

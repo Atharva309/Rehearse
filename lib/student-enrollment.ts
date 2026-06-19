@@ -5,11 +5,12 @@
 
 import type { PostgrestError } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { DEFAULT_CLASS_ID } from "@/lib/constants";
 
 type EnrollInput = {
   studentId: string;
   classId: string;
-  professorId: string;
+  professorId: string | null;
 };
 
 export type EnrollmentFailure = {
@@ -109,4 +110,23 @@ export async function isStudentEnrolledInClass(
   }
 
   return { enrolled: Boolean(data), lookupFailed: false };
+}
+
+/**
+ * Enrolls a student in the system Default Simulations class.
+ * Non-blocking — duplicate enrollments are ignored.
+ */
+export async function enrollStudentInDefaultClass(
+  supabase: SupabaseClient,
+  studentId: string
+): Promise<void> {
+  const { error } = await supabase.from("student_classes").insert({
+    student_id: studentId,
+    class_id: DEFAULT_CLASS_ID,
+    professor_id: null,
+  });
+
+  if (error && error.code !== "23505") {
+    console.error("[student-enrollment] default class enroll failed:", error);
+  }
 }
