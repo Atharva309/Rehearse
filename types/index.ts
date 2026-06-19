@@ -5,7 +5,7 @@
 
 export type UserRole = "student" | "teacher";
 
-export type AttemptStatus = "in_progress" | "completed";
+export type AttemptStatus = "in_progress" | "completed" | "abandoned";
 
 export type SimulationStage =
   | "lead_gen"
@@ -273,4 +273,9 @@ export type StageProgressItem = {
   label: string;
   status: "completed" | "current" | "locked";
   score?: number;
+};
+
+export type RestartSimulationResponse = {
+  success: boolean;
+  newAttemptId: string;
 };

@@ -77,6 +77,7 @@ export default async function TempoSimulationEntryPage({
     .eq("student_id", session.studentId)
     .eq("simulation_id", params.id)
     .eq("class_id", classId)
+    .in("status", ["in_progress", "completed"])
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -132,9 +133,11 @@ export default async function TempoSimulationEntryPage({
       <TempoSimulationEntryView
         classId={classId}
         simulationId={params.id}
+        simulationTitle={simulation.title}
         ctaHref={ctaHref}
         ctaLabel={ctaLabel}
         hasInProgressAttempt={hasInProgressAttempt}
+        restartAttemptId={hasInProgressAttempt ? attemptId : null}
         completedStageKeys={completedStageKeys}
         currentStage={currentStage ? normalizeToTempoStageKey(currentStage) : null}
         lastStageScore={lastStageScore}

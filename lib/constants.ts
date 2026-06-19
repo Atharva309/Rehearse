@@ -151,6 +151,17 @@ export const DEFAULT_CLASS_JOIN_CODE = "DEFAULT" as const;
  */
 export const TEMPO_SIMULATION_ID = "00000000-0000-0000-0000-000000000002" as const;
 
+// ── Attempt lifecycle ─────────────────────────────────────────────────────────
+
+/** Attempt status values stored on attempts.status */
+export const ATTEMPT_STATUS = {
+  IN_PROGRESS: "in_progress",
+  COMPLETED: "completed",
+  ABANDONED: "abandoned",
+} as const;
+
+export type AttemptStatusValue = (typeof ATTEMPT_STATUS)[keyof typeof ATTEMPT_STATUS];
+
 // ── Stitch UI layout ──────────────────────────────────────────────────────────
 
 export const CALL_OVERLAY_INSET_PX = 16;

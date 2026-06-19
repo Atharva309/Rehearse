@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { SimulationCard } from "@/components/SimulationCard";
 import { StudentClassHeader } from "@/components/StudentClassHeader";
 import {
+  ATTEMPT_STATUS,
   DEFAULT_CLASS_ID,
   DEFAULT_CLASS_DESCRIPTION,
   DEFAULT_CLASS_NAME,
@@ -43,7 +44,7 @@ export default async function StudentClassPage({
     .select("*")
     .eq("student_id", session.studentId)
     .eq("class_id", params.classId)
-    .eq("status", "in_progress");
+    .eq("status", ATTEMPT_STATUS.IN_PROGRESS);
 
   const inProgressList = (attempts ?? []) as Attempt[];
   const attemptIds = inProgressList.map((a) => a.id);

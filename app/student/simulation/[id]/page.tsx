@@ -5,6 +5,7 @@
 
 import { redirect } from "next/navigation";
 import { SimulationRunner } from "@/components/SimulationRunner";
+import { ATTEMPT_STATUS } from "@/lib/constants";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Attempt, Simulation, StageScore } from "@/types";
@@ -79,7 +80,9 @@ export default async function StudentSimulationPage({
       .eq("student_id", session.studentId)
       .eq("class_id", classId)
       .single();
-    attempt = data as Attempt | null;
+    if (data && data.status !== "abandoned") {
+      attempt = data as Attempt;
+    }
   }
 
   if (!attempt) {
@@ -89,7 +92,7 @@ export default async function StudentSimulationPage({
       .eq("simulation_id", params.id)
       .eq("student_id", session.studentId)
       .eq("class_id", classId)
-      .eq("status", "in_progress")
+      .eq("status", ATTEMPT_STATUS.IN_PROGRESS)
       .maybeSingle();
 
     if (existing) {

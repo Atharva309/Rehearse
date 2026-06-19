@@ -5,6 +5,7 @@
  */
 
 import Link from "next/link";
+import { RestartSimulationButton } from "@/components/simulation/RestartSimulationButton";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import { COLORS } from "@/lib/design-tokens";
 import {
@@ -18,9 +19,11 @@ import type { SimulationStage } from "@/types";
 type TempoSimulationEntryViewProps = {
   classId: string;
   simulationId: string;
+  simulationTitle: string;
   ctaHref: string;
   ctaLabel: string;
   hasInProgressAttempt: boolean;
+  restartAttemptId: string | null;
   completedStageKeys: ReadonlySet<string>;
   currentStage: SimulationStage | null;
   lastStageScore: number | null;
@@ -96,17 +99,35 @@ function TempoStageCard({ stage, status }: TempoStageCardProps): React.ReactElem
  * Full Tempo simulation entry page body (student header comes from layout).
  */
 export function TempoSimulationEntryView({
+  classId,
+  simulationId,
+  simulationTitle,
   ctaHref,
   ctaLabel,
   hasInProgressAttempt,
+  restartAttemptId,
   completedStageKeys,
   currentStage,
   lastStageScore,
 }: TempoSimulationEntryViewProps): React.ReactElement {
+  const entryRedirectHref = `/student/simulation/${simulationId}/entry?classId=${classId}`;
+
   return (
     <div className="-mx-4 sm:-mx-6">
       {/* Hero — full bleed */}
-      <section className="w-full bg-primary-container px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+      <section className="relative w-full bg-primary-container px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+        {hasInProgressAttempt && restartAttemptId && (
+          <div className="absolute top-6 right-6 z-10">
+            <RestartSimulationButton
+              attemptId={restartAttemptId}
+              simulationId={simulationId}
+              classId={classId}
+              simulationTitle={simulationTitle}
+              redirectHref={entryRedirectHref}
+            />
+          </div>
+        )}
+
         <div className="max-w-[1100px] mx-auto flex flex-col lg:flex-row items-start justify-between gap-10 lg:gap-12">
           <div className="flex-1 min-w-0">
             {hasInProgressAttempt ? (

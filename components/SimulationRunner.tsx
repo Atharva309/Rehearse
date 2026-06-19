@@ -11,6 +11,7 @@ import { BackButton } from "@/components/BackButton";
 import { CallContainer } from "@/components/call/CallContainer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PipelineProgress } from "@/components/PipelineProgress";
+import { RestartSimulationButton } from "@/components/simulation/RestartSimulationButton";
 import { CloseStage } from "@/components/stages/CloseStage";
 import { DiscoveryStage } from "@/components/stages/DiscoveryStage";
 import { LeadGenStage } from "@/components/stages/LeadGenStage";
@@ -82,6 +83,7 @@ export function SimulationRunner({
 
   const stage = attempt.current_stage;
   const isCallStage = CALL_STAGES.includes(stage);
+  const classId = attempt.class_id ?? "";
 
   const stageContent = (
     <ErrorBoundary stageName={stage}>
@@ -146,10 +148,21 @@ export function SimulationRunner({
     <div
       className={
         isCallStage
-          ? "flex min-h-0 w-full flex-1 flex-col"
-          : "w-full px-6"
+          ? "relative flex min-h-0 w-full flex-1 flex-col"
+          : "relative w-full px-6"
       }
     >
+      {classId && (
+        <div className="absolute top-4 right-4 z-20">
+          <RestartSimulationButton
+            attemptId={attempt.id}
+            simulationId={simulation.id}
+            classId={classId}
+            simulationTitle={simulation.title}
+          />
+        </div>
+      )}
+
       <BackButton label="Back to Dashboard" href="/student/dashboard" />
       {className && isCallStage && (
         <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-accent px-1">
