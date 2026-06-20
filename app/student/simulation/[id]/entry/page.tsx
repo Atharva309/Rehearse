@@ -122,13 +122,15 @@ export default async function TempoSimulationEntryPage({
 
   return (
     <div>
-      <Link
-        href={`/student/classes/${classId}`}
-        className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:underline mb-4 transition-colors"
-      >
-        <span aria-hidden>←</span>
-        Back to Rehearse Essentials
-      </Link>
+      <div className="px-4 sm:px-6">
+        <Link
+          href={`/student/classes/${classId}`}
+          className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:underline mb-4 transition-colors"
+        >
+          <span aria-hidden>←</span>
+          Back to Rehearse Essentials
+        </Link>
+      </div>
 
       <TempoSimulationEntryView
         classId={classId}

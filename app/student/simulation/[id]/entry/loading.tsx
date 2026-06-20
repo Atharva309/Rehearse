@@ -8,7 +8,7 @@
  */
 export default function TempoEntryLoading(): React.ReactElement {
   return (
-    <div className="-mx-4 sm:-mx-6 animate-pulse">
+    <div className="animate-pulse">
       <div className="bg-primary-container h-72 lg:h-80" />
       <div className="bg-surface py-12 px-4 sm:px-6 space-y-8 max-w-[1100px] mx-auto">
         <div className="grid lg:grid-cols-2 gap-6">

@@ -113,7 +113,7 @@ export function TempoSimulationEntryView({
   const entryRedirectHref = `/student/simulation/${simulationId}/entry?classId=${classId}`;
 
   return (
-    <div className="-mx-4 sm:-mx-6">
+    <div>
       {/* Hero — full bleed */}
       <section className="relative w-full bg-primary-container px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
         {hasInProgressAttempt && restartAttemptId && (

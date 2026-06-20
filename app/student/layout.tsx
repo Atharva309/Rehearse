@@ -44,8 +44,9 @@ export default async function StudentLayout({
         subtitle={subtitle}
         homeHref="/student/dashboard"
         logoutMode="student"
+        containerClassName="w-full px-4 sm:px-6 h-16 flex items-center justify-between"
       />
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-6 pt-2 sm:px-6">
+      <div className="flex w-full flex-1 flex-col pb-6 pt-2">
         {children}
       </div>
     </div>

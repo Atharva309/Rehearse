@@ -87,10 +87,10 @@ export default async function SimulationCompletePage({
   );
 
   return (
-    <div className="w-full">
+    <div className="w-full px-4 sm:px-6">
       <BackButton label="Back to Dashboard" href="/student/dashboard" />
 
-      <div className="relative left-1/2 -translate-x-1/2 w-screen max-w-[100vw] px-4 sm:px-8 mb-6">
+      <div className="mb-6">
         <PipelineProgress items={pipelineItems} allComplete />
       </div>
 

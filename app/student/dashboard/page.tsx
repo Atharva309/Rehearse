@@ -48,7 +48,7 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
   });
 
   return (
-    <div>
+    <div className="px-4 sm:px-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">

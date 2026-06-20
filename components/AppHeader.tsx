@@ -15,6 +15,8 @@ type AppHeaderProps = {
   subtitle?: string;
   /** student = JWT cookie logout; supabase = default professor/student auth logout */
   logoutMode?: "supabase" | "student";
+  /** Override inner bar layout (defaults to centered max-width container). */
+  containerClassName?: string;
 };
 
 /**
@@ -25,6 +27,7 @@ export function AppHeader({
   homeHref,
   subtitle,
   logoutMode = "supabase",
+  containerClassName = "max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between",
 }: AppHeaderProps): React.ReactElement {
   const router = useRouter();
 
@@ -44,7 +47,7 @@ export function AppHeader({
 
   return (
     <header className="border-b border-border bg-page sticky top-0 z-40">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div className={containerClassName}>
         <Link href={homeHref} className="flex items-center gap-2 text-xl font-bold text-primary tracking-tight">
           <img src="/pitchlab-logo-new.png" alt="Rehearse logo" className="h-[1.5em] w-auto shrink-0" />
           Rehearse

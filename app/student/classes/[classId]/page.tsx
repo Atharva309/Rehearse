@@ -73,7 +73,7 @@ export default async function StudentClassPage({
     : classDetail.description;
 
   return (
-    <div>
+    <div className="px-4 sm:px-6">
       <Link
         href="/student/dashboard"
         className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:underline mb-6 transition-colors"
