@@ -200,6 +200,27 @@ export function TempoSimulationEntryView({
             </div>
           </div>
         </div>
+
+        <div className="max-w-[1100px] mx-auto text-center pt-10 lg:pt-12 mt-10 lg:mt-12 border-t border-white/10">
+          <h2 className="text-white font-display text-display">Ready to start?</h2>
+          <p className="text-on-primary-container font-body-lg mt-3 mb-8">
+            Stage 1 takes about 15 minutes. Your progress is saved automatically.
+          </p>
+
+          <Link
+            href={ctaHref}
+            className="inline-flex items-center gap-3 px-10 py-5 bg-tertiary-container text-on-tertiary-fixed font-bold text-lg rounded-xl transition-all active:scale-95 duration-150 shadow-xl hover:opacity-90"
+          >
+            {ctaLabel}
+            <MaterialIcon name="arrow_forward" />
+          </Link>
+
+          <p className="text-white/40 font-label-sm mt-4">Estimated total time: ~60 minutes</p>
+
+          {hasInProgressAttempt && lastStageScore !== null && (
+            <p className="text-white/40 font-label-sm mt-2">Last stage score: {lastStageScore}/100</p>
+          )}
+        </div>
       </section>
 
       {/* Content */}
@@ -375,30 +396,6 @@ export function TempoSimulationEntryView({
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* CTA footer */}
-      <section className="w-full bg-primary-container py-16 lg:py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1100px] mx-auto text-center">
-          <h2 className="text-white font-display text-display">Ready to start?</h2>
-          <p className="text-on-primary-container font-body-lg mt-3 mb-8">
-            Stage 1 takes about 15 minutes. Your progress is saved automatically.
-          </p>
-
-          <Link
-            href={ctaHref}
-            className="inline-flex items-center gap-3 px-10 py-5 bg-tertiary-container text-on-tertiary-fixed font-bold text-lg rounded-xl transition-all active:scale-95 duration-150 shadow-xl hover:opacity-90"
-          >
-            {ctaLabel}
-            <MaterialIcon name="arrow_forward" />
-          </Link>
-
-          <p className="text-white/40 font-label-sm mt-4">Estimated total time: ~60 minutes</p>
-
-          {hasInProgressAttempt && lastStageScore !== null && (
-            <p className="text-white/40 font-label-sm mt-2">Last stage score: {lastStageScore}/100</p>
-          )}
         </div>
       </section>
     </div>
