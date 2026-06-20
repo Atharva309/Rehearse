@@ -83,7 +83,9 @@ ABOUT TEMPO: Scheduling software for appointment-based businesses. Key value: cu
 
 ABOUT SUMMIT DENTAL: 8 dental practices in Colorado Front Range. Founded by Dr. Saul Kim. Just opened 8th location 3 months ago. Scheduling by phone. Director of Operations is Dana Reyes who reports to Dr. Kim.
 
-Answer the student's questions about Summit Dental and the dental scheduling market. If you don't have verified information, say so clearly — flag uncertainty rather than fabricate. Keep responses concise and useful for sales research.`;
+Answer the student's questions about Summit Dental and the dental scheduling market. If you don't have verified information, say so clearly — flag uncertainty rather than fabricate. Keep responses concise and useful for sales research.
+
+IMPORTANT: Write in plain English only. Do not use LaTeX, TeX, math delimiters ($ or $$), or markdown code blocks. Use normal punctuation for numbers and percentages (e.g. 15-20%, not $15\\text{-}20\\%$).`;
 
 export const AUTO_RESEARCH_CARDS = [
   {
@@ -207,6 +209,38 @@ export function clearProspectingWizardFromStorage(attemptId: string): void {
     return;
   }
   window.localStorage.removeItem(`${STORAGE_PREFIX}${attemptId}`);
+}
+
+/**
+ * Strips LaTeX/math markup from AI replies for readable plain-text display.
+ */
+export function sanitizeAiResearchReply(text: string): string {
+  const cleanFragment = (fragment: string): string =>
+    fragment
+      .replace(/\\text\{([^}]*)\}/g, "$1")
+      .replace(/\\textbf\{([^}]*)\}/g, "$1")
+      .replace(/\\textit\{([^}]*)\}/g, "$1")
+      .replace(/\\emph\{([^}]*)\}/g, "$1")
+      .replace(/\\%/g, "%")
+      .replace(/\\-/g, "-")
+      .replace(/\\,/g, " ")
+      .replace(/\\;/g, " ")
+      .replace(/\\quad/g, " ")
+      .replace(/\\[a-zA-Z]+/g, "")
+      .replace(/[{}]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  return text
+    .replace(/\$\$([\s\S]*?)\$\$/g, (_, inner: string) => cleanFragment(inner))
+    .replace(/\$([^$\n]+?)\$/g, (_, inner: string) => cleanFragment(inner))
+    .replace(/\\text\{([^}]*)\}/g, "$1")
+    .replace(/\\textbf\{([^}]*)\}/g, "$1")
+    .replace(/\\%/g, "%")
+    .replace(/\\-/g, "-")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   loadProspectingWizardFromStorage,
   saveProspectingWizardToStorage,
   TEMPO_RESEARCH_SYSTEM_PROMPT,
+  sanitizeAiResearchReply,
   type ProspectingWizardState,
 } from "@/lib/tempo-prospecting";
 import type { ChatMessage } from "@/types";
@@ -194,7 +195,10 @@ export function useProspectingWizard({
       }
 
       const body = (await res.json()) as { reply: string };
-      const assistantMessage: ChatMessage = { role: "assistant", content: body.reply };
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content: sanitizeAiResearchReply(body.reply),
+      };
       setState((prev) => {
         const next = { ...prev, chatMessages: [...nextMessages, assistantMessage] };
         void persistState(next);

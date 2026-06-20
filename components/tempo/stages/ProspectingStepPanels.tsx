@@ -8,6 +8,7 @@ import {
   AUTO_RESEARCH_CARDS,
   PROSPECTING_STEPS,
   SELF_CHECK_ITEMS,
+  sanitizeAiResearchReply,
   type ProspectingWizardState,
 } from "@/lib/tempo-prospecting";
 import type { ChatMessage } from "@/types";
@@ -147,24 +148,36 @@ export function ProspectingStepPanels({
                       {msg.content}
                     </div>
                   ) : (
-                    <div className="bg-surface-container-lowest text-on-surface max-w-[90%] self-start p-sm rounded-lg rounded-tl-none border border-outline-variant text-body-md shadow-sm flex gap-sm">
-                      <MaterialIcon name="smart_toy" className="text-secondary-container" filled />
-                      <p>{msg.content}</p>
+                    <div className="bg-surface-container-lowest text-on-surface max-w-[90%] self-start p-sm rounded-lg rounded-tl-none border border-outline-variant text-body-md shadow-sm flex gap-sm items-start">
+                      <img
+                        src="/pitchlab-logo-new.png"
+                        alt="Rehearse AI"
+                        className="h-7 w-auto shrink-0 mt-0.5"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-wide mb-1">
+                          Rehearse AI
+                        </p>
+                        <p className="whitespace-pre-wrap leading-relaxed">
+                          {sanitizeAiResearchReply(msg.content)}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
               ))}
               {isAILoading && (
                 <div className="flex items-center gap-sm text-on-surface-variant">
+                  <img src="/pitchlab-logo-new.png" alt="" className="h-5 w-auto opacity-70" />
                   <div className="w-4 h-4 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-label-sm">AI is thinking...</span>
+                  <span className="text-label-sm">Rehearse AI is thinking...</span>
                 </div>
               )}
             </div>
             <div className="relative pt-sm">
               <input
                 className="w-full h-12 bg-surface-container-lowest border border-outline-variant rounded-lg pl-md pr-12 text-body-md focus:ring-2 focus:ring-secondary-container outline-none"
-                placeholder="Ask AI anything about the prospect..."
+                placeholder="Ask Rehearse AI anything about the prospect..."
                 value={chatInput}
                 onChange={(e) => onChatInputChange(e.target.value)}
                 onKeyDown={(e) => {
