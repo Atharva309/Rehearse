@@ -170,8 +170,20 @@ export function ProspectingWizard({
         </aside>
 
         <section className="flex-1 bg-surface-container-lowest flex flex-col min-w-0">
-          <div className="bg-surface-container-low border-b border-outline-variant shrink-0">
-            <div className="h-12 flex items-center justify-between px-4 lg:px-xl gap-4">
+          <div className="bg-surface-container-low border-b border-outline-variant shrink-0 flex flex-col gap-3 px-4 lg:px-xl pt-3 pb-3">
+            <div className="flex items-center gap-md">
+              <div className="flex-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-secondary-container transition-all duration-300"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-bold text-on-surface-variant whitespace-nowrap">
+                STEP {currentStep + 1} OF {PROSPECTING_STEPS.length}
+              </span>
+            </div>
+
+            <div className="h-12 flex items-center justify-between gap-4">
               <div className="flex items-center gap-sm text-on-surface-variant">
                 <MaterialIcon name="cloud_done" className="text-green-500" />
                 <span className="text-label-sm">{wizard.isSaving ? "Saving..." : "Auto-saved"}</span>
@@ -219,18 +231,6 @@ export function ProspectingWizard({
                   </button>
                 )}
               </div>
-            </div>
-
-            <div className="px-4 lg:px-xl pb-3 flex items-center gap-md">
-              <div className="flex-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-secondary-container transition-all duration-300"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <span className="text-[11px] font-bold text-on-surface-variant whitespace-nowrap">
-                STEP {currentStep + 1} OF {PROSPECTING_STEPS.length}
-              </span>
             </div>
           </div>
 
