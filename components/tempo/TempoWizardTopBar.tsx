@@ -71,14 +71,14 @@ export function TempoWizardTopBar({
 
         <div className="hidden sm:block w-px h-6 bg-outline-variant shrink-0" />
 
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-x-auto scrollbar-none">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider shrink-0 hidden lg:inline">
+        <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1 overflow-x-auto scrollbar-none">
+          <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider shrink-0 hidden lg:inline">
             Project Flow
           </span>
           {FLOW_PILLS.map((stage, i) => (
-            <span key={stage} className="flex items-center gap-2 shrink-0">
+            <span key={stage} className="flex items-center gap-1 shrink-0">
               <div
-                className={`px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-bold rounded-full border whitespace-nowrap ${
+                className={`px-1.5 sm:px-2 py-px sm:py-0.5 text-[7px] sm:text-[8px] font-bold rounded-full border whitespace-nowrap leading-tight ${
                   i === 0
                     ? "bg-primary-container text-white border-primary-container"
                     : "bg-transparent text-on-surface-variant border-outline-variant"
@@ -87,7 +87,7 @@ export function TempoWizardTopBar({
                 {stage.toUpperCase()}
               </div>
               {i < FLOW_PILLS.length - 1 && (
-                <div className="w-2 sm:w-4 h-px bg-outline-variant hidden md:block" />
+                <div className="w-1.5 sm:w-2 h-px bg-outline-variant hidden md:block" />
               )}
             </span>
           ))}

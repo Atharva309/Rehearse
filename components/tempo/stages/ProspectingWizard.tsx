@@ -100,11 +100,11 @@ export function ProspectingWizard({
         <div className="flex flex-1 min-h-0 overflow-hidden">
         <aside className="w-60 bg-primary-container text-on-primary-container flex flex-col h-full shrink-0 hidden lg:flex">
           <div className="p-lg border-b border-white/10">
-            <div className="flex items-center gap-md mb-sm">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c6c4df]">
+            <div className="flex items-center gap-2 mb-sm flex-nowrap">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#c6c4df] whitespace-nowrap shrink-0">
                 Project Status
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[9px] font-bold whitespace-nowrap shrink-0">
                 IN PROGRESS
               </span>
             </div>
@@ -242,6 +242,16 @@ export function ProspectingWizard({
             <MaterialIcon name="library_books" className="text-on-surface-variant" />
           </div>
           <div className="space-y-lg">
+            <div className="bg-secondary-fixed text-on-secondary-fixed p-md rounded-lg flex gap-md items-start shadow-sm border border-secondary-container/20">
+              <MaterialIcon name="lightbulb" className="text-secondary font-bold shrink-0" />
+              <div className="space-y-xs min-w-0">
+                <h4 className="font-bold text-label-sm">Professor&apos;s Tip</h4>
+                <p className="text-label-sm leading-relaxed opacity-90">
+                  Focus on pain points rather than demographics. A customer&apos;s industry matters
+                  less than the specific problem they are trying to solve right now.
+                </p>
+              </div>
+            </div>
             <div>
               <h4 className="font-label-sm text-on-surface-variant uppercase tracking-tighter mb-sm">
                 Tempo Product

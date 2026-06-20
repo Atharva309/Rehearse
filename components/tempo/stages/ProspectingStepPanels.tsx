@@ -55,17 +55,6 @@ export function ProspectingStepPanels({
           </p>
         </div>
 
-        <div className="bg-secondary-fixed text-on-secondary-fixed p-md rounded-lg flex gap-md items-start shadow-sm border border-secondary-container/20">
-          <MaterialIcon name="lightbulb" className="text-secondary font-bold shrink-0" />
-          <div className="space-y-xs">
-            <h4 className="font-bold text-label-md">Professor&apos;s Tip</h4>
-            <p className="text-label-md leading-relaxed opacity-90">
-              Focus on pain points rather than demographics. A customer&apos;s industry matters less
-              than the specific problem they are trying to solve right now.
-            </p>
-          </div>
-        </div>
-
         <div className="space-y-lg">
           <div className="space-y-sm">
             <div className="flex justify-between items-center">
