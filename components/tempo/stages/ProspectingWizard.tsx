@@ -78,8 +78,6 @@ export function ProspectingWizard({
     );
   };
 
-  const progressPct = ((currentStep + 1) / PROSPECTING_STEPS.length) * 100;
-
   return (
     <>
       <TempoWizardTopBar
@@ -100,8 +98,8 @@ export function ProspectingWizard({
 
       <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
         <div className="flex flex-1 min-h-0 overflow-hidden">
-        <aside className="w-72 bg-primary-container text-on-primary-container flex flex-col h-full shrink-0 hidden lg:flex">
-          <div className="p-xl border-b border-white/10">
+        <aside className="w-60 bg-primary-container text-on-primary-container flex flex-col h-full shrink-0 hidden lg:flex">
+          <div className="p-lg border-b border-white/10">
             <div className="flex items-center gap-md mb-sm">
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c6c4df]">
                 Project Status
@@ -115,35 +113,37 @@ export function ProspectingWizard({
             </h2>
           </div>
 
-          <nav className="flex-1 p-md space-y-8 relative mt-md overflow-y-auto">
+          <nav className="flex-1 p-md mt-md overflow-y-auto">
             {PROSPECTING_STEPS.map((step, index) => {
               const isCompleted = index < currentStep;
               const isActive = index === currentStep;
               return (
-                <div key={step.id} className="relative flex items-start gap-md">
-                  {index < PROSPECTING_STEPS.length - 1 && (
+                <div key={step.id} className="flex gap-md">
+                  <div className="flex flex-col items-center shrink-0">
                     <div
-                      className={`absolute left-[11px] top-6 w-0.5 h-16 -mb-4 mt-2 ${
-                        isCompleted ? "bg-tertiary-container" : "bg-outline-variant/40"
+                      className={`z-10 w-6 h-6 rounded-full flex items-center justify-center font-code-md shrink-0 text-xs ${
+                        isCompleted
+                          ? "bg-tertiary-container text-on-tertiary-fixed"
+                          : isActive
+                            ? "bg-secondary-container text-on-secondary-container shadow-sm ring-4 ring-secondary-container/20"
+                            : "border-2 border-white/30 text-white/50"
                       }`}
-                    />
-                  )}
-                  <div
-                    className={`z-10 w-6 h-6 rounded-full flex items-center justify-center font-code-md shrink-0 text-xs ${
-                      isCompleted
-                        ? "bg-tertiary-container text-on-tertiary-fixed"
-                        : isActive
-                          ? "bg-secondary-container text-on-secondary-container shadow-sm ring-4 ring-secondary-container/20"
-                          : "border-2 border-white/30 text-white/50"
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <MaterialIcon name="check" className="text-[14px]" />
-                    ) : (
-                      index + 1
+                    >
+                      {isCompleted ? (
+                        <MaterialIcon name="check" className="text-[14px]" />
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                    {index < PROSPECTING_STEPS.length - 1 && (
+                      <div
+                        className={`w-0.5 h-12 mt-2 mb-1 shrink-0 ${
+                          isCompleted ? "bg-tertiary-container" : "bg-outline-variant/40"
+                        }`}
+                      />
                     )}
                   </div>
-                  <div className="pt-0.5">
+                  <div className={`pt-0.5 min-w-0 ${index < PROSPECTING_STEPS.length - 1 ? "pb-5" : ""}`}>
                     <h3
                       className={`font-label-md text-label-md ${
                         isActive ? "text-white font-bold" : "text-on-primary-container"
@@ -170,26 +170,13 @@ export function ProspectingWizard({
         </aside>
 
         <section className="flex-1 bg-surface-container-lowest flex flex-col min-w-0">
-          <div className="bg-surface-container-low border-b border-outline-variant shrink-0 flex flex-col gap-3 px-4 lg:px-xl pt-3 pb-3">
-            <div className="flex items-center gap-md">
-              <div className="flex-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-secondary-container transition-all duration-300"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <span className="text-[11px] font-bold text-on-surface-variant whitespace-nowrap">
-                STEP {currentStep + 1} OF {PROSPECTING_STEPS.length}
-              </span>
+          <div className="h-12 bg-surface-container-low border-b border-outline-variant shrink-0 flex items-center justify-between px-4 lg:px-xl gap-4">
+            <div className="flex items-center gap-sm text-on-surface-variant">
+              <MaterialIcon name="cloud_done" className="text-green-500" />
+              <span className="text-label-sm">{wizard.isSaving ? "Saving..." : "Auto-saved"}</span>
             </div>
 
-            <div className="h-12 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-sm text-on-surface-variant">
-                <MaterialIcon name="cloud_done" className="text-green-500" />
-                <span className="text-label-sm">{wizard.isSaving ? "Saving..." : "Auto-saved"}</span>
-              </div>
-
-              <div className="flex items-center gap-md shrink-0">
+            <div className="flex items-center gap-md shrink-0">
                 <button
                   type="button"
                   onClick={() => void wizard.handleSaveDraft()}
@@ -231,7 +218,6 @@ export function ProspectingWizard({
                   </button>
                 )}
               </div>
-            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-xl">
