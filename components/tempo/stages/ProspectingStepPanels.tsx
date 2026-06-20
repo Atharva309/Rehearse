@@ -43,8 +43,6 @@ export function ProspectingStepPanels({
   onSelfCheckChange,
   onStretchToggle,
 }: StepPanelsProps): React.ReactElement {
-  const progressPct = ((currentStep + 1) / PROSPECTING_STEPS.length) * 100;
-
   if (currentStep === 0) {
     return (
       <div className="max-w-3xl mx-auto space-y-xl">
@@ -101,17 +99,6 @@ export function ProspectingStepPanels({
               value={state.icpField2}
               onChange={(e) => onFieldChange("icpField2", e.target.value)}
             />
-          </div>
-        </div>
-
-        <div className="pt-xl border-t border-outline-variant">
-          <div className="flex items-center gap-md">
-            <div className="flex-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-              <div className="h-full bg-secondary-container" style={{ width: `${progressPct}%` }} />
-            </div>
-            <span className="text-[11px] font-bold text-on-surface-variant">
-              STEP {currentStep + 1} OF {PROSPECTING_STEPS.length}
-            </span>
           </div>
         </div>
       </div>

@@ -1,12 +1,13 @@
 /**
  * TempoWizardTopBar.tsx
  * Top navigation for the Tempo prospecting wizard — Rehearse logo,
- * project flow pills, handoff note, and restart. Uses the standard app palette.
+ * back link, project flow pills, handoff note, and restart.
  */
 
 import Link from "next/link";
 import { RestartSimulationButton } from "@/components/simulation/RestartSimulationButton";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import { PROSPECTING_STEPS } from "@/lib/tempo-prospecting";
 
 const FLOW_PILLS = [
   "Prospecting",
@@ -16,12 +17,17 @@ const FLOW_PILLS = [
   "Negotiation",
 ] as const;
 
+const BAR_BUTTON =
+  "flex items-center gap-1.5 px-3 py-1.5 font-label-sm text-label-sm rounded-lg shrink-0 transition-all duration-150";
+
 type TempoWizardTopBarProps = {
   attemptId: string;
   simulationId: string;
   classId: string;
   simulationTitle: string;
+  currentStep: number;
   onOpenHandoff: () => void;
+  onBack: () => void;
 };
 
 /**
@@ -32,11 +38,13 @@ export function TempoWizardTopBar({
   simulationId,
   classId,
   simulationTitle,
+  currentStep,
   onOpenHandoff,
+  onBack,
 }: TempoWizardTopBarProps): React.ReactElement {
   return (
     <header className="fixed top-0 left-0 right-0 z-[50] h-16 border-b border-border bg-page shrink-0">
-      <div className="h-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 lg:px-6 min-w-0">
+      <div className="h-full flex items-center gap-3 sm:gap-4 px-3 sm:px-4 lg:px-6 min-w-0">
         <Link
           href="/student/dashboard"
           className="flex items-center gap-2 shrink-0 text-xl font-bold text-primary tracking-tight"
@@ -47,12 +55,28 @@ export function TempoWizardTopBar({
 
         <div className="hidden sm:block w-px h-6 bg-outline-variant shrink-0" />
 
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-x-auto scrollbar-none">
+        <button
+          type="button"
+          onClick={onBack}
+          className={`${BAR_BUTTON} text-on-surface-variant border border-outline-variant hover:bg-surface-container`}
+        >
+          <MaterialIcon name="arrow_back" className="text-[16px]" />
+          <span className="hidden md:inline">
+            {currentStep > 0
+              ? `Back to ${PROSPECTING_STEPS[currentStep - 1]?.label}`
+              : "Back to Dashboard"}
+          </span>
+          <span className="md:hidden">Back</span>
+        </button>
+
+        <div className="hidden sm:block w-px h-6 bg-outline-variant shrink-0" />
+
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 overflow-x-auto scrollbar-none">
           <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider shrink-0 hidden lg:inline">
             Project Flow
           </span>
           {FLOW_PILLS.map((stage, i) => (
-            <span key={stage} className="flex items-center gap-1.5 shrink-0">
+            <span key={stage} className="flex items-center gap-2 shrink-0">
               <div
                 className={`px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-bold rounded-full border whitespace-nowrap ${
                   i === 0
@@ -69,11 +93,11 @@ export function TempoWizardTopBar({
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-1">
+        <div className="flex items-center gap-3 shrink-0 ml-1">
           <button
             type="button"
             onClick={onOpenHandoff}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-on-surface-variant font-label-sm border border-outline-variant rounded-lg hover:bg-surface-container transition-all"
+            className={`${BAR_BUTTON} text-on-surface-variant border border-outline-variant hover:bg-surface-container`}
           >
             <MaterialIcon name="mail" className="text-[16px]" />
             <span className="hidden sm:inline">Handoff Note</span>
@@ -83,6 +107,7 @@ export function TempoWizardTopBar({
             simulationId={simulationId}
             classId={classId}
             simulationTitle={simulationTitle}
+            variant="tempoTopBar"
           />
         </div>
       </div>

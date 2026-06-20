@@ -21,7 +21,7 @@ type RestartSimulationButtonProps = {
   classId: string;
   simulationTitle: string;
   /** Light styling for dark hero backgrounds (e.g. Tempo entry page). */
-  variant?: "default" | "onDark";
+  variant?: "default" | "onDark" | "tempoTopBar";
   /**
    * Where to redirect after restart.
    * Defaults to entry page for Tempo/default class, else simulation runner.
@@ -79,9 +79,11 @@ export function RestartSimulationButton({
   };
 
   const buttonClass =
-    variant === "onDark"
-      ? "flex items-center gap-1.5 px-3 py-1.5 text-white font-label-sm text-label-sm border border-white/30 rounded-lg hover:bg-white/10 hover:border-white/60 transition-all duration-150 shrink-0"
-      : "flex items-center gap-1.5 px-3 py-1.5 text-text-secondary font-label-sm text-label-sm border border-border rounded-lg bg-page hover:bg-surface hover:text-error hover:border-error transition-all duration-150 shrink-0";
+    variant === "tempoTopBar"
+      ? "flex items-center gap-1.5 px-3 py-1.5 text-primary font-label-sm text-label-sm bg-black border border-black rounded-lg hover:bg-neutral-900 transition-all duration-150 shrink-0"
+      : variant === "onDark"
+        ? "flex items-center gap-1.5 px-3 py-1.5 text-white font-label-sm text-label-sm border border-white/30 rounded-lg hover:bg-white/10 hover:border-white/60 transition-all duration-150 shrink-0"
+        : "flex items-center gap-1.5 px-3 py-1.5 text-text-secondary font-label-sm text-label-sm border border-border rounded-lg bg-page hover:bg-surface hover:text-error hover:border-error transition-all duration-150 shrink-0";
 
   return (
     <>
