@@ -9,7 +9,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { HandoffModal } from "@/components/tempo/HandoffModal";
-import { RestartSimulationButton } from "@/components/simulation/RestartSimulationButton";
+import { TempoWizardTopBar } from "@/components/tempo/TempoWizardTopBar";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import { ProspectingStepPanels } from "@/components/tempo/stages/ProspectingStepPanels";
 import { useProspectingWizard } from "@/hooks/useProspectingWizard";
@@ -26,14 +26,6 @@ type ProspectingWizardProps = {
   classId: string;
   simulationTitle: string;
 };
-
-const FLOW_PILLS = [
-  "Prospecting",
-  "Discovery",
-  "Presentation",
-  "Objection Handling",
-  "Negotiation",
-] as const;
 
 /**
  * Full-screen three-column prospecting wizard shell, handoff modals, and navigation.
@@ -88,7 +80,16 @@ export function ProspectingWizard({
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 top-16 z-30 flex overflow-hidden bg-surface">
+      <TempoWizardTopBar
+        attemptId={attemptId}
+        simulationId={simulationId}
+        classId={classId}
+        simulationTitle={simulationTitle}
+        onOpenHandoff={() => setForceHandoffOpen(true)}
+      />
+
+      <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
         <aside className="w-72 bg-primary-container text-on-primary-container flex flex-col h-full shrink-0 hidden lg:flex">
           <div className="p-xl border-b border-white/10">
             <div className="flex items-center gap-md mb-sm">
@@ -159,63 +160,7 @@ export function ProspectingWizard({
         </aside>
 
         <section className="flex-1 bg-surface-container-lowest flex flex-col min-w-0">
-          <div className="h-12 bg-surface-container-low border-b border-outline-variant flex items-center px-4 lg:px-xl gap-md shrink-0 overflow-x-auto">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider shrink-0">
-              Project Flow
-            </span>
-            <div className="flex items-center gap-sm shrink-0">
-              {FLOW_PILLS.map((stage, i) => (
-                <span key={stage} className="flex items-center gap-sm">
-                  <div
-                    className={`px-3 py-1 text-[10px] font-bold rounded-full border whitespace-nowrap ${
-                      i === 0
-                        ? "bg-primary-container text-white border-primary-container"
-                        : "bg-transparent text-on-surface-variant border-outline-variant"
-                    }`}
-                  >
-                    {stage.toUpperCase()}
-                  </div>
-                  {i < FLOW_PILLS.length - 1 && (
-                    <div className="w-4 h-px bg-outline-variant hidden sm:block" />
-                  )}
-                </span>
-              ))}
-            </div>
-
-            <div className="ml-auto flex items-center gap-sm shrink-0">
-              <button
-                type="button"
-                onClick={() => setForceHandoffOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-on-surface-variant font-label-sm border border-outline-variant rounded-lg hover:bg-surface-container transition-all"
-              >
-                <MaterialIcon name="mail" className="text-[16px]" />
-                <span className="hidden sm:inline">Handoff Note</span>
-              </button>
-              <RestartSimulationButton
-                attemptId={attemptId}
-                simulationId={simulationId}
-                classId={classId}
-                simulationTitle={simulationTitle}
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 lg:p-xl">
-            <ProspectingStepPanels
-              currentStep={currentStep}
-              state={state}
-              chatInput={wizard.chatInput}
-              isAILoading={wizard.isAILoading}
-              wordCount={wizard.wordCount}
-              onChatInputChange={wizard.setChatInput}
-              onSendMessage={() => void wizard.handleSendMessage()}
-              onFieldChange={wizard.updateField}
-              onSelfCheckChange={wizard.toggleSelfCheck}
-              onStretchToggle={() => wizard.updateField("stretchOpen", !state.stretchOpen)}
-            />
-          </div>
-
-          <div className="h-20 border-t border-outline-variant bg-white flex items-center justify-between px-4 lg:px-xl shrink-0 gap-4">
+          <div className="h-12 bg-surface-container-low border-b border-outline-variant flex items-center justify-between px-4 lg:px-xl shrink-0 gap-4 overflow-x-auto">
             <div className="flex items-center gap-4 lg:gap-xl min-w-0">
               {currentStep > 0 ? (
                 <button
@@ -275,17 +220,32 @@ export function ProspectingWizard({
                   type="button"
                   disabled={!wizard.canSubmit || wizard.isSubmitting}
                   onClick={() => void handleSubmit()}
-                  className={`px-xl py-3 rounded-lg text-label-md font-extrabold flex items-center gap-md shadow-md transition-all ${
+                  className={`px-lg py-sm rounded-lg text-label-md font-extrabold flex items-center gap-xs shadow-md transition-all ${
                     wizard.canSubmit && !wizard.isSubmitting
                       ? "bg-tertiary-fixed text-on-tertiary-fixed hover:brightness-95 active:scale-95 cursor-pointer"
                       : "bg-surface-container-highest text-on-surface-variant/40 cursor-not-allowed"
                   }`}
                 >
                   {wizard.isSubmitting ? "Submitting..." : "Submit Prospecting Brief"}
-                  <MaterialIcon name="send" />
+                  <MaterialIcon name="send" className="text-[18px]" />
                 </button>
               )}
             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 lg:p-xl">
+            <ProspectingStepPanels
+              currentStep={currentStep}
+              state={state}
+              chatInput={wizard.chatInput}
+              isAILoading={wizard.isAILoading}
+              wordCount={wizard.wordCount}
+              onChatInputChange={wizard.setChatInput}
+              onSendMessage={() => void wizard.handleSendMessage()}
+              onFieldChange={wizard.updateField}
+              onSelfCheckChange={wizard.toggleSelfCheck}
+              onStretchToggle={() => wizard.updateField("stretchOpen", !state.stretchOpen)}
+            />
           </div>
         </section>
 
@@ -360,6 +320,7 @@ export function ProspectingWizard({
             </div>
           </div>
         </aside>
+        </div>
       </div>
 
       {showProspectingHandoff && (
