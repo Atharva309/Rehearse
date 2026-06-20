@@ -4,8 +4,10 @@
  */
 
 import { redirect } from "next/navigation";
+import { ProspectingWizard } from "@/components/tempo/stages/ProspectingWizard";
 import { SimulationRunner } from "@/components/SimulationRunner";
-import { ATTEMPT_STATUS } from "@/lib/constants";
+import { ATTEMPT_STATUS, DEFAULT_CLASS_ID } from "@/lib/constants";
+import { isTempoDefaultSimulation } from "@/lib/tempo-simulation";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Attempt, Simulation, StageScore } from "@/types";
@@ -126,11 +128,31 @@ export default async function StudentSimulationPage({
     .select("*")
     .eq("attempt_id", attempt.id);
 
+  const scores = (stageScores ?? []) as StageScore[];
+  const hasProspectingScore = scores.some((s) => s.stage === "prospecting");
+  const isTempoDefault =
+    classId === DEFAULT_CLASS_ID && isTempoDefaultSimulation(simulation.id, simulation.title);
+  const showTempoProspectingWizard =
+    isTempoDefault &&
+    !hasProspectingScore &&
+    (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting");
+
+  if (showTempoProspectingWizard) {
+    return (
+      <ProspectingWizard
+        attemptId={attempt.id}
+        simulationId={simulation.id}
+        classId={classId}
+        simulationTitle={simulation.title}
+      />
+    );
+  }
+
   return (
     <SimulationRunner
       simulation={simulation}
       attempt={attempt}
-      stageScores={(stageScores ?? []) as StageScore[]}
+      stageScores={scores}
       classId={classId}
       className={classRow?.name}
     />

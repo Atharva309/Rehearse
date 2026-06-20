@@ -1,0 +1,102 @@
+/**
+ * prospecting-wizard/route.ts
+ * Loads and saves Tempo Stage 1 wizard draft state on attempts.stage_data.
+ * Student JWT session required; uses service role for DB access.
+ */
+
+import { NextResponse } from "next/server";
+import { requireStudentApi } from "@/lib/api-auth";
+import {
+  DEFAULT_PROSPECTING_WIZARD_STATE,
+  type ProspectingWizardState,
+} from "@/lib/tempo-prospecting";
+import { createServiceClient } from "@/lib/supabase/server";
+
+type SaveBody = {
+  attemptId?: string;
+  state?: ProspectingWizardState;
+};
+
+/**
+ * GET /api/student/prospecting-wizard?attemptId=...
+ * Returns saved wizard state or defaults.
+ */
+export async function GET(request: Request): Promise<NextResponse> {
+  const auth = await requireStudentApi();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const attemptId = new URL(request.url).searchParams.get("attemptId")?.trim() ?? "";
+  if (!attemptId) {
+    return NextResponse.json({ error: "Missing attemptId." }, { status: 400 });
+  }
+
+  const supabase = createServiceClient();
+  const { data: attempt, error } = await supabase
+    .from("attempts")
+    .select("id, student_id, stage_data")
+    .eq("id", attemptId)
+    .eq("student_id", auth.session.studentId)
+    .single();
+
+  if (error || !attempt) {
+    return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
+  }
+
+  const saved = attempt.stage_data as ProspectingWizardState | null;
+  const state: ProspectingWizardState = saved
+    ? { ...DEFAULT_PROSPECTING_WIZARD_STATE, ...saved }
+    : DEFAULT_PROSPECTING_WIZARD_STATE;
+
+  return NextResponse.json({ state });
+}
+
+/**
+ * POST /api/student/prospecting-wizard
+ * Persists wizard draft state to attempts.stage_data.
+ */
+export async function POST(request: Request): Promise<NextResponse> {
+  const auth = await requireStudentApi();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  try {
+    const body = (await request.json()) as SaveBody;
+    const attemptId = body.attemptId?.trim() ?? "";
+    const state = body.state;
+
+    if (!attemptId || !state) {
+      return NextResponse.json({ error: "Missing attemptId or state." }, { status: 400 });
+    }
+
+    const supabase = createServiceClient();
+
+    const { data: attempt } = await supabase
+      .from("attempts")
+      .select("id, student_id")
+      .eq("id", attemptId)
+      .eq("student_id", auth.session.studentId)
+      .single();
+
+    if (!attempt) {
+      return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
+    }
+
+    const { error: updateError } = await supabase
+      .from("attempts")
+      .update({ stage_data: state })
+      .eq("id", attemptId);
+
+    if (updateError) {
+      console.error("[prospecting-wizard] save", updateError);
+      return NextResponse.json({ error: "Could not save draft." }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[prospecting-wizard] unexpected", err);
+    return NextResponse.json({ error: "Could not save draft." }, { status: 500 });
+  }
+}
