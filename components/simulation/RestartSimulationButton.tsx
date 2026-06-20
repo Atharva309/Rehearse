@@ -21,7 +21,7 @@ type RestartSimulationButtonProps = {
   classId: string;
   simulationTitle: string;
   /** Light styling for dark hero backgrounds (e.g. Tempo entry page). */
-  variant?: "default" | "onDark" | "tempoBlack";
+  variant?: "default" | "onDark";
   /**
    * Where to redirect after restart.
    * Defaults to entry page for Tempo/default class, else simulation runner.
@@ -79,11 +79,9 @@ export function RestartSimulationButton({
   };
 
   const buttonClass =
-    variant === "tempoBlack"
-      ? "flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-label-sm text-tertiary-container bg-black border border-tertiary-container rounded-md hover:bg-tertiary-container hover:text-black transition-all duration-150 shrink-0"
-      : variant === "onDark"
-        ? "flex items-center gap-1.5 px-3 py-1.5 text-white font-label-sm text-label-sm border border-white/30 rounded-lg hover:bg-white/10 hover:border-white/60 transition-all duration-150 shrink-0"
-        : "flex items-center gap-1.5 px-3 py-1.5 text-text-secondary font-label-sm text-label-sm border border-border rounded-lg bg-page hover:bg-surface hover:text-error hover:border-error transition-all duration-150 shrink-0";
+    variant === "onDark"
+      ? "flex items-center gap-1.5 px-3 py-1.5 text-white font-label-sm text-label-sm border border-white/30 rounded-lg hover:bg-white/10 hover:border-white/60 transition-all duration-150 shrink-0"
+      : "flex items-center gap-1.5 px-3 py-1.5 text-text-secondary font-label-sm text-label-sm border border-border rounded-lg bg-page hover:bg-surface hover:text-error hover:border-error transition-all duration-150 shrink-0";
 
   return (
     <>
@@ -92,7 +90,7 @@ export function RestartSimulationButton({
         onClick={() => setShowConfirm(true)}
         className={buttonClass}
       >
-        <MaterialIcon name="restart_alt" className={variant === "tempoBlack" ? "text-[13px]" : "text-[16px]"} />
+        <MaterialIcon name="restart_alt" className="text-[16px]" />
         Restart
       </button>
 
