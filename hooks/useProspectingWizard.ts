@@ -92,7 +92,11 @@ export function useProspectingWizard({
         if (res.ok) {
           const body = (await res.json()) as { state: ProspectingWizardState };
           if (!cancelled) {
-            setState({ ...DEFAULT_PROSPECTING_WIZARD_STATE, ...body.state, ...local });
+            setState({ ...DEFAULT_PROSPECTING_WIZARD_STATE, ...body.state });
+            saveProspectingWizardToStorage(attemptId, {
+              ...DEFAULT_PROSPECTING_WIZARD_STATE,
+              ...body.state,
+            });
           }
         } else if (local && !cancelled) {
           setState({ ...DEFAULT_PROSPECTING_WIZARD_STATE, ...local });

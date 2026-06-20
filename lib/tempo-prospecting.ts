@@ -200,6 +200,16 @@ export function saveProspectingWizardToStorage(
 }
 
 /**
+ * Removes wizard draft state from browser localStorage (e.g. on simulation restart).
+ */
+export function clearProspectingWizardFromStorage(attemptId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(`${STORAGE_PREFIX}${attemptId}`);
+}
+
+/**
  * Counts words in the opening message draft.
  */
 export function countWords(text: string): number {

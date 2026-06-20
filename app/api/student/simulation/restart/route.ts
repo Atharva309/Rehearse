@@ -89,6 +89,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       total_score: 0,
       status: ATTEMPT_STATUS.IN_PROGRESS,
       completed_at: null,
+      stage_data: null,
     };
 
     if (!attempt.class_id) {
