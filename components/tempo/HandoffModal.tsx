@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 
 export type HandoffModalProps = {
@@ -17,7 +17,7 @@ export type HandoffModalProps = {
   message: string;
   hasAIRestriction: boolean;
   onBegin: () => void;
-  onReadAgain: () => void;
+  onDismiss: () => void;
 };
 
 /**
@@ -30,9 +30,8 @@ export function HandoffModal({
   message,
   hasAIRestriction,
   onBegin,
-  onReadAgain,
+  onDismiss,
 }: HandoffModalProps): React.ReactElement {
-  const messageRef = useRef<HTMLDivElement>(null);
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
@@ -40,30 +39,28 @@ export function HandoffModal({
     return () => window.clearTimeout(timer);
   }, []);
 
-  const handleReadAgain = (): void => {
-    messageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    onReadAgain();
-  };
-
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-md"
       style={{ backdropFilter: "blur(8px)", backgroundColor: "rgba(0,0,0,0.4)" }}
+      onClick={onDismiss}
+      role="presentation"
     >
       <div
         className={`bg-white w-full max-w-[560px] rounded-xl shadow-2xl overflow-hidden border border-outline-variant transition-all duration-500 ${
           entered ? "translate-y-0 opacity-100 scale-100" : "translate-y-5 opacity-0 scale-100"
         }`}
         style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="handoff-modal-title"
       >
-        <div
-          className="px-md py-xs flex justify-between items-center"
-          style={{ backgroundColor: "#c6c4df" }}
-        >
-          <span className="font-code-md text-[10px] tracking-widest text-tertiary-container uppercase">
+        <div className="px-md py-xs flex justify-between items-center bg-black">
+          <span className="font-code-md text-[10px] tracking-widest text-white/80 uppercase">
             MESSAGE FROM YOUR MANAGER
           </span>
-          <span className="font-code-md text-[10px] tracking-widest text-tertiary-container uppercase">
+          <span className="font-code-md text-[10px] tracking-widest text-white/80 uppercase">
             Stage {stageNumber} of 5
           </span>
         </div>
@@ -77,13 +74,14 @@ export function HandoffModal({
               AT
             </div>
             <div>
-              <h2 className="font-headline-md text-on-surface">Alex Torres</h2>
+              <h2 id="handoff-modal-title" className="font-headline-md text-on-surface">
+                Alex Torres
+              </h2>
               <p className="font-label-sm text-on-surface-variant">Senior Sales Manager</p>
             </div>
           </div>
 
           <div
-            ref={messageRef}
             className="bg-surface-container-low p-md rounded-r-lg"
             style={{ borderLeft: "4px solid #c9a84c" }}
           >
@@ -117,7 +115,7 @@ export function HandoffModal({
             )}
           </div>
 
-          <div className="flex flex-col gap-sm pt-md">
+          <div className="pt-md">
             <button
               type="button"
               onClick={onBegin}
@@ -126,13 +124,6 @@ export function HandoffModal({
             >
               Begin Stage {stageNumber}
               <MaterialIcon name="arrow_forward" />
-            </button>
-            <button
-              type="button"
-              onClick={handleReadAgain}
-              className="w-full py-sm text-on-surface-variant font-label-md hover:text-on-surface transition-colors"
-            >
-              Read this again ↑
             </button>
           </div>
         </div>

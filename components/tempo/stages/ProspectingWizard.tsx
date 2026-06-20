@@ -331,7 +331,10 @@ export function ProspectingWizard({
             wizard.dismissProspectingHandoff();
             setForceHandoffOpen(false);
           }}
-          onReadAgain={() => undefined}
+          onDismiss={() => {
+            wizard.dismissProspectingHandoff();
+            setForceHandoffOpen(false);
+          }}
         />
       )}
 
@@ -343,7 +346,7 @@ export function ProspectingWizard({
           message={TEMPO_HANDOFF_MESSAGES.discovery}
           hasAIRestriction={discoveryMeta.hasAIRestriction}
           onBegin={handleDiscoveryBegin}
-          onReadAgain={() => undefined}
+          onDismiss={() => setPostSubmitHandoff(null)}
         />
       )}
     </>
