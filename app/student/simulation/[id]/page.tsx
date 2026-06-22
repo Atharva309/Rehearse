@@ -4,6 +4,7 @@
  */
 
 import { redirect } from "next/navigation";
+import { DiscoveryStage } from "@/components/tempo/stages/DiscoveryStage";
 import { ProspectingWizard } from "@/components/tempo/stages/ProspectingWizard";
 import { SimulationRunner } from "@/components/SimulationRunner";
 import { ATTEMPT_STATUS, DEFAULT_CLASS_ID } from "@/lib/constants";
@@ -137,6 +138,9 @@ export default async function StudentSimulationPage({
     !hasProspectingScore &&
     (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting");
 
+  const showTempoDiscovery =
+    isTempoDefault && attempt.current_stage === "discovery";
+
   if (showTempoProspectingWizard) {
     return (
       <ProspectingWizard
@@ -144,6 +148,18 @@ export default async function StudentSimulationPage({
         simulationId={simulation.id}
         classId={classId}
         simulationTitle={simulation.title}
+      />
+    );
+  }
+
+  if (showTempoDiscovery) {
+    return (
+      <DiscoveryStage
+        attemptId={attempt.id}
+        simulationId={simulation.id}
+        classId={classId}
+        simulationTitle={simulation.title}
+        simliFaceId={simulation.simli_face_id}
       />
     );
   }
