@@ -146,35 +146,32 @@ export function DiscoveryStage({
       />
 
       <ErrorBoundary stageName="discovery">
-        {phase === "lobby" ? (
-          <DiscoveryLobby connectError={connectError} onJoin={handleJoinCall} />
-        ) : (
-          <DiscoveryStageLayout
-            phase={phase}
-            callSeconds={callSeconds}
-            referenceCollapsed={referenceCollapsed}
-            onToggleReference={() => setReferenceCollapsed((prev) => !prev)}
-            transcript={transcript}
-            callSlot={
-              (phase === "connecting" || phase === "active") && audioStream ? (
-                <DiscoveryCallSession
-                  faceId={faceId}
-                  audioStream={audioStream}
-                  onActive={handleCallActive}
-                  onError={handleCallError}
-                  onTranscriptChange={setTranscript}
-                  onSecondsChange={setCallSeconds}
-                  onEnded={handleCallEnded}
-                />
-              ) : null
-            }
-            summaryForm={summaryForm}
-            onSummaryChange={handleSummaryChange}
-            canSubmitSummary={canSubmitDiscoverySummary(summaryForm)}
-            isSubmitting={isSubmitting}
-            onSubmitSummary={() => void handleSubmitSummary()}
-          />
-        )}
+        <DiscoveryStageLayout
+          phase={phase}
+          callSeconds={callSeconds}
+          referenceCollapsed={referenceCollapsed}
+          onToggleReference={() => setReferenceCollapsed((prev) => !prev)}
+          transcript={transcript}
+          lobbySlot={<DiscoveryLobby connectError={connectError} onJoin={handleJoinCall} />}
+          callSlot={
+            (phase === "connecting" || phase === "active") && audioStream ? (
+              <DiscoveryCallSession
+                faceId={faceId}
+                audioStream={audioStream}
+                onActive={handleCallActive}
+                onError={handleCallError}
+                onTranscriptChange={setTranscript}
+                onSecondsChange={setCallSeconds}
+                onEnded={handleCallEnded}
+              />
+            ) : null
+          }
+          summaryForm={summaryForm}
+          onSummaryChange={handleSummaryChange}
+          canSubmitSummary={canSubmitDiscoverySummary(summaryForm)}
+          isSubmitting={isSubmitting}
+          onSubmitSummary={() => void handleSubmitSummary()}
+        />
       </ErrorBoundary>
 
       {showPresentationHandoff && (
