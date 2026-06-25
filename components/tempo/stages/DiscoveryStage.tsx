@@ -1,8 +1,9 @@
 /**
  * DiscoveryStage.tsx
  * Stage 2 of the Tempo simulation — Discovery audio call with Dana Reyes.
- * Three sequential states: pre-call lobby → active audio call → post-call summary.
- * The microphone is only requested after "Join Call" (the call session mounts then).
+ * Flow: pre-call lobby (DiscoveryLobby) → active audio call → post-call summary.
+ * The microphone is enabled by the student in the lobby and handed to the call
+ * session, so no device indicator turns on automatically.
  * Only used in the Tempo/Default simulation (Rehearse Essentials class).
  */
 
@@ -13,7 +14,9 @@ import { useRouter } from "next/navigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HandoffModal } from "@/components/tempo/HandoffModal";
 import { DiscoveryCallSession } from "@/components/tempo/stages/DiscoveryCallSession";
+import { DiscoveryLobby } from "@/components/tempo/stages/DiscoveryLobby";
 import { DiscoveryStageLayout } from "@/components/tempo/stages/DiscoveryStageLayout";
+import { DiscoveryTopBar } from "@/components/tempo/stages/DiscoveryTopBar";
 import { resumePlaybackContext } from "@/lib/audio-playback";
 import { completeStage } from "@/lib/attempt-actions";
 import { SIMLI_FACE_ID } from "@/lib/constants";
@@ -53,6 +56,7 @@ export function DiscoveryStage({
   const [callSeconds, setCallSeconds] = useState(0);
   const [referenceCollapsed, setReferenceCollapsed] = useState(false);
   const [transcript, setTranscript] = useState<DiscoveryTranscriptEntry[]>([]);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [summaryForm, setSummaryForm] = useState<DiscoverySummaryForm>(DEFAULT_DISCOVERY_SUMMARY);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHandoff, setShowHandoff] = useState(false);
@@ -64,11 +68,12 @@ export function DiscoveryStage({
   const discoveryMeta = TEMPO_HANDOFF_STAGE_META.discovery;
   const presentationMeta = TEMPO_HANDOFF_STAGE_META.presentation;
 
-  // ── Lobby → start the call session (requests mic only now) ───
-  const handleJoinCall = useCallback((): void => {
+  // ── Lobby hands over the enabled mic stream and starts the call ───
+  const handleJoinCall = useCallback((stream: MediaStream): void => {
     setConnectError("");
     setCallSeconds(0);
     setTranscript([]);
+    setAudioStream(stream);
     void resumePlaybackContext();
     setPhase("connecting");
   }, []);
@@ -79,6 +84,7 @@ export function DiscoveryStage({
 
   const handleCallError = useCallback((message: string): void => {
     setConnectError(message);
+    setAudioStream(null);
     setPhase("lobby");
   }, []);
 
@@ -87,6 +93,7 @@ export function DiscoveryStage({
       finalTranscriptRef.current = transcriptText;
       setCallSeconds(seconds);
       setTranscript(entries);
+      setAudioStream(null);
       setPhase("summary");
     },
     []
@@ -129,41 +136,45 @@ export function DiscoveryStage({
 
   return (
     <>
+      <DiscoveryTopBar
+        attemptId={attemptId}
+        simulationId={simulationId}
+        classId={classId}
+        simulationTitle={simulationTitle}
+        onOpenHandoff={() => setShowHandoff(true)}
+        onBack={() => router.push("/student/dashboard")}
+      />
+
       <ErrorBoundary stageName="discovery">
-        <DiscoveryStageLayout
-          phase={phase}
-          attemptId={attemptId}
-          simulationId={simulationId}
-          classId={classId}
-          simulationTitle={simulationTitle}
-          callSeconds={callSeconds}
-          referenceCollapsed={referenceCollapsed}
-          onToggleReference={() => setReferenceCollapsed((prev) => !prev)}
-          onOpenHandoff={() => setShowHandoff(true)}
-          onBack={() => router.push("/student/dashboard")}
-          onJoinCall={handleJoinCall}
-          canJoin
-          connectError={connectError}
-          transcript={transcript}
-          callSlot={
-            phase === "connecting" || phase === "active" ? (
-              <DiscoveryCallSession
-                faceId={faceId}
-                callSeconds={callSeconds}
-                onActive={handleCallActive}
-                onError={handleCallError}
-                onTranscriptChange={setTranscript}
-                onSecondsChange={setCallSeconds}
-                onEnded={handleCallEnded}
-              />
-            ) : null
-          }
-          summaryForm={summaryForm}
-          onSummaryChange={handleSummaryChange}
-          canSubmitSummary={canSubmitDiscoverySummary(summaryForm)}
-          isSubmitting={isSubmitting}
-          onSubmitSummary={() => void handleSubmitSummary()}
-        />
+        {phase === "lobby" ? (
+          <DiscoveryLobby connectError={connectError} onJoin={handleJoinCall} />
+        ) : (
+          <DiscoveryStageLayout
+            phase={phase}
+            callSeconds={callSeconds}
+            referenceCollapsed={referenceCollapsed}
+            onToggleReference={() => setReferenceCollapsed((prev) => !prev)}
+            transcript={transcript}
+            callSlot={
+              (phase === "connecting" || phase === "active") && audioStream ? (
+                <DiscoveryCallSession
+                  faceId={faceId}
+                  audioStream={audioStream}
+                  onActive={handleCallActive}
+                  onError={handleCallError}
+                  onTranscriptChange={setTranscript}
+                  onSecondsChange={setCallSeconds}
+                  onEnded={handleCallEnded}
+                />
+              ) : null
+            }
+            summaryForm={summaryForm}
+            onSummaryChange={handleSummaryChange}
+            canSubmitSummary={canSubmitDiscoverySummary(summaryForm)}
+            isSubmitting={isSubmitting}
+            onSubmitSummary={() => void handleSubmitSummary()}
+          />
+        )}
       </ErrorBoundary>
 
       {showPresentationHandoff && (

@@ -10,8 +10,9 @@ import {
   StudentAttemptHistory,
   type StudentAttemptRow,
 } from "@/components/StudentAttemptHistory";
+import Link from "next/link";
 import { loadStudentEnrolledClasses } from "@/lib/student-class-data";
-import { DEFAULT_CLASS_ID } from "@/lib/constants";
+import { DEFAULT_CLASS_ID, TEMPO_SIMULATION_ID } from "@/lib/constants";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { JoinClassButton } from "./JoinClassButton";
@@ -62,7 +63,15 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
                 : `${enrolledClasses.length} classes — open one to view simulations.`}
           </p>
         </div>
-        <JoinClassButton />
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=discovery`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-outline-variant px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-container"
+          >
+            Test: Stage 2
+          </Link>
+          <JoinClassButton />
+        </div>
       </div>
 
       {enrolledClasses.length === 0 ? (

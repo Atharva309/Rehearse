@@ -1,9 +1,9 @@
 /**
  * DiscoveryCallSession.tsx
  * Audio-only Simli voice call for Tempo Stage 2 Discovery.
- * Mounted ONLY after the student clicks "Join Call" so the microphone is not
- * requested while the pre-call lobby is showing. Bubbles transcript, timer, and
- * end-of-call data up to the parent DiscoveryStage.
+ * Receives the microphone stream the student enabled in the lobby — it never
+ * calls getUserMedia itself, so no device indicator turns on here. Bubbles
+ * transcript, timer, and end-of-call data up to the parent DiscoveryStage.
  */
 
 "use client";
@@ -21,13 +21,13 @@ import {
   TEMPO_DISCOVERY_OPENING_GREETING,
   TEMPO_DISCOVERY_STAGE_HINT,
 } from "@/lib/constants";
+import { resumePlaybackContext } from "@/lib/audio-playback";
 import { useSimulationVoiceSession } from "@/hooks/useSimulationVoiceSession";
-import { useVideoCall } from "@/hooks/useVideoCall";
 import type { AvatarRef } from "@/types";
 
 type DiscoveryCallSessionProps = {
   faceId: string;
-  callSeconds: number;
+  audioStream: MediaStream;
   onActive: () => void;
   onError: (message: string) => void;
   onTranscriptChange: (entries: DiscoveryTranscriptEntry[]) => void;
@@ -61,11 +61,11 @@ async function waitForAvatarReady(
 }
 
 /**
- * Mounts the voice/media hooks and renders the audio-only call UI.
+ * Mounts the voice session on the lobby-supplied stream and renders audio UI.
  */
 export function DiscoveryCallSession({
   faceId,
-  callSeconds,
+  audioStream,
   onActive,
   onError,
   onTranscriptChange,
@@ -74,19 +74,18 @@ export function DiscoveryCallSession({
 }: DiscoveryCallSessionProps): React.ReactElement {
   const [connected, setConnected] = useState(false);
   const [isDanaSpeaking, setIsDanaSpeaking] = useState(false);
-  const connectStartedRef = useRef(false);
+  const [micMuted, setMicMuted] = useState(false);
+  const [seconds, setSeconds] = useState(0);
 
-  // Audio-only: request microphone only (no camera) once this component mounts.
-  const videoCall = useVideoCall({
-    withVideo: false,
-    onAudioStreamReplace: (stream) => voiceRef.current?.replaceAudioStream(stream),
-  });
+  const connectStartedRef = useRef(false);
+  const isMutedRef = useRef(false);
+  const secondsRef = useRef(0);
 
   const voice = useSimulationVoiceSession({
     systemPrompt: DANA_REYES_SYSTEM_PROMPT,
     stageHint: TEMPO_DISCOVERY_STAGE_HINT,
     openingGreeting: TEMPO_DISCOVERY_OPENING_GREETING,
-    isMutedRef: videoCall.isMutedRef,
+    isMutedRef,
   });
 
   const voiceRef = useRef(voice);
@@ -95,14 +94,16 @@ export function DiscoveryCallSession({
   const callbacksRef = useRef({ onActive, onError });
   callbacksRef.current = { onActive, onError };
 
-  // ── Connect once the microphone permission is ready ───
+  // ── Connect once on mount (mic already granted in the lobby) ───
   useEffect(() => {
-    if (!videoCall.canJoin || connectStartedRef.current) {
+    if (connectStartedRef.current) {
       return;
     }
     connectStartedRef.current = true;
 
     const run = async (): Promise<void> => {
+      await resumePlaybackContext();
+
       const avatar = await waitForAvatarReady(() => voiceRef.current.avatarRef.current);
       if (!avatar) {
         callbacksRef.current.onError("Could not connect to Dana Reyes. Reload and try again.");
@@ -119,16 +120,13 @@ export function DiscoveryCallSession({
         return;
       }
 
-      const audioStream = videoCall.getAudioStream();
-      if (!audioStream || audioStream.getAudioTracks().length === 0) {
+      if (audioStream.getAudioTracks().length === 0) {
         callbacksRef.current.onError("Microphone stream unavailable. Reload and try again.");
         return;
       }
 
       try {
         await voiceRef.current.startCall(audioStream);
-        await videoCall.primeUserGesture();
-        videoCall.startTimer();
         setConnected(true);
         callbacksRef.current.onActive();
       } catch {
@@ -137,28 +135,25 @@ export function DiscoveryCallSession({
     };
 
     void run();
-  }, [videoCall]);
+  }, [audioStream]);
 
-  // ── Surface microphone permission failures instead of hanging on the spinner ───
+  // ── Call timer (local) ───
   useEffect(() => {
-    if (connected) {
+    if (!connected) {
       return;
     }
-    if (
-      videoCall.permissionState === "mic_denied" ||
-      videoCall.permissionState === "error"
-    ) {
-      callbacksRef.current.onError(
-        videoCall.permissionError ||
-          "Microphone access is required to join the call. Allow microphone access and reload."
-      );
-    }
-  }, [videoCall.permissionState, videoCall.permissionError, connected]);
+    const startedAt = Date.now();
+    const id = window.setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+      secondsRef.current = elapsed;
+      setSeconds(elapsed);
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [connected]);
 
-  // ── Bubble call timer up to parent ───
   useEffect(() => {
-    onSecondsChange(videoCall.elapsedSeconds);
-  }, [videoCall.elapsedSeconds, onSecondsChange]);
+    onSecondsChange(seconds);
+  }, [seconds, onSecondsChange]);
 
   // ── Bubble live transcript up to parent ───
   useEffect(() => {
@@ -166,8 +161,8 @@ export function DiscoveryCallSession({
       return;
     }
     const raw = voiceRef.current.getFullTranscript();
-    onTranscriptChange(parseDiscoveryTranscript(raw, videoCall.elapsedSeconds));
-  }, [voice.userTranscripts, voice.personaTranscripts, connected, videoCall.elapsedSeconds, onTranscriptChange]);
+    onTranscriptChange(parseDiscoveryTranscript(raw, secondsRef.current));
+  }, [voice.userTranscripts, voice.personaTranscripts, connected, onTranscriptChange]);
 
   // ── Dana speaking indicator ───
   useEffect(() => {
@@ -179,15 +174,25 @@ export function DiscoveryCallSession({
     return () => window.clearTimeout(timer);
   }, [voice.personaTranscripts, connected]);
 
+  const toggleMute = useCallback((): void => {
+    setMicMuted((prev) => {
+      const next = !prev;
+      isMutedRef.current = next;
+      audioStream.getAudioTracks().forEach((track) => {
+        track.enabled = !next;
+      });
+      return next;
+    });
+  }, [audioStream]);
+
   const handleEndCall = useCallback((): void => {
-    const seconds = videoCall.elapsedSeconds;
-    voice.endCall();
-    videoCall.stopTimer();
-    videoCall.stopAllTracks();
-    const raw = voice.getFullTranscript();
-    const entries = parseDiscoveryTranscript(raw, seconds);
-    onEnded(raw, seconds, entries);
-  }, [voice, videoCall, onEnded]);
+    const finalSeconds = secondsRef.current;
+    voiceRef.current.endCall();
+    audioStream.getTracks().forEach((track) => track.stop());
+    const raw = voiceRef.current.getFullTranscript();
+    const entries = parseDiscoveryTranscript(raw, finalSeconds);
+    onEnded(raw, finalSeconds, entries);
+  }, [audioStream, onEnded]);
 
   return (
     <section className="flex-1 bg-[#0a0a0a] relative flex flex-col items-center justify-center p-lg min-w-0">
@@ -243,7 +248,7 @@ export function DiscoveryCallSession({
 
           <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
             <MaterialIcon name="timer" className="text-white/60 text-[18px]" />
-            <span className="font-code-md text-white/80">{formatDiscoveryTime(callSeconds)}</span>
+            <span className="font-code-md text-white/80">{formatDiscoveryTime(seconds)}</span>
           </div>
         </div>
       )}
@@ -253,12 +258,12 @@ export function DiscoveryCallSession({
         <nav className="rounded-full backdrop-blur-xl bg-black/20 border border-white/10 shadow-2xl flex items-center p-2 gap-2">
           <button
             type="button"
-            onClick={videoCall.toggleMute}
+            onClick={toggleMute}
             className={`p-3 rounded-full transition-all active:scale-90 ${
-              videoCall.isMuted ? "bg-error text-white" : "hover:bg-white/10 text-on-primary"
+              micMuted ? "bg-error text-white" : "hover:bg-white/10 text-on-primary"
             }`}
           >
-            <MaterialIcon name={videoCall.isMuted ? "mic_off" : "mic"} />
+            <MaterialIcon name={micMuted ? "mic_off" : "mic"} />
           </button>
           <button
             type="button"

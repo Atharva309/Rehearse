@@ -15,7 +15,7 @@ import type { Attempt, Simulation, StageScore } from "@/types";
 
 type PageProps = {
   params: { id: string };
-  searchParams: { attempt?: string; classId?: string };
+  searchParams: { attempt?: string; classId?: string; teststage?: string };
 };
 
 /**
@@ -133,13 +133,16 @@ export default async function StudentSimulationPage({
   const hasProspectingScore = scores.some((s) => s.stage === "prospecting");
   const isTempoDefault =
     classId === DEFAULT_CLASS_ID && isTempoDefaultSimulation(simulation.id, simulation.title);
+  // Dev shortcut: ?teststage=discovery jumps straight into Stage 2 for testing.
+  const testStageDiscovery = searchParams.teststage?.trim() === "discovery";
   const showTempoProspectingWizard =
     isTempoDefault &&
+    !testStageDiscovery &&
     !hasProspectingScore &&
     (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting");
 
   const showTempoDiscovery =
-    isTempoDefault && attempt.current_stage === "discovery";
+    isTempoDefault && (attempt.current_stage === "discovery" || testStageDiscovery);
 
   if (showTempoProspectingWizard) {
     return (
