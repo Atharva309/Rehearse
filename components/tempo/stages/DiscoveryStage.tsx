@@ -1,29 +1,25 @@
 /**
  * DiscoveryStage.tsx
- * Stage 2 of the Tempo simulation — Discovery live voice call with Dana Reyes.
- * Three sequential states: Pre-call lobby → Active call → Post-call summary form.
+ * Stage 2 of the Tempo simulation — Discovery audio call with Dana Reyes.
+ * Three sequential states: pre-call lobby → active audio call → post-call summary.
+ * The microphone is only requested after "Join Call" (the call session mounts then).
  * Only used in the Tempo/Default simulation (Rehearse Essentials class).
  */
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Avatar } from "@/components/Avatar";
+import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HandoffModal } from "@/components/tempo/HandoffModal";
+import { DiscoveryCallSession } from "@/components/tempo/stages/DiscoveryCallSession";
 import { DiscoveryStageLayout } from "@/components/tempo/stages/DiscoveryStageLayout";
 import { resumePlaybackContext } from "@/lib/audio-playback";
 import { completeStage } from "@/lib/attempt-actions";
-import {
-  DANA_REYES_SYSTEM_PROMPT,
-  SIMLI_FACE_ID,
-  TEMPO_DISCOVERY_OPENING_GREETING,
-  TEMPO_DISCOVERY_STAGE_HINT,
-} from "@/lib/constants";
+import { SIMLI_FACE_ID } from "@/lib/constants";
 import {
   DEFAULT_DISCOVERY_SUMMARY,
   canSubmitDiscoverySummary,
-  parseDiscoveryTranscript,
   type DiscoveryPhase,
   type DiscoverySummaryForm,
   type DiscoveryTranscriptEntry,
@@ -31,11 +27,7 @@ import {
 import {
   TEMPO_HANDOFF_MESSAGES,
   TEMPO_HANDOFF_STAGE_META,
-  type TempoHandoffStageKey,
 } from "@/lib/tempo-prospecting";
-import { useSimulationVoiceSession } from "@/hooks/useSimulationVoiceSession";
-import { useVideoCall } from "@/hooks/useVideoCall";
-import type { AvatarRef } from "@/types";
 
 type DiscoveryStageProps = {
   attemptId: string;
@@ -46,28 +38,7 @@ type DiscoveryStageProps = {
 };
 
 /**
- * Waits until Avatar imperative handle and media elements are ready.
- */
-async function waitForAvatarReady(
-  getRef: () => AvatarRef | null,
-  maxMs = 8000
-): Promise<AvatarRef | null> {
-  const start = Date.now();
-  while (Date.now() - start < maxMs) {
-    const avatar = getRef();
-    if (avatar) {
-      const domReady = await avatar.waitForMediaElements(2000);
-      if (domReady) {
-        return avatar;
-      }
-    }
-    await new Promise<void>((r) => setTimeout(r, 100));
-  }
-  return getRef();
-}
-
-/**
- * Tempo Discovery — lobby, Simli voice call, and post-call summary.
+ * Tempo Discovery — lobby, audio call session, and post-call summary.
  */
 export function DiscoveryStage({
   attemptId,
@@ -76,147 +47,50 @@ export function DiscoveryStage({
   simulationTitle,
   simliFaceId,
 }: DiscoveryStageProps): React.ReactElement {
+  const router = useRouter();
   const [phase, setPhase] = useState<DiscoveryPhase>("lobby");
-  const [mountSimli, setMountSimli] = useState(false);
   const [connectError, setConnectError] = useState("");
-  const [finalCallSeconds, setFinalCallSeconds] = useState(0);
+  const [callSeconds, setCallSeconds] = useState(0);
   const [referenceCollapsed, setReferenceCollapsed] = useState(false);
   const [transcript, setTranscript] = useState<DiscoveryTranscriptEntry[]>([]);
   const [summaryForm, setSummaryForm] = useState<DiscoverySummaryForm>(DEFAULT_DISCOVERY_SUMMARY);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHandoff, setShowHandoff] = useState(false);
-  const [postSubmitHandoff, setPostSubmitHandoff] = useState<TempoHandoffStageKey | null>(null);
-  const [isDanaSpeaking, setIsDanaSpeaking] = useState(false);
+  const [showPresentationHandoff, setShowPresentationHandoff] = useState(false);
 
-  const connectStartedRef = useRef(false);
-  const voiceRef = useRef<ReturnType<typeof useSimulationVoiceSession> | null>(null);
-
-  const videoCall = useVideoCall({
-    withVideo: true,
-    onAudioStreamReplace: (stream) => voiceRef.current?.replaceAudioStream(stream),
-  });
-
-  const voice = useSimulationVoiceSession({
-    systemPrompt: DANA_REYES_SYSTEM_PROMPT,
-    stageHint: TEMPO_DISCOVERY_STAGE_HINT,
-    openingGreeting: TEMPO_DISCOVERY_OPENING_GREETING,
-    isMutedRef: videoCall.isMutedRef,
-  });
-
-  voiceRef.current = voice;
-
-  const getAudioStreamRef = useRef(videoCall.getAudioStream);
-  const primeUserGestureRef = useRef(videoCall.primeUserGesture);
-  getAudioStreamRef.current = videoCall.getAudioStream;
-  primeUserGestureRef.current = videoCall.primeUserGesture;
+  const finalTranscriptRef = useRef("");
 
   const faceId = simliFaceId?.trim() || SIMLI_FACE_ID;
   const discoveryMeta = TEMPO_HANDOFF_STAGE_META.discovery;
   const presentationMeta = TEMPO_HANDOFF_STAGE_META.presentation;
-  const displayCallSeconds =
-    phase === "summary" ? finalCallSeconds : videoCall.elapsedSeconds;
 
-  // ── Live transcript sync ───
-  useEffect(() => {
-    if (phase !== "active" && phase !== "summary") {
-      return;
-    }
-    const raw = voiceRef.current?.getFullTranscript() ?? "";
-    setTranscript(parseDiscoveryTranscript(raw, displayCallSeconds));
-  }, [voice.userTranscripts, voice.personaTranscripts, phase, displayCallSeconds]);
-
-  // ── Dana speaking indicator ───
-  useEffect(() => {
-    if (!voice.personaTranscripts || phase !== "active") {
-      return;
-    }
-    setIsDanaSpeaking(true);
-    const timer = window.setTimeout(() => setIsDanaSpeaking(false), 2500);
-    return () => window.clearTimeout(timer);
-  }, [voice.personaTranscripts, phase]);
-
+  // ── Lobby → start the call session (requests mic only now) ───
   const handleJoinCall = useCallback((): void => {
-    if (!videoCall.canJoin) {
-      return;
-    }
-
     setConnectError("");
-    connectStartedRef.current = false;
-    setFinalCallSeconds(0);
+    setCallSeconds(0);
+    setTranscript([]);
+    void resumePlaybackContext();
+    setPhase("connecting");
+  }, []);
 
-    void (async (): Promise<void> => {
-      await resumePlaybackContext();
-      await primeUserGestureRef.current();
-      setMountSimli(true);
-      setPhase("connecting");
-    })();
-  }, [videoCall.canJoin]);
+  const handleCallActive = useCallback((): void => {
+    setPhase("active");
+  }, []);
 
-  useEffect(() => {
-    if (phase !== "connecting" || !mountSimli || connectStartedRef.current) {
-      return;
-    }
+  const handleCallError = useCallback((message: string): void => {
+    setConnectError(message);
+    setPhase("lobby");
+  }, []);
 
-    const run = async (): Promise<void> => {
-      connectStartedRef.current = true;
-
-      const avatar = await waitForAvatarReady(() => voiceRef.current?.avatarRef.current ?? null);
-      if (!avatar) {
-        setConnectError("Could not connect to Dana Reyes. Reload and try again.");
-        setMountSimli(false);
-        setPhase("lobby");
-        connectStartedRef.current = false;
-        return;
-      }
-
-      avatar.resumeAudioContext();
-
-      const simliReady = await avatar.startSession();
-      if (!simliReady) {
-        setConnectError(
-          "Could not connect to Dana Reyes in time. Check Simli keys and try again."
-        );
-        setMountSimli(false);
-        setPhase("lobby");
-        connectStartedRef.current = false;
-        return;
-      }
-
-      const audioStream = getAudioStreamRef.current();
-      if (!audioStream || audioStream.getAudioTracks().length === 0) {
-        setConnectError("Microphone stream unavailable. Reload and try again.");
-        setMountSimli(false);
-        setPhase("lobby");
-        connectStartedRef.current = false;
-        return;
-      }
-
-      try {
-        await voiceRef.current?.startCall(audioStream);
-        await primeUserGestureRef.current();
-        videoCall.startTimer();
-        setPhase("active");
-      } catch {
-        setConnectError("Could not start voice session. Reload and try again.");
-        setMountSimli(false);
-        setPhase("lobby");
-        connectStartedRef.current = false;
-      }
-    };
-
-    void run();
-  }, [phase, mountSimli, videoCall]);
-
-  const handleEndCall = useCallback((): void => {
-    voice.endCall();
-    setMountSimli(false);
-    videoCall.stopTimer();
-    videoCall.stopAllTracks();
-    setFinalCallSeconds(videoCall.elapsedSeconds);
-    const raw = voice.getFullTranscript();
-    setTranscript(parseDiscoveryTranscript(raw, videoCall.elapsedSeconds));
-    setPhase("summary");
-  }, [voice, videoCall]);
+  const handleCallEnded = useCallback(
+    (transcriptText: string, seconds: number, entries: DiscoveryTranscriptEntry[]): void => {
+      finalTranscriptRef.current = transcriptText;
+      setCallSeconds(seconds);
+      setTranscript(entries);
+      setPhase("summary");
+    },
+    []
+  );
 
   const handleSummaryChange = useCallback(
     (field: keyof DiscoverySummaryForm, value: string): void => {
@@ -233,35 +107,25 @@ export function DiscoveryStage({
     setIsSubmitting(true);
     try {
       const payload = JSON.stringify({
-        callDurationSeconds: finalCallSeconds,
-        transcript: voice.getFullTranscript(),
+        callDurationSeconds: callSeconds,
+        transcript: finalTranscriptRef.current,
         transcriptEntries: transcript,
         postCallSummary: summaryForm,
       });
 
-      await completeStage(
-        attemptId,
-        "discovery",
-        0,
-        "Submitted — scoring coming soon",
-        payload
-      );
+      await completeStage(attemptId, "discovery", 0, "Submitted — scoring coming soon", payload);
 
-      setPostSubmitHandoff("presentation");
-      setShowHandoff(true);
+      setShowPresentationHandoff(true);
     } finally {
       setIsSubmitting(false);
     }
-  }, [summaryForm, isSubmitting, finalCallSeconds, transcript, voice, attemptId]);
+  }, [summaryForm, isSubmitting, callSeconds, transcript, attemptId]);
 
   const handlePresentationBegin = (): void => {
     window.location.assign(
       `/student/simulation/${simulationId}?classId=${classId}&attempt=${attemptId}`
     );
   };
-
-  const showStudentPip =
-    videoCall.permissionState === "ready" && !videoCall.cameraUnavailable && !videoCall.isCameraOff;
 
   return (
     <>
@@ -272,24 +136,28 @@ export function DiscoveryStage({
           simulationId={simulationId}
           classId={classId}
           simulationTitle={simulationTitle}
-          callSeconds={displayCallSeconds}
+          callSeconds={callSeconds}
           referenceCollapsed={referenceCollapsed}
           onToggleReference={() => setReferenceCollapsed((prev) => !prev)}
           onOpenHandoff={() => setShowHandoff(true)}
+          onBack={() => router.push("/student/dashboard")}
           onJoinCall={handleJoinCall}
-          onEndCall={handleEndCall}
-          onToggleMic={videoCall.toggleMute}
-          onToggleCamera={videoCall.toggleCamera}
-          micMuted={videoCall.isMuted}
-          cameraOff={videoCall.isCameraOff}
-          canJoin={videoCall.canJoin}
+          canJoin
           connectError={connectError}
-          isDanaSpeaking={isDanaSpeaking}
-          mountSimli={mountSimli}
-          avatarSlot={<Avatar ref={voice.avatarRef} faceId={faceId} />}
-          studentVideoRef={videoCall.studentVideoRef}
-          showStudentPip={showStudentPip}
           transcript={transcript}
+          callSlot={
+            phase === "connecting" || phase === "active" ? (
+              <DiscoveryCallSession
+                faceId={faceId}
+                callSeconds={callSeconds}
+                onActive={handleCallActive}
+                onError={handleCallError}
+                onTranscriptChange={setTranscript}
+                onSecondsChange={setCallSeconds}
+                onEnded={handleCallEnded}
+              />
+            ) : null
+          }
           summaryForm={summaryForm}
           onSummaryChange={handleSummaryChange}
           canSubmitSummary={canSubmitDiscoverySummary(summaryForm)}
@@ -298,7 +166,7 @@ export function DiscoveryStage({
         />
       </ErrorBoundary>
 
-      {showHandoff && postSubmitHandoff === "presentation" && (
+      {showPresentationHandoff && (
         <HandoffModal
           stageNumber={presentationMeta.stageNumber}
           stageName={presentationMeta.stageName}
@@ -306,14 +174,11 @@ export function DiscoveryStage({
           message={TEMPO_HANDOFF_MESSAGES.presentation}
           hasAIRestriction={presentationMeta.hasAIRestriction}
           onBegin={handlePresentationBegin}
-          onDismiss={() => {
-            setShowHandoff(false);
-            setPostSubmitHandoff(null);
-          }}
+          onDismiss={() => setShowPresentationHandoff(false)}
         />
       )}
 
-      {showHandoff && postSubmitHandoff !== "presentation" && (
+      {showHandoff && !showPresentationHandoff && (
         <HandoffModal
           stageNumber={discoveryMeta.stageNumber}
           stageName={discoveryMeta.stageName}
