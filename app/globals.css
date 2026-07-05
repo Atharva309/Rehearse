@@ -393,6 +393,50 @@ body {
     animation: pulse-gold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
+  .speaking-ring-gold {
+    box-shadow:
+      0 0 0 4px rgba(201, 167, 77, 0.4),
+      0 0 20px rgba(201, 167, 77, 0.6);
+    animation: pulse-gold-ring 2s infinite;
+  }
+
+  .speaking-ring-blue {
+    box-shadow:
+      0 0 0 4px rgba(103, 80, 164, 0.4),
+      0 0 20px rgba(103, 80, 164, 0.6);
+    animation: pulse-blue 2s infinite;
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  @keyframes pulse-gold-ring {
+    0% {
+      box-shadow: 0 0 0 0px rgba(201, 167, 77, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(201, 167, 77, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0px rgba(201, 167, 77, 0);
+    }
+  }
+
+  @keyframes pulse-blue {
+    0% {
+      box-shadow: 0 0 0 0px rgba(103, 80, 164, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(103, 80, 164, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0px rgba(103, 80, 164, 0);
+    }
+  }
+
   @keyframes pulse-gold {
     0%,
     100% {

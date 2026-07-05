@@ -5,11 +5,12 @@
 
 import { redirect } from "next/navigation";
 import { DiscoveryStage } from "@/components/tempo/stages/DiscoveryStage";
+import { ObjectionHandlingStage } from "@/components/tempo/stages/ObjectionHandlingStage";
 import { PresentationStage } from "@/components/tempo/stages/PresentationStage";
 import { ProspectingWizard } from "@/components/tempo/stages/ProspectingWizard";
 import { SimulationRunner } from "@/components/SimulationRunner";
 import { ATTEMPT_STATUS, DEFAULT_CLASS_ID } from "@/lib/constants";
-import { parseDiscoverySummaryFromTranscript } from "@/lib/tempo-presentation";
+import { parseDiscoverySummaryFromTranscript, parsePresentationFormFromTranscript } from "@/lib/tempo-presentation";
 import { isTempoDefaultSimulation } from "@/lib/tempo-simulation";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -138,10 +139,12 @@ export default async function StudentSimulationPage({
   // Dev shortcuts for testing individual Tempo stages.
   const testStageDiscovery = searchParams.teststage?.trim() === "discovery";
   const testStagePresentation = searchParams.teststage?.trim() === "presentation";
+  const testStageObjections = searchParams.teststage?.trim() === "objections";
   const showTempoProspectingWizard =
     isTempoDefault &&
     !testStageDiscovery &&
     !testStagePresentation &&
+    !testStageObjections &&
     !hasProspectingScore &&
     (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting");
 
@@ -153,6 +156,12 @@ export default async function StudentSimulationPage({
 
   const showTempoPresentation =
     isTempoDefault && (attempt.current_stage === "presentation" || testStagePresentation);
+
+  const presentationScore = scores.find((s) => s.stage === "presentation");
+  const presentationSummary = parsePresentationFormFromTranscript(presentationScore?.transcript);
+
+  const showTempoObjections =
+    isTempoDefault && (attempt.current_stage === "objections" || testStageObjections);
 
   if (showTempoProspectingWizard) {
     return (
@@ -185,6 +194,19 @@ export default async function StudentSimulationPage({
         classId={classId}
         simulationTitle={simulation.title}
         discoverySummary={discoverySummary}
+      />
+    );
+  }
+
+  if (showTempoObjections) {
+    return (
+      <ObjectionHandlingStage
+        attemptId={attempt.id}
+        simulationId={simulation.id}
+        classId={classId}
+        simulationTitle={simulation.title}
+        presentationSummary={presentationSummary}
+        simliFaceId={simulation.simli_face_id}
       />
     );
   }

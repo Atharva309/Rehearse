@@ -193,8 +193,22 @@ export function getPresentationSubmitHint(form: PresentationForm): string {
 }
 
 /**
- * Parses Discovery stage score payload into summary fields for the reference panel.
+ * Parses Stage 3 presentation form from a stage_scores transcript JSON blob.
  */
+export function parsePresentationFormFromTranscript(
+  transcript: string | null | undefined
+): PresentationForm | null {
+  if (!transcript?.trim()) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(transcript) as { form?: PresentationForm };
+    return parsed.form ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function parseDiscoverySummaryFromTranscript(
   transcript: string | null | undefined
 ): Partial<DiscoverySummaryForm> {
