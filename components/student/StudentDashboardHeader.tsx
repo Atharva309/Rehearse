@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { TestShortcutsDropdown } from "@/app/student/dashboard/TestShortcutsDropdown";
 import { JoinClassButton } from "@/app/student/dashboard/JoinClassButton";
 
 type StudentDashboardHeaderProps = {
@@ -53,6 +54,7 @@ export function StudentDashboardHeader({
 
         <div className="flex items-center gap-3 sm:gap-4">
           <JoinClassButton />
+          <TestShortcutsDropdown />
           <div className="hidden md:flex items-center gap-3 pr-4 border-r border-outline-variant">
             <div className="text-right">
               <p className="font-label-md text-label-md font-bold text-primary">{displayName}</p>
