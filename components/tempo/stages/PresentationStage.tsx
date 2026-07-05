@@ -1,0 +1,139 @@
+/**
+ * PresentationStage.tsx
+ * Stage 3 of the Tempo simulation — structured written pitch submission.
+ * Student writes a tailored pitch outline using Discovery findings.
+ * Six sections plus AI work section in a 3-column layout.
+ * Only used in the Tempo/Default simulation (Rehearse Essentials class).
+ */
+
+"use client";
+
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { HandoffModal } from "@/components/tempo/HandoffModal";
+import { PresentationStageLayout } from "@/components/tempo/stages/PresentationStageLayout";
+import { PresentationTopBar } from "@/components/tempo/stages/PresentationTopBar";
+import { usePresentationStage } from "@/hooks/usePresentationStage";
+import type { DiscoverySummaryForm } from "@/lib/tempo-discovery";
+import {
+  TEMPO_HANDOFF_MESSAGES,
+  TEMPO_HANDOFF_STAGE_META,
+} from "@/lib/tempo-prospecting";
+
+type PresentationStageProps = {
+  attemptId: string;
+  simulationId: string;
+  classId: string;
+  simulationTitle: string;
+  discoverySummary: Partial<DiscoverySummaryForm>;
+};
+
+/**
+ * Tempo Presentation — structured pitch form with discovery reference panel.
+ */
+export function PresentationStage({
+  attemptId,
+  simulationId,
+  classId,
+  simulationTitle,
+  discoverySummary,
+}: PresentationStageProps): React.ReactElement {
+  const router = useRouter();
+  const [showHandoff, setShowHandoff] = useState(false);
+  const [showObjectionsHandoff, setShowObjectionsHandoff] = useState(false);
+  const [openRef, setOpenRef] = useState<string | null>(null);
+
+  const presentation = usePresentationStage({ attemptId });
+
+  const presentationMeta = TEMPO_HANDOFF_STAGE_META.presentation;
+  const objectionsMeta = TEMPO_HANDOFF_STAGE_META.objections;
+
+  const handleSubmit = useCallback(async (): Promise<void> => {
+    await presentation.handleSubmit();
+    setShowObjectionsHandoff(true);
+  }, [presentation]);
+
+  const handleObjectionsBegin = (): void => {
+    window.location.assign(
+      `/student/simulation/${simulationId}?classId=${classId}&attempt=${attemptId}`
+    );
+  };
+
+  if (presentation.isLoading) {
+    return (
+      <>
+        <PresentationTopBar
+          attemptId={attemptId}
+          simulationId={simulationId}
+          classId={classId}
+          simulationTitle={simulationTitle}
+          onOpenHandoff={() => setShowHandoff(true)}
+          onBack={() => router.push("/student/dashboard")}
+        />
+        <div className="fixed inset-x-0 bottom-0 top-16 z-[45] flex items-center justify-center bg-surface">
+          <p className="text-on-surface-variant font-body-md">Loading your presentation...</p>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <PresentationTopBar
+        attemptId={attemptId}
+        simulationId={simulationId}
+        classId={classId}
+        simulationTitle={simulationTitle}
+        onOpenHandoff={() => setShowHandoff(true)}
+        onBack={() => router.push("/student/dashboard")}
+      />
+
+      <ErrorBoundary stageName="presentation">
+        <PresentationStageLayout
+          form={presentation.form}
+          discoverySummary={discoverySummary}
+          completedSections={presentation.completedSections}
+          canSubmit={presentation.canSubmit}
+          aiWorkComplete={presentation.aiWorkComplete}
+          aiWorkOpen={presentation.aiWorkOpen}
+          isSaving={presentation.isSaving}
+          isSubmitting={presentation.isSubmitting}
+          openRef={openRef}
+          onToggleRef={(label) =>
+            setOpenRef((prev) => (prev === label ? null : label))
+          }
+          onUpdateField={presentation.updateField}
+          onToggleAiWork={() => presentation.setAiWorkOpen(!presentation.aiWorkOpen)}
+          onSaveDraft={() => void presentation.handleSaveDraft()}
+          onSubmit={() => void handleSubmit()}
+          onOpenHandoff={() => setShowHandoff(true)}
+        />
+      </ErrorBoundary>
+
+      {showObjectionsHandoff && (
+        <HandoffModal
+          stageNumber={objectionsMeta.stageNumber}
+          stageName={objectionsMeta.stageName}
+          stageIcon={objectionsMeta.stageIcon}
+          message={TEMPO_HANDOFF_MESSAGES.objections}
+          hasAIRestriction={objectionsMeta.hasAIRestriction}
+          onBegin={handleObjectionsBegin}
+          onDismiss={() => setShowObjectionsHandoff(false)}
+        />
+      )}
+
+      {showHandoff && !showObjectionsHandoff && (
+        <HandoffModal
+          stageNumber={presentationMeta.stageNumber}
+          stageName={presentationMeta.stageName}
+          stageIcon={presentationMeta.stageIcon}
+          message={TEMPO_HANDOFF_MESSAGES.presentation}
+          hasAIRestriction={presentationMeta.hasAIRestriction}
+          onBegin={() => setShowHandoff(false)}
+          onDismiss={() => setShowHandoff(false)}
+        />
+      )}
+    </>
+  );
+}

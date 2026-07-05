@@ -5,9 +5,11 @@
 
 import { redirect } from "next/navigation";
 import { DiscoveryStage } from "@/components/tempo/stages/DiscoveryStage";
+import { PresentationStage } from "@/components/tempo/stages/PresentationStage";
 import { ProspectingWizard } from "@/components/tempo/stages/ProspectingWizard";
 import { SimulationRunner } from "@/components/SimulationRunner";
 import { ATTEMPT_STATUS, DEFAULT_CLASS_ID } from "@/lib/constants";
+import { parseDiscoverySummaryFromTranscript } from "@/lib/tempo-presentation";
 import { isTempoDefaultSimulation } from "@/lib/tempo-simulation";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -133,16 +135,24 @@ export default async function StudentSimulationPage({
   const hasProspectingScore = scores.some((s) => s.stage === "prospecting");
   const isTempoDefault =
     classId === DEFAULT_CLASS_ID && isTempoDefaultSimulation(simulation.id, simulation.title);
-  // Dev shortcut: ?teststage=discovery jumps straight into Stage 2 for testing.
+  // Dev shortcuts for testing individual Tempo stages.
   const testStageDiscovery = searchParams.teststage?.trim() === "discovery";
+  const testStagePresentation = searchParams.teststage?.trim() === "presentation";
   const showTempoProspectingWizard =
     isTempoDefault &&
     !testStageDiscovery &&
+    !testStagePresentation &&
     !hasProspectingScore &&
     (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting");
 
   const showTempoDiscovery =
     isTempoDefault && (attempt.current_stage === "discovery" || testStageDiscovery);
+
+  const discoveryScore = scores.find((s) => s.stage === "discovery");
+  const discoverySummary = parseDiscoverySummaryFromTranscript(discoveryScore?.transcript);
+
+  const showTempoPresentation =
+    isTempoDefault && (attempt.current_stage === "presentation" || testStagePresentation);
 
   if (showTempoProspectingWizard) {
     return (
@@ -163,6 +173,18 @@ export default async function StudentSimulationPage({
         classId={classId}
         simulationTitle={simulation.title}
         simliFaceId={simulation.simli_face_id}
+      />
+    );
+  }
+
+  if (showTempoPresentation) {
+    return (
+      <PresentationStage
+        attemptId={attempt.id}
+        simulationId={simulation.id}
+        classId={classId}
+        simulationTitle={simulation.title}
+        discoverySummary={discoverySummary}
       />
     );
   }

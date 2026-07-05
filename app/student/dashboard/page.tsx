@@ -63,12 +63,18 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
                 : `${enrolledClasses.length} classes — open one to view simulations.`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Link
             href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=discovery`}
             className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-black shadow-sm transition-colors hover:bg-amber-400"
           >
             🧪 Test: Stage 2
+          </Link>
+          <Link
+            href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=presentation`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-violet-500"
+          >
+            🧪 Test: Stage 3
           </Link>
           <JoinClassButton />
         </div>

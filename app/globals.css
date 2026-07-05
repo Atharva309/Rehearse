@@ -58,6 +58,10 @@ body {
   border-radius: 10px;
 }
 
+.submit-glow:hover {
+  box-shadow: 0 0 20px rgba(201, 168, 76, 0.4);
+}
+
 .expanding-row-content {
   transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
   max-height: 0;
