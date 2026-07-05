@@ -150,6 +150,9 @@ export const DEFAULT_CLASS_NAME = "Rehearse Essentials" as const;
 export const DEFAULT_CLASS_DESCRIPTION =
   "Curated simulations from Rehearse — available to every student." as const;
 
+/** Banner image for the Rehearse Essentials class card (public/) */
+export const DEFAULT_CLASS_BANNER_URL = "/rehearse-essentials.png" as const;
+
 /** Join code for the default class — reserved, cannot be used by professors */
 export const DEFAULT_CLASS_JOIN_CODE = "DEFAULT" as const;
 

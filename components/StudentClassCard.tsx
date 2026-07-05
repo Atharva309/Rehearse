@@ -4,7 +4,7 @@
  */
 
 import Link from "next/link";
-import { DEFAULT_CLASS_DESCRIPTION, DEFAULT_CLASS_NAME } from "@/lib/constants";
+import { DEFAULT_CLASS_BANNER_URL, DEFAULT_CLASS_DESCRIPTION, DEFAULT_CLASS_NAME } from "@/lib/constants";
 import { resolveClassColorScheme } from "@/lib/class-appearance";
 import type { ClassColorSchemeId } from "@/types";
 
@@ -43,7 +43,9 @@ export function StudentClassCard({
         className="relative min-h-[140px] shrink-0 flex items-end px-5 py-5"
         style={
           isSystemDefault
-            ? { background: "linear-gradient(135deg, #000000, #1a1a1a)" }
+            ? {
+                background: `linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0.2)), url(${DEFAULT_CLASS_BANNER_URL}) center/cover`,
+              }
             : {
                 background: image
                   ? `linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0.2)), url(${image}) center/cover`
