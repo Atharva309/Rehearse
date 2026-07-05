@@ -24,6 +24,13 @@ const DISCOVERY_SUMMARY_ITEMS: {
   { label: "Agreed Next Step", field: "nextStep" },
 ];
 
+/** Shared styling — all student-editable fields use white so inputs are obvious. */
+const FORM_FIELD =
+  "w-full bg-white border border-outline-variant rounded-xl p-4 text-body-md text-on-surface outline-none resize-none focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container transition-all";
+
+const FORM_FIELD_SM =
+  "w-full bg-white border border-outline-variant rounded-lg p-3 text-[13px] text-on-surface outline-none resize-none focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container transition-all";
+
 type PresentationStageLayoutProps = {
   form: PresentationForm;
   discoverySummary: Partial<DiscoverySummaryForm>;
@@ -194,14 +201,12 @@ export function PresentationStageLayout({
                 title="Restate the Business Issue"
                 isComplete={isPresentationSectionComplete(1, form)}
               >
-                <div className="p-4 bg-surface-container-lowest border-2 border-outline-variant rounded-xl focus-within:border-primary-container transition-all">
-                  <textarea
-                    className="w-full bg-transparent outline-none text-body-md text-on-surface leading-relaxed resize-none min-h-[80px]"
-                    placeholder="Through our discovery call, we've identified that Summit Dental Group..."
-                    value={form.businessIssue}
-                    onChange={(e) => onUpdateField("businessIssue", e.target.value)}
-                  />
-                </div>
+                <textarea
+                  className={`${FORM_FIELD} min-h-[80px] leading-relaxed`}
+                  placeholder="Through our discovery call, we've identified that Summit Dental Group..."
+                  value={form.businessIssue}
+                  onChange={(e) => onUpdateField("businessIssue", e.target.value)}
+                />
               </SectionShell>
 
               {/* Section 2 */}
@@ -214,14 +219,14 @@ export function PresentationStageLayout({
                   {VALUE_DRIVER_CARDS.map((card) => (
                     <div
                       key={card.field}
-                      className={`p-4 border border-outline-variant rounded-lg border-l-4 ${card.color} bg-surface-container-low`}
+                      className={`p-4 border border-outline-variant rounded-lg border-l-4 ${card.color} bg-white`}
                     >
                       <p className={`text-[11px] font-mono-label uppercase mb-1 ${card.labelColor}`}>
                         {card.label}
                       </p>
-                      <p className="text-sm font-bold mb-1">{card.title}</p>
+                      <p className="text-sm font-bold mb-2 text-on-surface">{card.title}</p>
                       <textarea
-                        className="w-full bg-transparent outline-none text-[12px] text-on-surface-variant leading-snug resize-none min-h-[48px]"
+                        className={`${FORM_FIELD_SM} min-h-[56px]`}
                         placeholder={`Connect ${card.title} to Summit Dental's specific pain...`}
                         value={form[card.field]}
                         onChange={(e) => onUpdateField(card.field, e.target.value)}
@@ -238,7 +243,7 @@ export function PresentationStageLayout({
                 isComplete={isPresentationSectionComplete(3, form)}
               >
                 <textarea
-                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl p-4 focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container transition-all h-32 font-body-md outline-none resize-none"
+                  className={`${FORM_FIELD} h-32`}
                   placeholder="Based on our model, Tempo will recover..."
                   value={form.roiCalculation}
                   onChange={(e) => onUpdateField("roiCalculation", e.target.value)}
@@ -258,16 +263,13 @@ export function PresentationStageLayout({
                 sectionNumber={4}
                 title="Include a Proof Point"
                 isComplete={isPresentationSectionComplete(4, form)}
-                faded={!isPresentationSectionComplete(3, form) && !form.proofPoint}
               >
-                <div className="h-32 bg-surface-container border border-dashed border-outline-variant rounded-xl overflow-hidden">
-                  <textarea
-                    className="w-full h-full p-4 bg-transparent outline-none text-body-md resize-none"
-                    placeholder="Front Range Veterinary Partners, a 6-clinic group similar in size to Summit Dental..."
-                    value={form.proofPoint}
-                    onChange={(e) => onUpdateField("proofPoint", e.target.value)}
-                  />
-                </div>
+                <textarea
+                  className={`${FORM_FIELD} min-h-[128px]`}
+                  placeholder="Front Range Veterinary Partners, a 6-clinic group similar in size to Summit Dental..."
+                  value={form.proofPoint}
+                  onChange={(e) => onUpdateField("proofPoint", e.target.value)}
+                />
               </SectionShell>
 
               {/* Section 5 */}
@@ -275,16 +277,13 @@ export function PresentationStageLayout({
                 sectionNumber={5}
                 title="Next Step Ask"
                 isComplete={isPresentationSectionComplete(5, form)}
-                faded={!isPresentationSectionComplete(4, form) && !form.nextStep}
               >
-                <div className="h-20 bg-surface-container border border-dashed border-outline-variant rounded-xl overflow-hidden">
-                  <textarea
-                    className="w-full h-full p-4 bg-transparent outline-none text-body-md resize-none"
-                    placeholder="I'd like to propose a 30-day pilot at one Summit Dental location..."
-                    value={form.nextStep}
-                    onChange={(e) => onUpdateField("nextStep", e.target.value)}
-                  />
-                </div>
+                <textarea
+                  className={`${FORM_FIELD} min-h-[96px]`}
+                  placeholder="I'd like to propose a 30-day pilot at one Summit Dental location..."
+                  value={form.nextStep}
+                  onChange={(e) => onUpdateField("nextStep", e.target.value)}
+                />
               </SectionShell>
 
               {/* Section 6 */}
@@ -292,16 +291,13 @@ export function PresentationStageLayout({
                 sectionNumber={6}
                 title="Speak to Both Stakeholders"
                 isComplete={isPresentationSectionComplete(6, form)}
-                faded={!isPresentationSectionComplete(5, form) && !form.bothStakeholders}
               >
-                <div className="h-20 bg-surface-container border border-dashed border-outline-variant rounded-xl overflow-hidden">
-                  <textarea
-                    className="w-full h-full p-4 bg-transparent outline-none text-body-md resize-none"
-                    placeholder="For Dana — this takes the scheduling burden off your front desk immediately. For Dr. Kim — at $1,432/month across all eight locations..."
-                    value={form.bothStakeholders}
-                    onChange={(e) => onUpdateField("bothStakeholders", e.target.value)}
-                  />
-                </div>
+                <textarea
+                  className={`${FORM_FIELD} min-h-[96px]`}
+                  placeholder="For Dana — this takes the scheduling burden off your front desk immediately. For Dr. Kim — at $1,432/month across all eight locations..."
+                  value={form.bothStakeholders}
+                  onChange={(e) => onUpdateField("bothStakeholders", e.target.value)}
+                />
               </SectionShell>
 
               {/* AI Work */}
@@ -320,13 +316,13 @@ export function PresentationStageLayout({
 
                 {aiWorkOpen && (
                   <div className="mt-6 space-y-6">
-                    <div className="bg-surface-container-low p-4 rounded-lg border-l-4 border-primary-container">
+                    <div>
                       <p className="text-mono-label text-primary-container mb-2 flex items-center gap-2">
                         <MaterialIcon name="smart_toy" className="text-sm" />
                         AI PROMPT USED
                       </p>
                       <textarea
-                        className="w-full bg-transparent outline-none text-body-md italic text-on-surface-variant resize-none min-h-[80px]"
+                        className={`${FORM_FIELD} min-h-[80px] italic`}
                         placeholder="Paste the exact prompts you used to help write this pitch..."
                         value={form.aiPrompts}
                         onChange={(e) => onUpdateField("aiPrompts", e.target.value)}
@@ -334,21 +330,21 @@ export function PresentationStageLayout({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 border border-outline-variant rounded-lg">
+                      <div>
                         <p className="text-mono-label text-on-surface-variant mb-2">RAW AI OUTPUT</p>
                         <textarea
-                          className="w-full bg-transparent outline-none text-body-md text-on-surface resize-none min-h-[80px]"
+                          className={`${FORM_FIELD} min-h-[96px]`}
                           placeholder="Paste what the AI gave you..."
                           value={form.aiOutput}
                           onChange={(e) => onUpdateField("aiOutput", e.target.value)}
                         />
                       </div>
-                      <div className="p-4 border border-primary-container bg-primary/5 rounded-lg">
+                      <div>
                         <p className="text-mono-label text-primary-container mb-2">
                           YOUR REFINEMENT
                         </p>
                         <textarea
-                          className="w-full bg-transparent outline-none text-body-md text-on-surface resize-none min-h-[80px]"
+                          className={`${FORM_FIELD} min-h-[96px]`}
                           placeholder="How did you edit or improve the AI output? What did it get wrong?"
                           value={form.aiRefinement}
                           onChange={(e) => onUpdateField("aiRefinement", e.target.value)}
@@ -526,7 +522,6 @@ type SectionShellProps = {
   sectionNumber: number;
   title: string;
   isComplete: boolean;
-  faded?: boolean;
   children: React.ReactNode;
 };
 
@@ -537,11 +532,10 @@ function SectionShell({
   sectionNumber,
   title,
   isComplete,
-  faded = false,
   children,
 }: SectionShellProps): React.ReactElement {
   return (
-    <div className={`relative pl-12 ${faded ? "opacity-60" : ""}`}>
+    <div className="relative pl-12">
       <div
         className={`absolute left-0 top-1 w-8 h-8 rounded-full flex items-center justify-center ${
           isComplete
