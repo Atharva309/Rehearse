@@ -611,7 +611,7 @@ export function NegotiationStageLayout({
               <h2 className="text-title-lg font-title-lg">Reference Library</h2>
             </div>
             <div className="flex gap-1">
-              {["Levers", "Persona"].map((tab, i) => (
+              {["Levers", "Prior Context"].map((tab, i) => (
                 <button
                   key={tab}
                   type="button"
@@ -676,27 +676,32 @@ export function NegotiationStageLayout({
                       </div>
                     </div>
                   </div>
-                </section>
 
-                <section className="space-y-3">
-                  <h4 className="text-mono-label font-mono-label uppercase tracking-widest text-on-surface-variant/70">
-                    Prior Context
-                  </h4>
-                  <div className="p-3 bg-surface-container-high rounded-lg border-l-4 border-primary">
-                    <p className="text-mono-label text-[11px] mb-1">Stage 3: Pitch Summary</p>
-                    <p className="text-body-md italic text-on-surface">
-                      {presentationSummary?.businessIssue?.slice(0, 80) ||
-                        "Business issue restated in your pitch."}
-                      ...
+                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                    <h4 className="text-mono-label font-mono-label uppercase tracking-widest text-on-surface-variant/70 flex items-center gap-2 mb-3">
+                      <MaterialIcon name="person" className="text-sm" />
+                      Persona
+                    </h4>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center font-bold text-on-secondary-container">
+                        SK
+                      </div>
+                      <div>
+                        <p className="font-bold text-body-md">Dr. Saul Kim</p>
+                        <p className="text-xs text-on-surface-variant">Founder & Owner</p>
+                      </div>
+                    </div>
+                    <p className="text-body-md italic text-on-surface-variant mb-3">
+                      &ldquo;I value precision and long-term sustainability over quick discounts.&rdquo;
                     </p>
-                  </div>
-                  <div className="p-3 bg-surface-container-high rounded-lg border-l-4 border-secondary">
-                    <p className="text-mono-label text-[11px] mb-1">Stage 4: Objections Handled</p>
-                    <p className="text-body-md italic text-on-surface">
-                      {objectionSummary?.objectionsRaised?.slice(0, 80) ||
-                        "Objections addressed in prior call."}
-                      ...
-                    </p>
+                    <div className="flex gap-2">
+                      <span className="px-2 py-1 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] rounded uppercase font-bold">
+                        Analytical
+                      </span>
+                      <span className="px-2 py-1 bg-secondary-fixed text-on-secondary-fixed text-[10px] rounded uppercase font-bold">
+                        Tough
+                      </span>
+                    </div>
                   </div>
                 </section>
               </>
@@ -704,27 +709,58 @@ export function NegotiationStageLayout({
 
             {rightTab === 1 && (
               <section className="space-y-4">
-                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center font-bold text-on-secondary-container">
-                      SK
-                    </div>
-                    <div>
-                      <p className="font-bold text-body-md">Dr. Saul Kim</p>
-                      <p className="text-xs text-on-surface-variant">Founder & Owner</p>
-                    </div>
-                  </div>
-                  <p className="text-body-md italic text-on-surface-variant mb-3">
-                    &ldquo;I value precision and long-term sustainability over quick discounts.&rdquo;
+                <h4 className="text-mono-label font-mono-label uppercase tracking-widest text-on-surface-variant/70">
+                  Prior Context
+                </h4>
+
+                <div className="space-y-3">
+                  <p className="text-mono-label text-[11px] text-primary font-bold uppercase">
+                    Stage 3: Presentation
                   </p>
-                  <div className="flex gap-2">
-                    <span className="px-2 py-1 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] rounded uppercase font-bold">
-                      Analytical
-                    </span>
-                    <span className="px-2 py-1 bg-secondary-fixed text-on-secondary-fixed text-[10px] rounded uppercase font-bold">
-                      Tough
-                    </span>
-                  </div>
+                  {(
+                    [
+                      { label: "Business Issue", value: presentationSummary?.businessIssue },
+                      { label: "ROI Calculation", value: presentationSummary?.roiCalculation },
+                      { label: "Proof Point", value: presentationSummary?.proofPoint },
+                      { label: "Next Step", value: presentationSummary?.nextStep },
+                      { label: "Both Stakeholders", value: presentationSummary?.bothStakeholders },
+                    ] as const
+                  ).map(({ label, value }) => (
+                    <div
+                      key={label}
+                      className="p-3 bg-surface-container-high rounded-lg border-l-4 border-primary"
+                    >
+                      <p className="text-mono-label text-[11px] mb-1">{label}</p>
+                      <p className="text-body-md text-on-surface leading-relaxed whitespace-pre-wrap">
+                        {value?.trim() || "Not submitted yet."}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <p className="text-mono-label text-[11px] text-secondary font-bold uppercase">
+                    Stage 4: Objection Handling
+                  </p>
+                  {(
+                    [
+                      { label: "Objections Raised", value: objectionSummary?.objectionsRaised },
+                      { label: "Root Concerns", value: objectionSummary?.rootConcerns },
+                      { label: "How You Responded", value: objectionSummary?.howYouResponded },
+                      { label: "Price & Discounting", value: objectionSummary?.priceAndDiscounting },
+                      { label: "Next Step", value: objectionSummary?.nextStep },
+                    ] as const
+                  ).map(({ label, value }) => (
+                    <div
+                      key={label}
+                      className="p-3 bg-surface-container-high rounded-lg border-l-4 border-secondary"
+                    >
+                      <p className="text-mono-label text-[11px] mb-1">{label}</p>
+                      <p className="text-body-md text-on-surface leading-relaxed whitespace-pre-wrap">
+                        {value?.trim() || "Not submitted yet."}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </section>
             )}
