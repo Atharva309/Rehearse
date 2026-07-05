@@ -34,7 +34,6 @@ type TempoSimulationResultsViewProps = {
   completedAt: string | null;
   startedAt: string | null;
   negotiationOutcome?: TempoTestResultsOutcome | null;
-  isTestPreview?: boolean;
 };
 
 function formatCompletedDate(iso: string | null | undefined): string {
@@ -64,7 +63,6 @@ export function TempoSimulationResultsView({
   completedAt,
   startedAt,
   negotiationOutcome = null,
-  isTestPreview = false,
 }: TempoSimulationResultsViewProps): React.ReactElement {
   const heroSubtitle = tempoResultsHeroSubtitle(negotiationOutcome, dealWon);
   const managerNote = tempoResultsManagerNote(negotiationOutcome, dealWon);
@@ -82,35 +80,6 @@ export function TempoSimulationResultsView({
 
   return (
     <div className="min-h-screen bg-surface">
-      {isTestPreview && (
-        <div className="bg-amber-500 text-black text-center text-sm font-bold py-2 px-4">
-          Test preview — prefilled results data (not a saved attempt)
-        </div>
-      )}
-      <header className="sticky top-0 z-50 bg-surface-container-lowest border-b border-outline-variant h-16 flex items-center justify-between px-4 sm:px-8">
-        <Link
-          href="/student/dashboard"
-          className="flex items-center gap-2 text-xl font-bold text-primary tracking-tight"
-        >
-          <img
-            src="/pitchlab-logo-new.png"
-            alt="Rehearse logo"
-            className="h-[1.5em] w-auto shrink-0"
-          />
-          <span className="hidden sm:inline">Rehearse</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <span className="text-body-md text-on-surface-variant hidden sm:inline">{displayName}</span>
-          <Link
-            href="/student/dashboard"
-            className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded-lg text-on-surface-variant font-label-sm hover:bg-surface-container transition-colors"
-          >
-            <MaterialIcon name="arrow_back" className="text-[16px]" />
-            Dashboard
-          </Link>
-        </div>
-      </header>
-
       {/* Hero */}
       <section
         className={`w-full py-16 sm:py-20 px-4 sm:px-8 ${

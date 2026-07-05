@@ -103,7 +103,6 @@ export default async function SimulationCompletePage({
         completedAt={mock.completedAt}
         startedAt={mock.startedAt}
         negotiationOutcome={mock.negotiationOutcome}
-        isTestPreview
       />
     );
   }
