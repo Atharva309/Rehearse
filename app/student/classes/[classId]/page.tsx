@@ -11,6 +11,7 @@ import { StudentClassHeader } from "@/components/StudentClassHeader";
 import {
   ATTEMPT_STATUS,
   DEFAULT_CLASS_ID,
+  DEFAULT_CLASS_BANNER_URL,
   DEFAULT_CLASS_DESCRIPTION,
   DEFAULT_CLASS_NAME,
 } from "@/lib/constants";
@@ -84,8 +85,10 @@ export default async function StudentClassPage({
 
       {isDefaultClass ? (
         <div
-          className="rounded-xl overflow-hidden mb-4 min-h-[88px] flex flex-col justify-end px-5 py-4"
-          style={{ background: "linear-gradient(135deg, #000000, #1a1a1a)" }}
+          className="rounded-xl overflow-hidden mb-4 min-h-[140px] flex flex-col justify-end px-5 py-5 bg-cover bg-center"
+          style={{
+            backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0.2)), url(${DEFAULT_CLASS_BANNER_URL})`,
+          }}
         >
           <div className="flex flex-wrap items-center gap-2">
             <span className="material-symbols-outlined text-white/80 text-[20px]" aria-hidden>
