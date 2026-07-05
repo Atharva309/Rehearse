@@ -3,7 +3,9 @@
  * Types, copy, and helpers for Tempo Stage 5 Negotiation (default class only).
  */
 
+import type { DiscoverySummaryForm } from "@/lib/tempo-discovery";
 import type { ObjectionSummaryForm } from "@/lib/tempo-objections";
+import type { PresentationForm } from "@/lib/tempo-presentation";
 
 export type NegotiationScenario = "A" | "B";
 export type ScenarioState = "locked" | "active" | "complete";
@@ -62,6 +64,142 @@ export const NEGOTIATION_STRATEGY_TIPS = [
   "Protect the deal value — don't give away margin",
   "A pilot offer lowers his risk of saying yes",
 ] as const;
+
+export type PriorContextItem = {
+  label: string;
+  text: string;
+  fromStudent: boolean;
+};
+
+export type PriorContextSection = {
+  stageLabel: string;
+  borderClass: "border-primary" | "border-secondary" | "border-tertiary-container";
+  items: PriorContextItem[];
+};
+
+/** Summit Dental / Tempo reference copy when earlier stages were skipped (e.g. test shortcut). */
+const PRIOR_CONTEXT_FALLBACKS = {
+  discovery: {
+    businessIssue:
+      "Summit Dental's manual phone scheduling is breaking down at 8 locations — no-shows, front desk overload, and lost after-hours demand as they scale.",
+    keyProblems:
+      "The new 8th location exposed the limits of their phone-based system; front desk staff are drowning in confirmation calls.",
+    quantifiedValue:
+      "No-show rate around 18%; front desk spends most of the day on scheduling calls; significant demand after hours goes uncaptured.",
+    personalValue:
+      "Dana Reyes was hired to get operations under control before Dr. Kim loses confidence in the expansion.",
+    nextStep:
+      "Dana agreed to a follow-up presentation with her and Dr. Kim to review a tailored Tempo proposal.",
+  },
+  presentation: {
+    businessIssue:
+      "Eight practices on manual scheduling — no-shows near 1 in 6, front desk overloaded, no after-hours capture — with Dana under pressure as they scale.",
+    roiCalculation:
+      "Tempo Pro at $179/location/month across 8 sites; recovering even a slice of no-shows and after-hours demand dwarfs the subscription.",
+    proofPoint:
+      "Tempo customers see ~35% no-show reduction in 90 days and meaningful after-hours booking volume.",
+    nextStep:
+      "Present to Dana and Dr. Kim with a concrete rollout plan and ROI tied to Summit's expansion.",
+    bothStakeholders:
+      "Dana owns operational pain; Dr. Kim owns the budget and wants proof it pays for itself before committing.",
+  },
+  objections: {
+    objectionsRaised:
+      "Price across eight locations, front desk adoption risk, and skepticism that the status quo isn't good enough.",
+    rootConcerns:
+      "Kim isn't convinced ROI is real, fears a disruptive rollout, and under-counts the cost of manual scheduling chaos.",
+    howYouResponded:
+      "Acknowledge each concern, re-anchor on no-show recovery and front desk time saved, and resist immediate discounting.",
+    priceAndDiscounting:
+      "Kim pushes on monthly cost; hold price and trade value — onboarding support, commitment term, or scope — not margin.",
+    nextStep:
+      "Earn enough confidence to move to final terms negotiation with Dana on implementation details.",
+  },
+} as const satisfies Record<string, Record<string, string>>;
+
+const MIN_STUDENT_FIELD_LENGTH = 12;
+
+function resolvePriorField(
+  label: string,
+  studentValue: string | undefined,
+  fallback: string
+): PriorContextItem {
+  const trimmed = studentValue?.trim() ?? "";
+  if (trimmed.length >= MIN_STUDENT_FIELD_LENGTH) {
+    return { label, text: trimmed, fromStudent: true };
+  }
+  return { label, text: fallback, fromStudent: false };
+}
+
+/**
+ * Builds Prior Context sections from saved stage work, with Tempo simulation fallbacks.
+ */
+export function buildNegotiationPriorContext(
+  discoverySummary: Partial<DiscoverySummaryForm> | null,
+  presentationSummary: Partial<PresentationForm> | null,
+  objectionSummary: Partial<ObjectionSummaryForm> | null
+): PriorContextSection[] {
+  const discoveryFields: {
+    label: string;
+    key: keyof typeof PRIOR_CONTEXT_FALLBACKS.discovery;
+  }[] = [
+    { label: "Business Issue", key: "businessIssue" },
+    { label: "Key Problems", key: "keyProblems" },
+    { label: "Quantified Value", key: "quantifiedValue" },
+    { label: "Personal Value", key: "personalValue" },
+    { label: "Agreed Next Step", key: "nextStep" },
+  ];
+
+  const presentationFields: {
+    label: string;
+    key: keyof typeof PRIOR_CONTEXT_FALLBACKS.presentation;
+  }[] = [
+    { label: "Business Issue", key: "businessIssue" },
+    { label: "ROI Calculation", key: "roiCalculation" },
+    { label: "Proof Point", key: "proofPoint" },
+    { label: "Next Step Ask", key: "nextStep" },
+    { label: "Both Stakeholders", key: "bothStakeholders" },
+  ];
+
+  const objectionFields: {
+    label: string;
+    key: keyof typeof PRIOR_CONTEXT_FALLBACKS.objections;
+  }[] = [
+    { label: "Objections Raised", key: "objectionsRaised" },
+    { label: "Root Concerns", key: "rootConcerns" },
+    { label: "How You Responded", key: "howYouResponded" },
+    { label: "Price & Discounting", key: "priceAndDiscounting" },
+    { label: "Next Step", key: "nextStep" },
+  ];
+
+  return [
+    {
+      stageLabel: "Stage 2: Discovery",
+      borderClass: "border-tertiary-container",
+      items: discoveryFields.map(({ label, key }) =>
+        resolvePriorField(label, discoverySummary?.[key], PRIOR_CONTEXT_FALLBACKS.discovery[key])
+      ),
+    },
+    {
+      stageLabel: "Stage 3: Presentation",
+      borderClass: "border-primary",
+      items: presentationFields.map(({ label, key }) =>
+        resolvePriorField(
+          label,
+          presentationSummary?.[key],
+          PRIOR_CONTEXT_FALLBACKS.presentation[key]
+        )
+      ),
+    },
+    {
+      stageLabel: "Stage 4: Objection Handling",
+      borderClass: "border-secondary",
+      items: objectionFields.map(({ label, key }) =>
+        resolvePriorField(label, objectionSummary?.[key], PRIOR_CONTEXT_FALLBACKS.objections[key])
+      ),
+    },
+  ];
+}
 
 function createInitialTurns(opening: string): [NegotiationTurn, NegotiationTurn, NegotiationTurn] {
   return [

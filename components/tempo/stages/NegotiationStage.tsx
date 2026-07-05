@@ -16,6 +16,7 @@ import { HandoffModal } from "@/components/tempo/HandoffModal";
 import { NegotiationStageLayout } from "@/components/tempo/stages/NegotiationStageLayout";
 import { NegotiationTopBar } from "@/components/tempo/stages/NegotiationTopBar";
 import { useNegotiationStage } from "@/hooks/useNegotiationStage";
+import type { DiscoverySummaryForm } from "@/lib/tempo-discovery";
 import type { ObjectionSummaryForm } from "@/lib/tempo-objections";
 import type { PresentationForm } from "@/lib/tempo-presentation";
 import { TEMPO_HANDOFF_MESSAGES, TEMPO_HANDOFF_STAGE_META } from "@/lib/tempo-prospecting";
@@ -25,6 +26,7 @@ type NegotiationStageProps = {
   simulationId: string;
   classId: string;
   simulationTitle: string;
+  discoverySummary: Partial<DiscoverySummaryForm> | null;
   presentationSummary: Partial<PresentationForm> | null;
   objectionSummary: Partial<ObjectionSummaryForm> | null;
 };
@@ -37,6 +39,7 @@ export function NegotiationStage({
   simulationId,
   classId,
   simulationTitle,
+  discoverySummary,
   presentationSummary,
   objectionSummary,
 }: NegotiationStageProps): React.ReactElement {
@@ -89,6 +92,7 @@ export function NegotiationStage({
           aiWorkOpen={negotiation.aiWorkOpen}
           aiWork={negotiation.data.aiWork}
           rightTab={negotiation.rightTab}
+          discoverySummary={discoverySummary}
           presentationSummary={presentationSummary}
           objectionSummary={objectionSummary}
           onOpenHandoff={() => setShowHandoff(true)}

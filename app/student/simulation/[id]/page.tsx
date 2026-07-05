@@ -230,6 +230,7 @@ export default async function StudentSimulationPage({
         simulationId={simulation.id}
         classId={classId}
         simulationTitle={simulation.title}
+        discoverySummary={discoverySummary}
         presentationSummary={presentationSummary}
         objectionSummary={objectionSummary}
       />

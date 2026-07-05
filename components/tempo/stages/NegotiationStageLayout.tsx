@@ -5,9 +5,11 @@
  */
 
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import type { DiscoverySummaryForm } from "@/lib/tempo-discovery";
 import type { ObjectionSummaryForm } from "@/lib/tempo-objections";
 import type { PresentationForm } from "@/lib/tempo-presentation";
 import {
+  buildNegotiationPriorContext,
   getOutcomeStatusLabel,
   NEGOTIATION_MIN_WORDS,
   NEGOTIATION_STRATEGY_TIPS,
@@ -35,6 +37,7 @@ type NegotiationStageLayoutProps = {
   aiWorkOpen: boolean;
   aiWork: NegotiationAiWork;
   rightTab: number;
+  discoverySummary: Partial<DiscoverySummaryForm> | null;
   presentationSummary: Partial<PresentationForm> | null;
   objectionSummary: Partial<ObjectionSummaryForm> | null;
   onOpenHandoff: () => void;
@@ -165,6 +168,7 @@ export function NegotiationStageLayout({
   aiWorkOpen,
   aiWork,
   rightTab,
+  discoverySummary,
   presentationSummary,
   objectionSummary,
   onOpenHandoff,
@@ -183,6 +187,11 @@ export function NegotiationStageLayout({
   const responseWords = wordCount(currentResponse);
   const showFloatingStatus =
     !activeComplete && currentTurnIndex >= 0 && (activeScenario === "A" ? scenarioAState === "active" : scenarioBState === "active");
+  const priorContextSections = buildNegotiationPriorContext(
+    discoverySummary,
+    presentationSummary,
+    objectionSummary
+  );
 
   return (
     <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
@@ -708,60 +717,45 @@ export function NegotiationStageLayout({
             )}
 
             {rightTab === 1 && (
-              <section className="space-y-4">
-                <h4 className="text-mono-label font-mono-label uppercase tracking-widest text-on-surface-variant/70">
-                  Prior Context
-                </h4>
-
-                <div className="space-y-3">
-                  <p className="text-mono-label text-[11px] text-primary font-bold uppercase">
-                    Stage 3: Presentation
+              <section className="space-y-6">
+                <div>
+                  <h4 className="text-mono-label font-mono-label uppercase tracking-widest text-on-surface-variant/70 mb-1">
+                    Prior Context
+                  </h4>
+                  <p className="text-[12px] text-on-surface-variant">
+                    Your work from Stages 2–4, or Tempo simulation reference if a stage was skipped.
                   </p>
-                  {(
-                    [
-                      { label: "Business Issue", value: presentationSummary?.businessIssue },
-                      { label: "ROI Calculation", value: presentationSummary?.roiCalculation },
-                      { label: "Proof Point", value: presentationSummary?.proofPoint },
-                      { label: "Next Step", value: presentationSummary?.nextStep },
-                      { label: "Both Stakeholders", value: presentationSummary?.bothStakeholders },
-                    ] as const
-                  ).map(({ label, value }) => (
-                    <div
-                      key={label}
-                      className="p-3 bg-surface-container-high rounded-lg border-l-4 border-primary"
-                    >
-                      <p className="text-mono-label text-[11px] mb-1">{label}</p>
-                      <p className="text-body-md text-on-surface leading-relaxed whitespace-pre-wrap">
-                        {value?.trim() || "Not submitted yet."}
-                      </p>
-                    </div>
-                  ))}
                 </div>
 
-                <div className="space-y-3 pt-2">
-                  <p className="text-mono-label text-[11px] text-secondary font-bold uppercase">
-                    Stage 4: Objection Handling
-                  </p>
-                  {(
-                    [
-                      { label: "Objections Raised", value: objectionSummary?.objectionsRaised },
-                      { label: "Root Concerns", value: objectionSummary?.rootConcerns },
-                      { label: "How You Responded", value: objectionSummary?.howYouResponded },
-                      { label: "Price & Discounting", value: objectionSummary?.priceAndDiscounting },
-                      { label: "Next Step", value: objectionSummary?.nextStep },
-                    ] as const
-                  ).map(({ label, value }) => (
-                    <div
-                      key={label}
-                      className="p-3 bg-surface-container-high rounded-lg border-l-4 border-secondary"
-                    >
-                      <p className="text-mono-label text-[11px] mb-1">{label}</p>
-                      <p className="text-body-md text-on-surface leading-relaxed whitespace-pre-wrap">
-                        {value?.trim() || "Not submitted yet."}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {priorContextSections.map((section) => (
+                  <div key={section.stageLabel} className="space-y-3">
+                    <p className="text-mono-label text-[11px] font-bold uppercase text-on-surface-variant">
+                      {section.stageLabel}
+                    </p>
+                    {section.items.map((item) => (
+                      <div
+                        key={`${section.stageLabel}-${item.label}`}
+                        className={`p-3 bg-surface-container-high rounded-lg border-l-4 ${section.borderClass}`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <p className="text-mono-label text-[11px]">{item.label}</p>
+                          <span
+                            className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                              item.fromStudent
+                                ? "bg-primary-container/10 text-primary"
+                                : "bg-surface-container text-on-surface-variant"
+                            }`}
+                          >
+                            {item.fromStudent ? "Your work" : "Reference"}
+                          </span>
+                        </div>
+                        <p className="text-body-md text-on-surface leading-relaxed whitespace-pre-wrap">
+                          {item.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </section>
             )}
           </div>
