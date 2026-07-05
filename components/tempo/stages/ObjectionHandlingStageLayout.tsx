@@ -296,7 +296,7 @@ export function ObjectionHandlingStageLayout({
                       <div
                         className={`p-3 rounded-2xl max-w-[85%] text-body-md ${
                           msg.role === "student"
-                            ? "bg-primary-container text-surface-lowest rounded-tr-none"
+                            ? "bg-primary-container text-on-primary-container rounded-tr-none"
                             : "bg-surface-container-highest border border-outline-variant/30 rounded-tl-none text-on-surface"
                         }`}
                       >

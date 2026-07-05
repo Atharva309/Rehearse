@@ -73,7 +73,6 @@ export function DiscoveryCallSession({
   onEnded,
 }: DiscoveryCallSessionProps): React.ReactElement {
   const [connected, setConnected] = useState(false);
-  const [isDanaSpeaking, setIsDanaSpeaking] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
   const [seconds, setSeconds] = useState(0);
 
@@ -165,16 +164,6 @@ export function DiscoveryCallSession({
     onTranscriptChange(parseDiscoveryTranscript(raw, secondsRef.current));
   }, [voice.userTranscripts, voice.personaTranscripts, connected, onTranscriptChange]);
 
-  // ── Dana speaking indicator ───
-  useEffect(() => {
-    if (!voice.personaTranscripts || !connected) {
-      return;
-    }
-    setIsDanaSpeaking(true);
-    const timer = window.setTimeout(() => setIsDanaSpeaking(false), 2500);
-    return () => window.clearTimeout(timer);
-  }, [voice.personaTranscripts, connected]);
-
   const toggleMute = useCallback((): void => {
     if (micMuted) {
       void (async (): Promise<void> => {
@@ -226,13 +215,7 @@ export function DiscoveryCallSession({
         </div>
       ) : (
         <div className="flex flex-col items-center gap-6">
-          <div
-            className={`w-32 h-32 rounded-full bg-primary-container flex items-center justify-center text-white font-display text-3xl border-4 transition-all duration-500 ${
-              isDanaSpeaking
-                ? "border-tertiary-fixed shadow-[0_0_0_8px_rgba(230,195,100,0.2)]"
-                : "border-white/20"
-            }`}
-          >
+          <div className="w-32 h-32 rounded-full bg-primary-container flex items-center justify-center text-white font-display text-3xl border-4 border-white/20">
             DR
           </div>
 
@@ -241,27 +224,6 @@ export function DiscoveryCallSession({
             <p className="text-white/50 font-label-sm">
               Director of Operations · Summit Dental
             </p>
-          </div>
-
-          <div
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 ${
-              isDanaSpeaking
-                ? "bg-tertiary-fixed/10 border-tertiary-fixed/30"
-                : "bg-white/5 border-white/10"
-            }`}
-          >
-            <MaterialIcon
-              name="graphic_eq"
-              className={`text-[18px] ${isDanaSpeaking ? "text-tertiary-fixed" : "text-white/30"}`}
-              filled={isDanaSpeaking}
-            />
-            <span
-              className={`font-label-sm text-sm ${
-                isDanaSpeaking ? "text-tertiary-fixed" : "text-white/30"
-              }`}
-            >
-              {isDanaSpeaking ? "Dana is speaking..." : "Listening..."}
-            </span>
           </div>
 
           <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
