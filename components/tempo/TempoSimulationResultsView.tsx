@@ -7,14 +7,15 @@
 import Link from "next/link";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import {
-  TEMPO_MANAGER_NOTE_LOST,
-  TEMPO_MANAGER_NOTE_WON,
   TEMPO_RESULTS_MAX_SCORE,
   TEMPO_RESULTS_STAGE_CONFIG,
   tempoResultsDurationLabel,
   tempoResultsGradeColor,
   tempoResultsGradeFromPercent,
+  tempoResultsHeroSubtitle,
+  tempoResultsManagerNote,
   tempoResultsSubstanceStyle,
+  type TempoTestResultsOutcome,
 } from "@/lib/tempo-results";
 import { buildStudentLeaderboardRows } from "@/lib/leaderboard";
 import type { LeaderboardEntry } from "@/types";
@@ -32,6 +33,8 @@ type TempoSimulationResultsViewProps = {
   studentId: string;
   completedAt: string | null;
   startedAt: string | null;
+  negotiationOutcome?: TempoTestResultsOutcome | null;
+  isTestPreview?: boolean;
 };
 
 function formatCompletedDate(iso: string | null | undefined): string {
@@ -60,7 +63,17 @@ export function TempoSimulationResultsView({
   studentId,
   completedAt,
   startedAt,
+  negotiationOutcome = null,
+  isTestPreview = false,
 }: TempoSimulationResultsViewProps): React.ReactElement {
+  const heroSubtitle = tempoResultsHeroSubtitle(negotiationOutcome, dealWon);
+  const managerNote = tempoResultsManagerNote(negotiationOutcome, dealWon);
+  const heroTitle =
+    negotiationOutcome === "partial_close"
+      ? "Partial Close."
+      : dealWon
+        ? "Deal Won."
+        : "Deal Lost.";
   const { topRows, showSeparator, currentRow } = buildStudentLeaderboardRows(
     leaderboard,
     studentId,
@@ -69,6 +82,11 @@ export function TempoSimulationResultsView({
 
   return (
     <div className="min-h-screen bg-surface">
+      {isTestPreview && (
+        <div className="bg-amber-500 text-black text-center text-sm font-bold py-2 px-4">
+          Test preview — prefilled results data (not a saved attempt)
+        </div>
+      )}
       <header className="sticky top-0 z-50 bg-surface-container-lowest border-b border-outline-variant h-16 flex items-center justify-between px-4 sm:px-8">
         <Link
           href="/student/dashboard"
@@ -106,13 +124,9 @@ export function TempoSimulationResultsView({
                 Simulation Complete
               </span>
               <h1 className="font-display-lg text-[40px] sm:text-[56px] font-bold leading-tight text-white mb-3">
-                {dealWon ? "Deal Won." : "Deal Lost."}
+                {heroTitle}
               </h1>
-              <p className="text-white/70 font-body-lg mb-8">
-                {dealWon
-                  ? "Summit Dental Group is now a Tempo customer."
-                  : "Summit Dental Group did not sign the contract."}
-              </p>
+              <p className="text-white/70 font-body-lg mb-8">{heroSubtitle}</p>
 
               <div className="flex flex-wrap gap-3 mb-10">
                 {[
@@ -213,7 +227,7 @@ export function TempoSimulationResultsView({
             <div className="p-6 sm:p-8">
               <div className="bg-surface-container-low rounded-xl p-6 border-l-4 border-tertiary-container">
                 <p className="text-body-lg text-on-surface leading-relaxed whitespace-pre-line">
-                  {dealWon ? TEMPO_MANAGER_NOTE_WON : TEMPO_MANAGER_NOTE_LOST}
+                  {managerNote}
                 </p>
               </div>
               <p className="text-label-sm text-on-surface-variant italic mt-4">

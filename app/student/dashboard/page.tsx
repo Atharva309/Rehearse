@@ -16,6 +16,7 @@ import { DEFAULT_CLASS_ID, TEMPO_SIMULATION_ID } from "@/lib/constants";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { JoinClassButton } from "./JoinClassButton";
+import { TestResultsDropdown } from "./TestResultsDropdown";
 
 /**
  * Student home — pick a class, then choose a simulation inside it.
@@ -82,12 +83,18 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
           >
             🧪 Test: Stage 4
           </Link>
-          <Link
-            href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=negotiation`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600"
-          >
-            🧪 Test: Stage 5
-          </Link>
+          <div className="inline-flex items-stretch rounded-lg overflow-hidden shadow-sm">
+            <Link
+              href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=negotiation`}
+              className="inline-flex items-center gap-1.5 bg-emerald-700 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-600 border-r border-emerald-900/30"
+            >
+              🧪 Test: Stage 5
+            </Link>
+            <TestResultsDropdown
+              simulationId={TEMPO_SIMULATION_ID}
+              classId={DEFAULT_CLASS_ID}
+            />
+          </div>
           <JoinClassButton />
         </div>
       </div>

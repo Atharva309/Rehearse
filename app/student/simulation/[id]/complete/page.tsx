@@ -7,7 +7,7 @@ import { BackButton } from "@/components/BackButton";
 import { PipelineProgress } from "@/components/PipelineProgress";
 import { StudentLeaderboard } from "@/components/StudentLeaderboard";
 import { TempoSimulationResultsView } from "@/components/tempo/TempoSimulationResultsView";
-import { DEFAULT_CLASS_ID, LEADERBOARD_QUERY_LIMIT, SCORED_STAGES, STAGE_LABELS } from "@/lib/constants";
+import { DEFAULT_CLASS_ID, LEADERBOARD_QUERY_LIMIT, SCORED_STAGES, STAGE_LABELS, TEMPO_SIMULATION_ID } from "@/lib/constants";
 import { scoreToGrade } from "@/lib/grades";
 import { buildLeaderboard } from "@/lib/leaderboard";
 import { buildStageProgress } from "@/lib/stages";
@@ -19,9 +19,12 @@ import {
 } from "@/lib/score-display";
 import {
   TEMPO_RESULTS_MAX_SCORE,
+  buildTempoTestLeaderboard,
+  buildTempoTestResultsMock,
   tempoResultsDealWon,
   tempoResultsGradeFromPercent,
   tempoResultsTotalScore,
+  type TempoTestResultsOutcome,
 } from "@/lib/tempo-results";
 import { isTempoDefaultSimulation } from "@/lib/tempo-simulation";
 import { getStudentSession } from "@/lib/student-session";
@@ -36,8 +39,14 @@ export const metadata: Metadata = {
 
 type PageProps = {
   params: { id: string };
-  searchParams: { attempt?: string; classId?: string };
+  searchParams: { attempt?: string; classId?: string; testresults?: string };
 };
+
+const TEST_OUTCOMES = new Set<TempoTestResultsOutcome>([
+  "deal_agreed",
+  "partial_close",
+  "kim_walked",
+]);
 
 /**
  * Results summary after all stages complete.
@@ -49,6 +58,54 @@ export default async function SimulationCompletePage({
   const session = await getStudentSession();
   if (!session) {
     redirect("/student-login");
+  }
+
+  const testOutcomeRaw = searchParams.testresults?.trim();
+  const testOutcome = TEST_OUTCOMES.has(testOutcomeRaw as TempoTestResultsOutcome)
+    ? (testOutcomeRaw as TempoTestResultsOutcome)
+    : null;
+
+  if (
+    testOutcome &&
+    params.id === TEMPO_SIMULATION_ID &&
+    (searchParams.classId?.trim() ?? DEFAULT_CLASS_ID) === DEFAULT_CLASS_ID
+  ) {
+    const supabase = createServiceClient();
+    const { data: enrollment } = await supabase
+      .from("student_classes")
+      .select("id")
+      .eq("student_id", session.studentId)
+      .eq("class_id", DEFAULT_CLASS_ID)
+      .single();
+
+    if (!enrollment) {
+      redirect("/student/dashboard");
+    }
+
+    const mock = buildTempoTestResultsMock(testOutcome);
+    const leaderboard = buildTempoTestLeaderboard(
+      session.displayName,
+      session.studentId,
+      mock.totalScore
+    );
+
+    return (
+      <TempoSimulationResultsView
+        simulationId={params.id}
+        classId={DEFAULT_CLASS_ID}
+        displayName={session.displayName}
+        totalScore={mock.totalScore}
+        grade={mock.grade}
+        dealWon={mock.dealWon}
+        stageScores={mock.stageScores}
+        leaderboard={leaderboard}
+        studentId={session.studentId}
+        completedAt={mock.completedAt}
+        startedAt={mock.startedAt}
+        negotiationOutcome={mock.negotiationOutcome}
+        isTestPreview
+      />
+    );
   }
 
   const supabase = createServiceClient();

@@ -4,7 +4,7 @@
  * Used on the student complete page (default class only).
  */
 
-import type { SimulationStage, StageScore } from "@/types";
+import type { LeaderboardEntry, SimulationStage, StageScore } from "@/types";
 
 export const TEMPO_RESULTS_MAX_SCORE = 500;
 export const TEMPO_RESULTS_STAGE_MAX = 100;
@@ -164,3 +164,203 @@ export const TEMPO_MANAGER_NOTE_WON =
 
 export const TEMPO_MANAGER_NOTE_LOST =
   '"Summit Dental walked away at the negotiation stage.\n\nThe numbers were there — you found the business issue and built a reasonable case. What broke down was the negotiation: caving on price before defending value lost Dr. Kim\'s respect and the deal.\n\nNext time: hold your ground. Re-anchor on the ROI before you discuss discounting. Kim respects confidence more than flexibility.\n\nA deal lost is a deal to learn from. Come back stronger."';
+
+export const TEMPO_MANAGER_NOTE_PARTIAL =
+  '"You got Summit Dental to a partial agreement — that is progress, but not a clean close.\n\nYou held value better in Scenario A than many students, but Scenario B left terms open: billing structure and onboarding scope still need alignment. Dr. Kim will come back to the table only if the next proposal feels decisive.\n\nWork to improve: Trade with confidence — every concession should buy a clear commitment. Kim respects structured packages over open-ended discounts.\n\nOverall: partial win. Tighten the final offer and push for signature next attempt."';
+
+export type TempoTestResultsOutcome = "deal_agreed" | "partial_close" | "kim_walked";
+
+export const TEMPO_TEST_RESULTS_OUTCOMES: {
+  id: TempoTestResultsOutcome;
+  label: string;
+}[] = [
+  { id: "deal_agreed", label: "Deal Agreed (strong win)" },
+  { id: "partial_close", label: "Partial Close (mixed)" },
+  { id: "kim_walked", label: "Kim Walked (deal lost)" },
+];
+
+function buildCloseTranscript(outcome: TempoTestResultsOutcome): string {
+  const messages: Record<TempoTestResultsOutcome, string> = {
+    deal_agreed:
+      "Deal closed on Pro across 8 locations with annual billing and standard onboarding.",
+    partial_close:
+      "Partial agreement — annual billing accepted; onboarding scope and 9th location still open.",
+    kim_walked: "Kim ended talks after early discounting without a structured trade package.",
+  };
+
+  return JSON.stringify({
+    scenarioA: {
+      outcome: {
+        status: outcome === "kim_walked" ? "partial_close" : "deal_agreed",
+        message: "Scenario A completed.",
+      },
+    },
+    scenarioB: {
+      outcome: { status: outcome, message: messages[outcome] },
+    },
+    aiWork: { prompts: "Test preview", corrections: "Test preview" },
+    submittedAt: new Date().toISOString(),
+  });
+}
+
+function mockStageScore(
+  attemptId: string,
+  stage: SimulationStage,
+  score: number,
+  feedback: string,
+  transcript?: string
+): StageScore {
+  return {
+    id: `test-${stage}`,
+    attempt_id: attemptId,
+    stage,
+    score,
+    feedback,
+    transcript: transcript ?? null,
+    completed_at: new Date().toISOString(),
+  };
+}
+
+export type TempoTestResultsMock = {
+  stageScores: StageScore[];
+  dealWon: boolean;
+  negotiationOutcome: TempoTestResultsOutcome;
+  totalScore: number;
+  grade: string;
+  startedAt: string;
+  completedAt: string;
+};
+
+/**
+ * Prefilled Tempo results data for dashboard test preview links.
+ */
+export function buildTempoTestResultsMock(outcome: TempoTestResultsOutcome): TempoTestResultsMock {
+  const attemptId = "test-results-preview";
+  const completedAt = new Date().toISOString();
+  const startedAt = new Date(Date.now() - 2 * 60 * 60 * 1000 - 45 * 60 * 1000).toISOString();
+
+  const profiles: Record<
+    TempoTestResultsOutcome,
+    { scores: [number, number, number, number, number]; feedback: string[] }
+  > = {
+    deal_agreed: {
+      scores: [98, 88, 94, 86, 96],
+      feedback: [
+        "Strong ICP fit and personalized outreach to Summit Dental.",
+        "Uncovered no-show pain and front desk overload; could probe personal driver earlier.",
+        "Clear ROI reframe tied to 8-location expansion.",
+        "Acknowledged price concerns and held value without immediate discounting.",
+        "Defended price in Scenario A; traded levers cleanly in Scenario B.",
+      ],
+    },
+    partial_close: {
+      scores: [78, 72, 80, 74, 68],
+      feedback: [
+        "Solid research but opening could be tighter on why-now.",
+        "Found business issues but missed quantifying after-hours demand.",
+        "Pitch connected to operations strain; ROI math was approximate.",
+        "Handled adoption objection; price defense wavered late in the call.",
+        "Partial terms agreed — onboarding and billing still unresolved.",
+      ],
+    },
+    kim_walked: {
+      scores: [62, 55, 48, 41, 28],
+      feedback: [
+        "Generic outreach — weak trigger event for the 8th location.",
+        "Closed questions; did not surface Dana's staff burnout concern.",
+        "Feature-heavy pitch without enough Summit-specific proof.",
+        "Caved on discount request before reframing ROI.",
+        "Kim walked after unstructured concessions in Scenario B.",
+      ],
+    },
+  };
+
+  const profile = profiles[outcome];
+  const stages = TEMPO_RESULTS_STAGE_CONFIG.map((s) => s.id);
+  const stageScores = stages.map((stage, i) =>
+    mockStageScore(
+      attemptId,
+      stage,
+      profile.scores[i],
+      profile.feedback[i],
+      stage === "close" ? buildCloseTranscript(outcome) : undefined
+    )
+  );
+
+  const totalScore = tempoResultsTotalScore(stageScores);
+  const grade = tempoResultsGradeFromPercent(
+    Math.round((totalScore / TEMPO_RESULTS_MAX_SCORE) * 100)
+  );
+
+  return {
+    stageScores,
+    dealWon: outcome !== "kim_walked",
+    negotiationOutcome: outcome,
+    totalScore,
+    grade,
+    startedAt,
+    completedAt,
+  };
+}
+
+/**
+ * Sample cohort leaderboard for results test preview.
+ */
+export function buildTempoTestLeaderboard(
+  displayName: string,
+  studentId: string,
+  totalScore: number
+): LeaderboardEntry[] {
+  const peers = [
+    { name: "Sarah Jenkins", score: 498 },
+    { name: "Jordan Blake", score: 491 },
+    { name: "Elena Rodriguez", score: 476 },
+    { name: "David Kim", score: 451 },
+    { name: "Sophie Chen", score: 440 },
+  ];
+
+  const all = [
+    ...peers.map((p, i) => ({
+      rank: i + 1,
+      student_id: `peer-${i}`,
+      student_name: p.name,
+      total_score: p.score,
+      grade: tempoResultsGradeFromPercent(Math.round((p.score / TEMPO_RESULTS_MAX_SCORE) * 100)),
+      attempt_id: `peer-attempt-${i}`,
+      completed_at: new Date(Date.now() - (i + 1) * 86400000).toISOString(),
+    })),
+    {
+      rank: 0,
+      student_id: studentId,
+      student_name: displayName,
+      total_score: totalScore,
+      grade: tempoResultsGradeFromPercent(Math.round((totalScore / TEMPO_RESULTS_MAX_SCORE) * 100)),
+      attempt_id: "test-results-preview",
+      completed_at: new Date().toISOString(),
+    },
+  ]
+    .sort((a, b) => b.total_score - a.total_score)
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+
+  return all;
+}
+
+export function tempoResultsHeroSubtitle(outcome: TempoTestResultsOutcome | null, dealWon: boolean): string {
+  if (outcome === "partial_close") {
+    return "Partial terms agreed — some items still open before signature.";
+  }
+  if (dealWon) {
+    return "Summit Dental Group is now a Tempo customer.";
+  }
+  return "Summit Dental Group did not sign the contract.";
+}
+
+export function tempoResultsManagerNote(
+  outcome: TempoTestResultsOutcome | null,
+  dealWon: boolean
+): string {
+  if (outcome === "partial_close") {
+    return TEMPO_MANAGER_NOTE_PARTIAL;
+  }
+  return dealWon ? TEMPO_MANAGER_NOTE_WON : TEMPO_MANAGER_NOTE_LOST;
+}
