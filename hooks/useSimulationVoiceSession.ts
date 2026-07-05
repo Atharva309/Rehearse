@@ -10,10 +10,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { base64ToArrayBuffer, pickMediaRecorderMimeType } from "@/lib/audio";
 import { buildDefaultOpeningGreeting } from "@/lib/persona";
 import {
-  MEDIA_RECORDER_TIMESLICE_MS,
-  POST_SPEAK_COOLDOWN_MS,
-  VOICE_ENDPOINTING_MS,
-  VOICE_UTTERANCE_END_MS,
+  SIMULATION_POST_SPEAK_COOLDOWN_MS,
+  SIMULATION_VOICE_DEBOUNCE_MS,
+  SIMULATION_VOICE_ENDPOINTING_MS,
+  SIMULATION_VOICE_RECORDER_TIMESLICE_MS,
+  SIMULATION_VOICE_UTTERANCE_END_MS,
 } from "@/lib/constants";
 import { createDeepgramConnection } from "@/lib/deepgram";
 import { buildVoiceSystemPrompt } from "@/lib/persona-voice";
@@ -70,6 +71,7 @@ export function useSimulationVoiceSession(
   const transcriptLinesRef = useRef<string[]>([]);
   const isActiveRef = useRef(false);
   const configRef = useRef(config);
+  const pendingUtteranceRef = useRef("");
 
   useEffect(() => {
     configRef.current = config;
@@ -87,20 +89,38 @@ export function useSimulationVoiceSession(
     transcriptLinesRef.current.push(`${speaker}: ${text}`);
   }, []);
 
-  const canAcceptStudentSpeech = (): boolean => {
+  const isMicMuted = (): boolean => Boolean(configRef.current.isMutedRef?.current);
+
+  /** Deepgram may ingest while GPT runs; block only during persona playback (echo). */
+  const canIngestStudentSpeech = (): boolean => {
     return (
+      !isMicMuted() &&
       !isSpeakingRef.current &&
-      !isProcessingUserRef.current &&
       Date.now() >= canListenAfterRef.current
     );
   };
+
+  const canProcessStudentSpeech = (): boolean => {
+    return canIngestStudentSpeech() && !isProcessingUserRef.current;
+  };
+
+  const flushPendingUtterance = useCallback((): void => {
+    const pending = pendingUtteranceRef.current.trim();
+    if (!pending || !canProcessStudentSpeech()) {
+      return;
+    }
+    pendingUtteranceRef.current = "";
+    void handleUserSentenceRef.current(pending);
+  }, []);
+
+  const handleUserSentenceRef = useRef<(text: string) => Promise<void>>(async () => {
+    /* assigned after handleUserSentence is defined */
+  });
 
   const speakFromApi = useCallback(
     async (text: string): Promise<void> => {
       setPersonaTranscripts(text);
       appendTranscript("Persona", text);
-      isSpeakingRef.current = true;
-      utteranceBufferRef.current?.cancel();
       const epoch = playbackEpochRef.current;
 
       try {
@@ -131,6 +151,8 @@ export function useSimulationVoiceSession(
 
         const buffer = base64ToArrayBuffer(data.audioBase64);
         if (avatarRef.current && epoch === playbackEpochRef.current) {
+          isSpeakingRef.current = true;
+          utteranceBufferRef.current?.cancel();
           await avatarRef.current.speakAudio({ audio: buffer });
         }
       } catch (err) {
@@ -139,23 +161,32 @@ export function useSimulationVoiceSession(
       } finally {
         if (epoch === playbackEpochRef.current) {
           isSpeakingRef.current = false;
-          canListenAfterRef.current = Date.now() + POST_SPEAK_COOLDOWN_MS;
+          canListenAfterRef.current = Date.now() + SIMULATION_POST_SPEAK_COOLDOWN_MS;
           if (isActiveRef.current) {
             setStatusText("Your turn — speak when ready.");
           }
+          flushPendingUtterance();
         }
       }
     },
-    [appendTranscript]
+    [appendTranscript, flushPendingUtterance]
   );
 
   const handleUserSentence = useCallback(
     async (text: string): Promise<void> => {
-      if (!canAcceptStudentSpeech()) return;
+      const trimmed = text.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      if (!canProcessStudentSpeech()) {
+        pendingUtteranceRef.current = trimmed;
+        return;
+      }
 
       isProcessingUserRef.current = true;
-      setUserTranscripts(text);
-      appendTranscript("Student", text);
+      setUserTranscripts(trimmed);
+      appendTranscript("Student", trimmed);
       setStatusText("Thinking...");
 
       const prior = messagesRef.current;
@@ -169,7 +200,7 @@ export function useSimulationVoiceSession(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: prior,
-            newMessage: text,
+            newMessage: trimmed,
             systemPrompt,
           }),
         });
@@ -182,7 +213,7 @@ export function useSimulationVoiceSession(
         const { reply } = (await chatRes.json()) as { reply: string };
         const next: ChatMessage[] = [
           ...prior,
-          { role: "user", content: text },
+          { role: "user", content: trimmed },
           { role: "assistant", content: reply },
         ];
         setMessages(next);
@@ -193,13 +224,17 @@ export function useSimulationVoiceSession(
         setStatusText(err instanceof Error ? err.message : "Could not get reply.");
       } finally {
         isProcessingUserRef.current = false;
+        flushPendingUtterance();
       }
     },
-    [speakFromApi, appendTranscript]
+    [speakFromApi, appendTranscript, flushPendingUtterance]
   );
+
+  handleUserSentenceRef.current = handleUserSentence;
 
   const stopListening = useCallback((): void => {
     utteranceBufferRef.current?.cancel();
+    pendingUtteranceRef.current = "";
     mediaRecorderRef.current?.stop();
     mediaRecorderRef.current = null;
     deepgramConnectionRef.current?.close();
@@ -222,16 +257,30 @@ export function useSimulationVoiceSession(
         transcriptLinesRef.current = [];
         setUserTranscripts("");
         setPersonaTranscripts("");
-        canListenAfterRef.current = Date.now() + POST_SPEAK_COOLDOWN_MS;
+        pendingUtteranceRef.current = "";
+        canListenAfterRef.current = Date.now() + SIMULATION_POST_SPEAK_COOLDOWN_MS;
 
-        utteranceBufferRef.current = createUtteranceBuffer({
-          onLivePreview: (preview) => setUserTranscripts(preview),
-          onCommit: (full) => void handleUserSentence(full),
-        });
+        utteranceBufferRef.current = createUtteranceBuffer(
+          {
+            onLivePreview: (preview) => setUserTranscripts(preview),
+            onCommit: (full) => {
+              const trimmed = full.trim();
+              if (!trimmed) {
+                return;
+              }
+              if (!canProcessStudentSpeech()) {
+                pendingUtteranceRef.current = trimmed;
+                return;
+              }
+              void handleUserSentence(trimmed);
+            },
+          },
+          SIMULATION_VOICE_DEBOUNCE_MS
+        );
 
         const connection = createDeepgramConnection({
-          endpointing: VOICE_ENDPOINTING_MS,
-          utterance_end_ms: VOICE_UTTERANCE_END_MS,
+          endpointing: SIMULATION_VOICE_ENDPOINTING_MS,
+          utterance_end_ms: SIMULATION_VOICE_UTTERANCE_END_MS,
         });
         deepgramConnectionRef.current = connection;
 
@@ -250,7 +299,9 @@ export function useSimulationVoiceSession(
           configRef.current.openingGreeting ?? buildDefaultOpeningGreeting();
 
         connection.onTranscript((sentence: string, meta): void => {
-          if (!canAcceptStudentSpeech()) return;
+          if (!canIngestStudentSpeech()) {
+            return;
+          }
 
           if (!meta.isFinal && !meta.isSpeechFinal) {
             setUserTranscripts(sentence);
@@ -268,7 +319,7 @@ export function useSimulationVoiceSession(
 
         connection.onOpen(() => {
           if (mediaRecorder.state === "inactive") {
-            mediaRecorder.start(MEDIA_RECORDER_TIMESLICE_MS);
+            mediaRecorder.start(SIMULATION_VOICE_RECORDER_TIMESLICE_MS);
           }
           setStatusText("Live — wait for persona to finish, then speak.");
           void speakFromApi(greeting);
@@ -320,7 +371,7 @@ export function useSimulationVoiceSession(
     mediaRecorderRef.current = mediaRecorder;
 
     if (connection && mediaRecorder.state === "inactive") {
-      mediaRecorder.start(MEDIA_RECORDER_TIMESLICE_MS);
+      mediaRecorder.start(SIMULATION_VOICE_RECORDER_TIMESLICE_MS);
     }
   }, []);
 

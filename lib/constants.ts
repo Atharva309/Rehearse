@@ -25,6 +25,14 @@ export const VOICE_UTTERANCE_END_MS = 1800;
 
 /** Cooldown after persona TTS before accepting the next student utterance. */
 export const POST_SPEAK_COOLDOWN_MS = 400;
+
+/** Tempo Simli call stages — tuned for responsive turn-taking without clipping. */
+export const SIMULATION_VOICE_ENDPOINTING_MS = 550;
+export const SIMULATION_VOICE_UTTERANCE_END_MS = 1200;
+export const SIMULATION_VOICE_DEBOUNCE_MS = 700;
+export const SIMULATION_VOICE_RECORDER_TIMESLICE_MS = 100;
+export const SIMULATION_POST_SPEAK_COOLDOWN_MS = 200;
+
 export const DEEPGRAM_MODEL = "nova-2";
 export const DEEPGRAM_LANGUAGE = "en-US";
 export const MEDIA_RECORDER_TIMESLICE_MS = 250;
