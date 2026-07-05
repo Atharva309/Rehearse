@@ -187,34 +187,39 @@ export function NegotiationStageLayout({
   return (
     <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* ── Left panel ─── */}
-        <aside className="fixed left-0 top-16 w-[280px] h-[calc(100vh-64px)] bg-inverse-surface flex flex-col py-6 px-4 z-40 text-surface-variant overflow-y-auto">
-          <div className="mb-8">
-            <span className="text-mono-label font-mono-label text-surface-variant uppercase tracking-wider block mb-2">
-              Current Mission
-            </span>
-            <h1 className="text-headline-md font-headline-md text-primary-fixed">Negotiation</h1>
-            <p className="text-body-md text-surface-variant/80 mt-1">Phase 5: Closing the Deal</p>
-          </div>
+        {/* ── Left panel (matches Stages 2–4 mission briefing) ─── */}
+        <aside className="fixed left-0 top-16 w-[280px] h-[calc(100vh-64px)] bg-primary-container text-on-primary p-6 flex flex-col gap-6 border-r border-white/5 z-40 overflow-y-auto">
+          <section>
+            <h2 className="font-label-sm text-label-sm uppercase tracking-widest text-on-primary-container mb-4">
+              Mission Briefing
+            </h2>
+            <h1 className="font-headline-md text-headline-md mb-2">Close the deal with Dr. Kim.</h1>
+            <p className="text-on-primary/70 font-body-md">
+              Phase 5: Negotiation — defend value in Scenario A, then trade levers to reach final
+              terms in Scenario B.
+            </p>
+          </section>
 
-          <div className="space-y-2 mb-8">
+          <section className="space-y-2">
             <div
               className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
                 scenarioAState === "complete"
-                  ? "bg-surface-variant/10 border border-tertiary-fixed/30"
-                  : "bg-primary-container text-on-primary-container font-bold shadow-lg scale-[1.02]"
+                  ? "bg-tertiary-fixed/20 border border-tertiary-fixed/40"
+                  : scenarioAState === "active"
+                    ? "bg-white/15 border border-white/30 font-bold shadow-sm"
+                    : "bg-white/5 border border-white/10"
               }`}
             >
               <div className="flex items-center gap-3">
                 <MaterialIcon
                   name={scenarioAState === "complete" ? "check_circle" : "radio_button_checked"}
-                  className={scenarioAState === "complete" ? "text-tertiary-fixed" : ""}
+                  className={scenarioAState === "complete" ? "text-tertiary-fixed" : "text-on-primary-container"}
                   filled={scenarioAState === "complete"}
                 />
-                <span className="text-body-md text-white font-medium">Scenario A</span>
+                <span className="text-body-md font-medium">Scenario A</span>
               </div>
               {scenarioAState === "complete" && (
-                <span className="text-[10px] bg-tertiary-fixed/20 text-tertiary-fixed px-1.5 py-0.5 rounded font-bold uppercase">
+                <span className="text-[10px] bg-tertiary-fixed/30 text-on-tertiary-fixed px-1.5 py-0.5 rounded font-bold uppercase">
                   Done
                 </span>
               )}
@@ -223,10 +228,10 @@ export function NegotiationStageLayout({
             <div
               className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
                 scenarioBState === "locked"
-                  ? "opacity-50 cursor-not-allowed"
+                  ? "opacity-50 cursor-not-allowed bg-white/5 border border-white/10"
                   : scenarioBState === "complete"
-                    ? "bg-surface-variant/10 border border-tertiary-fixed/30"
-                    : "bg-primary-container text-on-primary-container font-bold shadow-lg scale-[1.02]"
+                    ? "bg-tertiary-fixed/20 border border-tertiary-fixed/40"
+                    : "bg-white/15 border border-white/30 font-bold shadow-sm"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -238,27 +243,36 @@ export function NegotiationStageLayout({
                         ? "check_circle"
                         : "radio_button_checked"
                   }
-                  className={scenarioBState === "complete" ? "text-tertiary-fixed" : ""}
+                  className={scenarioBState === "complete" ? "text-tertiary-fixed" : "text-on-primary-container"}
                   filled={scenarioBState === "complete"}
                 />
-                <span className="text-body-md text-white font-medium">Scenario B</span>
+                <span className="text-body-md font-medium">Scenario B</span>
               </div>
               {scenarioBState === "complete" && (
-                <span className="text-[10px] bg-tertiary-fixed/20 text-tertiary-fixed px-1.5 py-0.5 rounded font-bold uppercase">
+                <span className="text-[10px] bg-tertiary-fixed/30 text-on-tertiary-fixed px-1.5 py-0.5 rounded font-bold uppercase">
                   Done
                 </span>
               )}
             </div>
-          </div>
 
-          <div className="bg-surface-variant/10 rounded-xl p-4 mb-8 border border-white/5">
+            {showFloatingStatus && (
+              <div className="inline-flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full border border-white/20 w-fit mt-2">
+                <span className="w-2 h-2 rounded-full bg-tertiary-fixed animate-pulse shrink-0" />
+                <span className="font-mono-label text-on-primary-container text-[11px] uppercase tracking-wide">
+                  Scenario {activeScenario} · Turn {currentTurnIndex + 1}
+                </span>
+              </div>
+            )}
+          </section>
+
+          <section className="bg-white/5 rounded-xl p-4 border border-white/10">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/10 bg-[#1a1a2e] flex items-center justify-center">
-                <span className="text-tertiary-fixed font-bold">SK</span>
+              <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center font-bold text-on-secondary-container">
+                SK
               </div>
               <div>
-                <div className="text-body-md font-bold text-white">Dr. Saul Kim</div>
-                <div className="text-xs text-surface-variant/60">Founder & Owner, Summit Dental</div>
+                <div className="font-label-md text-label-md">Dr. Saul Kim</div>
+                <div className="text-xs text-on-primary/50">Founder & Owner, Summit Dental</div>
               </div>
             </div>
             <div className="flex gap-2 mt-2">
@@ -269,28 +283,28 @@ export function NegotiationStageLayout({
                 Careful
               </span>
             </div>
-          </div>
+          </section>
 
-          <div className="pt-6 border-t border-white/10">
-            <div className="flex items-center gap-2 mb-3 text-primary-fixed">
-              <MaterialIcon name="lightbulb" className="text-[18px]" />
-              <span className="text-mono-label font-mono-label">Strategy Tips</span>
-            </div>
+          <section>
+            <h3 className="font-label-md text-label-md mb-3 flex items-center gap-2">
+              <MaterialIcon name="lightbulb" className="text-tertiary-fixed" />
+              Strategy Tips
+            </h3>
             <ul className="space-y-2">
               {NEGOTIATION_STRATEGY_TIPS.map((tip) => (
-                <li key={tip} className="flex gap-2 text-xs text-surface-variant/70">
-                  <span className="text-tertiary-fixed mt-0.5">•</span>
+                <li key={tip} className="flex gap-2 text-sm text-on-primary/80">
+                  <span className="text-tertiary-fixed mt-0.5 shrink-0">•</span>
                   {tip}
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
 
-          <div className="mt-auto pt-6 border-t border-surface-variant/20">
+          <div className="mt-auto pt-4 border-t border-white/10">
             <button
               type="button"
               onClick={onOpenHandoff}
-              className="w-full py-3 bg-surface-variant/10 hover:bg-surface-variant/20 text-white rounded-lg font-medium transition-colors mb-4"
+              className="w-full py-3 bg-white/10 hover:bg-white/20 text-on-primary rounded-lg font-medium transition-colors"
             >
               View Briefing
             </button>
@@ -597,7 +611,7 @@ export function NegotiationStageLayout({
               <h2 className="text-title-lg font-title-lg">Reference Library</h2>
             </div>
             <div className="flex gap-1">
-              {["Levers", "Persona", "Transcript"].map((tab, i) => (
+              {["Levers", "Persona"].map((tab, i) => (
                 <button
                   key={tab}
                   type="button"
@@ -692,8 +706,8 @@ export function NegotiationStageLayout({
               <section className="space-y-4">
                 <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
-                      <span className="text-tertiary-fixed font-bold">SK</span>
+                    <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center font-bold text-on-secondary-container">
+                      SK
                     </div>
                     <div>
                       <p className="font-bold text-body-md">Dr. Saul Kim</p>
@@ -714,27 +728,9 @@ export function NegotiationStageLayout({
                 </div>
               </section>
             )}
-
-            {rightTab === 2 && (
-              <section className="space-y-3 text-body-md text-on-surface-variant">
-                <p>
-                  Your written negotiation transcript appears in the center panel as you complete
-                  each turn.
-                </p>
-              </section>
-            )}
           </div>
         </aside>
       </div>
-
-      {showFloatingStatus && (
-        <div className="fixed bottom-28 left-[300px] bg-inverse-surface text-white px-4 py-2 rounded-full shadow-xl flex items-center gap-3 border border-white/20 z-40">
-          <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
-          <span className="text-mono-label">
-            SIMULATION ACTIVE: SCENARIO {activeScenario}, TURN {currentTurnIndex + 1}
-          </span>
-        </div>
-      )}
 
       <footer
         className="fixed bottom-0 h-24 bg-surface border-t border-outline-variant px-8 flex items-center justify-between z-50"
