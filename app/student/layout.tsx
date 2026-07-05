@@ -1,17 +1,17 @@
 /**
  * layout.tsx — student section
- * Requires student JWT session; renders Rehearse header with student logout.
+ * JWT session auth with professor-style sidebar shell and dashboard header.
  */
 
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
-import { AppHeader } from "@/components/AppHeader";
+import { StudentPortalShell } from "@/components/student/StudentPortalShell";
+import { loadStudentEnrolledClasses } from "@/lib/student-class-data";
 import { getStudentSession } from "@/lib/student-session";
-import { createServiceClient } from "@/lib/supabase/server";
 
 /**
- * Student layout wrapper — JWT session auth (no Supabase auth).
+ * Student layout wrapper — portal shell with sidebar navigation.
  */
 export default async function StudentLayout({
   children,
@@ -23,32 +23,18 @@ export default async function StudentLayout({
     redirect("/student-login");
   }
 
-  const supabase = createServiceClient();
-  const { count } = await supabase
-    .from("student_classes")
-    .select("*", { count: "exact", head: true })
-    .eq("student_id", session.studentId);
-
-  const classCount = count ?? 0;
-  const subtitle =
-    classCount === 0
-      ? "Rehearse Student Portal"
-      : classCount === 1
-        ? "1 class enrolled"
-        : `${classCount} classes enrolled`;
+  const enrolledClasses = await loadStudentEnrolledClasses(session.studentId);
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <AppHeader
-        userName={session.displayName}
-        subtitle={subtitle}
-        homeHref="/student/dashboard"
-        logoutMode="student"
-        containerClassName="w-full px-4 sm:px-6 h-16 flex items-center justify-between"
-      />
-      <div className="flex w-full flex-1 flex-col pb-6 pt-2">
-        {children}
-      </div>
-    </div>
+    <StudentPortalShell
+      displayName={session.displayName}
+      classCount={enrolledClasses.length}
+      enrolledClasses={enrolledClasses.map((cls) => ({
+        classId: cls.classId,
+        className: cls.className,
+      }))}
+    >
+      {children}
+    </StudentPortalShell>
   );
 }
