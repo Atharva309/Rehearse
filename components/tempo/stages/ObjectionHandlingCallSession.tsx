@@ -335,12 +335,6 @@ export function ObjectionHandlingCallSession({
       </div>
 
       <div className="shrink-0 py-5 px-4 flex items-center justify-center gap-6 border-t border-white/10 bg-black/30 backdrop-blur-md">
-        {connected && (
-          <div className="hidden sm:flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full mr-2">
-            <MaterialIcon name="timer" className="text-white/60 text-[18px]" />
-            <span className="font-code-md text-white/80">{formatObjectionTime(seconds)}</span>
-          </div>
-        )}
         {[
           { icon: "mic" as const, muted: micMuted, onClick: toggleMute },
           { icon: "videocam" as const, muted: cameraOff, onClick: toggleCamera },
@@ -375,20 +369,12 @@ export function ObjectionHandlingCallSession({
         >
           <MaterialIcon name="call_end" className="font-bold" />
         </button>
-        <button
-          type="button"
-          disabled={!connected}
-          className="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-40"
-        >
-          <MaterialIcon name="closed_caption" />
-        </button>
-        <button
-          type="button"
-          disabled={!connected}
-          className="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-40"
-        >
-          <MaterialIcon name="more_horiz" />
-        </button>
+        {connected && (
+          <div className="flex items-center gap-2 glass-panel px-4 h-14 rounded-full">
+            <MaterialIcon name="timer" className="text-white/60 text-[18px]" />
+            <span className="font-code-md text-white/80 tabular-nums">{formatObjectionTime(seconds)}</span>
+          </div>
+        )}
       </div>
     </section>
   );
