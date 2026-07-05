@@ -63,6 +63,11 @@ async function waitForAvatarReady(
   return getRef();
 }
 
+/** Returns true when the stream has at least one live video track. */
+function hasLiveVideoTrack(stream: MediaStream | null): boolean {
+  return Boolean(stream?.getVideoTracks().some((track) => track.readyState === "live"));
+}
+
 /**
  * Mounts Simli voice session with visible video avatar and student PiP.
  */
@@ -90,9 +95,6 @@ export function ObjectionHandlingCallSession({
   const studentVideoRef = useRef<HTMLVideoElement | null>(null);
   const activeAudioStreamRef = useRef(audioStream);
   const activeVideoStreamRef = useRef<MediaStream | null>(videoStream);
-
-  const hasLiveVideoTrack = (stream: MediaStream | null): boolean =>
-    Boolean(stream?.getVideoTracks().some((track) => track.readyState === "live"));
 
   const voice = useSimulationVoiceSession({
     systemPrompt: DR_KIM_SYSTEM_PROMPT,
