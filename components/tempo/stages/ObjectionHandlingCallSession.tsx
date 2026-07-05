@@ -81,13 +81,18 @@ export function ObjectionHandlingCallSession({
   const [isDrKimSpeaking, setIsDrKimSpeaking] = useState(false);
   const [isStudentSpeaking, setIsStudentSpeaking] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
-  const [cameraOff, setCameraOff] = useState(false);
+  const [cameraOff, setCameraOff] = useState(() => !hasLiveVideoTrack(videoStream));
   const [seconds, setSeconds] = useState(0);
 
   const connectStartedRef = useRef(false);
   const isMutedRef = useRef(false);
   const secondsRef = useRef(0);
   const studentVideoRef = useRef<HTMLVideoElement | null>(null);
+  const activeAudioStreamRef = useRef(audioStream);
+  const activeVideoStreamRef = useRef<MediaStream | null>(videoStream);
+
+  const hasLiveVideoTrack = (stream: MediaStream | null): boolean =>
+    Boolean(stream?.getVideoTracks().some((track) => track.readyState === "live"));
 
   const voice = useSimulationVoiceSession({
     systemPrompt: DR_KIM_SYSTEM_PROMPT,
@@ -112,23 +117,33 @@ export function ObjectionHandlingCallSession({
   });
 
   // ── Student PiP video ───
-  useEffect(() => {
+  const attachVideoPreview = useCallback((stream: MediaStream | null): void => {
     const el = studentVideoRef.current;
-    if (!el || !videoStream) {
+    if (!el) {
       return;
     }
-    el.srcObject = videoStream;
+    if (!stream || !hasLiveVideoTrack(stream)) {
+      el.srcObject = null;
+      return;
+    }
+    el.srcObject = stream;
     void el.play().catch(() => undefined);
-  }, [videoStream]);
+  }, []);
 
   useEffect(() => {
-    if (!videoStream) {
-      return;
+    activeVideoStreamRef.current = videoStream;
+    if (videoStream && hasLiveVideoTrack(videoStream)) {
+      setCameraOff(false);
     }
-    videoStream.getVideoTracks().forEach((track) => {
-      track.enabled = !cameraOff;
-    });
-  }, [cameraOff, videoStream]);
+    attachVideoPreview(hasLiveVideoTrack(videoStream) ? videoStream : null);
+  }, [videoStream, attachVideoPreview]);
+
+  const stopVideoTracks = useCallback((): void => {
+    activeVideoStreamRef.current?.getVideoTracks().forEach((track) => track.stop());
+    activeVideoStreamRef.current = null;
+    attachVideoPreview(null);
+    setCameraOff(true);
+  }, [attachVideoPreview]);
 
   // ── Connect once on mount ───
   useEffect(() => {
@@ -224,30 +239,69 @@ export function ObjectionHandlingCallSession({
   }, [voice.userTranscripts, connected]);
 
   const toggleMute = useCallback((): void => {
-    setMicMuted((prev) => {
-      const next = !prev;
-      isMutedRef.current = next;
-      audioStream.getAudioTracks().forEach((track) => {
-        track.enabled = !next;
-      });
-      return next;
-    });
-  }, [audioStream]);
+    if (micMuted) {
+      void (async (): Promise<void> => {
+        try {
+          const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const track = micStream.getAudioTracks()[0];
+          if (!track) {
+            micStream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          const nextStream = new MediaStream([track]);
+          activeAudioStreamRef.current = nextStream;
+          isMutedRef.current = false;
+          setMicMuted(false);
+          voiceRef.current.resumeMic(nextStream);
+        } catch {
+          /* stay muted */
+        }
+      })();
+      return;
+    }
+
+    isMutedRef.current = true;
+    setMicMuted(true);
+    activeAudioStreamRef.current.getAudioTracks().forEach((track) => track.stop());
+    voiceRef.current.pauseMic();
+  }, [micMuted]);
 
   const toggleCamera = useCallback((): void => {
-    setCameraOff((prev) => !prev);
-  }, []);
+    if (!cameraOff) {
+      stopVideoTracks();
+      return;
+    }
+
+    void (async (): Promise<void> => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const track = stream.getVideoTracks()[0];
+        if (!track) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        const nextStream = new MediaStream([track]);
+        activeVideoStreamRef.current = nextStream;
+        setCameraOff(false);
+        attachVideoPreview(nextStream);
+      } catch {
+        setCameraOff(true);
+      }
+    })();
+  }, [cameraOff, stopVideoTracks, attachVideoPreview]);
 
   const handleEndCall = useCallback((): void => {
     const finalSeconds = secondsRef.current;
     voiceRef.current.endCall();
-    audioStream.getTracks().forEach((track) => track.stop());
-    videoStream?.getTracks().forEach((track) => track.stop());
+    activeAudioStreamRef.current.getTracks().forEach((track) => track.stop());
+    activeVideoStreamRef.current?.getTracks().forEach((track) => track.stop());
     const raw = voiceRef.current.getFullTranscript();
     const entries = parseObjectionTranscript(raw, finalSeconds);
     const finalTracker = deriveObjectionTracker(entries);
     onEnded(raw, finalSeconds, entries, finalTracker);
-  }, [audioStream, videoStream, onEnded]);
+  }, [onEnded]);
+
+  const showCameraPreview = !cameraOff;
 
   const objectionChips = [
     { label: "Price", raised: tracker.price, handled: tracker.priceHandled },
@@ -313,16 +367,15 @@ export function ObjectionHandlingCallSession({
                 isStudentSpeaking ? "speaking-ring-blue" : ""
               }`}
             >
-              {videoStream && !cameraOff ? (
-                <video
-                  ref={studentVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover scale-x-[-1]"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-neutral-700">
+              <video
+                ref={studentVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover scale-x-[-1] ${showCameraPreview ? "" : "hidden"}`}
+              />
+              {!showCameraPreview && (
+                <div className="absolute inset-0 flex items-center justify-center bg-neutral-700">
                   <MaterialIcon name="person" className="text-white/40 text-4xl" />
                 </div>
               )}

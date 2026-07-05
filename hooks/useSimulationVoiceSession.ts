@@ -40,6 +40,10 @@ export type SimulationVoiceReturn = {
   endCall: () => void;
   /** Swap MediaRecorder to a new mic stream after unmute. */
   replaceAudioStream: (audioStream: MediaStream) => void;
+  /** Stops sending mic audio to Deepgram without ending the call. */
+  pauseMic: () => void;
+  /** Resumes Deepgram capture on a (usually fresh) mic stream. */
+  resumeMic: (audioStream: MediaStream) => void;
 };
 
 /**
@@ -320,6 +324,31 @@ export function useSimulationVoiceSession(
     }
   }, []);
 
+  const pauseMic = useCallback((): void => {
+    if (configRef.current.isMutedRef) {
+      configRef.current.isMutedRef.current = true;
+    }
+    utteranceBufferRef.current?.cancel();
+
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) {
+      return;
+    }
+    if (recorder.state === "recording" || recorder.state === "paused") {
+      recorder.stop();
+    }
+  }, []);
+
+  const resumeMic = useCallback(
+    (audioStream: MediaStream): void => {
+      if (configRef.current.isMutedRef) {
+        configRef.current.isMutedRef.current = false;
+      }
+      replaceAudioStream(audioStream);
+    },
+    [replaceAudioStream]
+  );
+
   return {
     avatarRef,
     isActive,
@@ -331,5 +360,7 @@ export function useSimulationVoiceSession(
     stopListening,
     endCall,
     replaceAudioStream,
+    pauseMic,
+    resumeMic,
   };
 }

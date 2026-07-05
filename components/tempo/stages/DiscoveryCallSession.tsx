@@ -80,6 +80,7 @@ export function DiscoveryCallSession({
   const connectStartedRef = useRef(false);
   const isMutedRef = useRef(false);
   const secondsRef = useRef(0);
+  const activeAudioStreamRef = useRef(audioStream);
 
   const voice = useSimulationVoiceSession({
     systemPrompt: DANA_REYES_SYSTEM_PROMPT,
@@ -175,24 +176,41 @@ export function DiscoveryCallSession({
   }, [voice.personaTranscripts, connected]);
 
   const toggleMute = useCallback((): void => {
-    setMicMuted((prev) => {
-      const next = !prev;
-      isMutedRef.current = next;
-      audioStream.getAudioTracks().forEach((track) => {
-        track.enabled = !next;
-      });
-      return next;
-    });
-  }, [audioStream]);
+    if (micMuted) {
+      void (async (): Promise<void> => {
+        try {
+          const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const track = micStream.getAudioTracks()[0];
+          if (!track) {
+            micStream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          const nextStream = new MediaStream([track]);
+          activeAudioStreamRef.current = nextStream;
+          isMutedRef.current = false;
+          setMicMuted(false);
+          voiceRef.current.resumeMic(nextStream);
+        } catch {
+          /* stay muted */
+        }
+      })();
+      return;
+    }
+
+    isMutedRef.current = true;
+    setMicMuted(true);
+    activeAudioStreamRef.current.getAudioTracks().forEach((track) => track.stop());
+    voiceRef.current.pauseMic();
+  }, [micMuted]);
 
   const handleEndCall = useCallback((): void => {
     const finalSeconds = secondsRef.current;
     voiceRef.current.endCall();
-    audioStream.getTracks().forEach((track) => track.stop());
+    activeAudioStreamRef.current.getTracks().forEach((track) => track.stop());
     const raw = voiceRef.current.getFullTranscript();
     const entries = parseDiscoveryTranscript(raw, finalSeconds);
     onEnded(raw, finalSeconds, entries);
-  }, [audioStream, onEnded]);
+  }, [onEnded]);
 
   return (
     <section className="flex-1 bg-[#0a0a0a] relative flex flex-col items-center justify-center p-lg min-w-0">
