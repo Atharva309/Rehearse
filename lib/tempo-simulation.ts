@@ -156,12 +156,8 @@ export function buildTempoEntryCtaHref(
   simulationId: string,
   classId: string,
   attemptId: string | null,
-  hasCompletedAttempt: boolean,
   hasInProgressAttempt: boolean
 ): string {
-  if (hasCompletedAttempt && attemptId) {
-    return `/student/simulation/${simulationId}/complete?attempt=${attemptId}`;
-  }
   if (hasInProgressAttempt && attemptId) {
     return `/student/simulation/${simulationId}?classId=${classId}&attempt=${attemptId}`;
   }

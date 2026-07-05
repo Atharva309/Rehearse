@@ -71,21 +71,18 @@ export default async function TempoSimulationEntryPage({
     redirect("/student/dashboard");
   }
 
-  const { data: existingAttempt } = await supabase
+  const { data: inProgressAttempt } = await supabase
     .from("attempts")
     .select("id, status, current_stage, total_score")
     .eq("student_id", session.studentId)
     .eq("simulation_id", params.id)
     .eq("class_id", classId)
-    .in("status", ["in_progress", "completed"])
-    .order("started_at", { ascending: false })
-    .limit(1)
+    .eq("status", "in_progress")
     .maybeSingle();
 
-  const hasCompletedAttempt = existingAttempt?.status === "completed";
-  const hasInProgressAttempt = existingAttempt?.status === "in_progress";
-  const attemptId = existingAttempt?.id ?? null;
-  const currentStage = (existingAttempt?.current_stage as SimulationStage | undefined) ?? null;
+  const hasInProgressAttempt = !!inProgressAttempt;
+  const attemptId = inProgressAttempt?.id ?? null;
+  const currentStage = (inProgressAttempt?.current_stage as SimulationStage | undefined) ?? null;
 
   let completedStageKeys = new Set<string>();
   let lastStageScore: number | null = null;
@@ -110,13 +107,11 @@ export default async function TempoSimulationEntryPage({
     params.id,
     classId,
     attemptId,
-    hasCompletedAttempt,
     hasInProgressAttempt
   );
 
-  const ctaLabel = hasCompletedAttempt
-    ? "View Results →"
-    : hasInProgressAttempt && currentTempoStage
+  const ctaLabel =
+    hasInProgressAttempt && currentTempoStage
       ? `Continue — Stage ${currentTempoStage.number}: ${currentTempoStage.title} →`
       : "Begin Simulation →";
 
