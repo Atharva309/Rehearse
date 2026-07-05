@@ -82,11 +82,27 @@ export function TempoSimulationResultsView({
     <div className="min-h-screen bg-surface">
       {/* Hero */}
       <section
-        className={`w-full py-16 sm:py-20 px-4 sm:px-8 ${
+        className={`w-full px-4 sm:px-8 ${
           dealWon ? "bg-primary-container" : "bg-[#1a1a1a]"
         }`}
       >
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto pt-6 pb-2 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <Link
+            href="/student/dashboard"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-white/70 hover:text-white transition-colors"
+          >
+            <MaterialIcon name="home" className="text-[18px]" />
+            Dashboard
+          </Link>
+          <Link
+            href={`/student/simulation/${simulationId}/entry?classId=${classId}`}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-white/70 hover:text-white transition-colors"
+          >
+            <MaterialIcon name="arrow_back" className="text-[18px]" />
+            Rehearse Essentials
+          </Link>
+        </div>
+        <div className="max-w-5xl mx-auto py-12 sm:py-16">
           <div className="flex flex-col lg:flex-row items-start justify-between gap-12">
             <div className="flex-1">
               <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-tertiary-fixed block mb-4">
@@ -468,7 +484,7 @@ export function TempoSimulationResultsView({
           <div className="flex flex-col sm:flex-row items-center gap-6 mb-4">
             <div className="flex flex-col items-center gap-2">
               <Link
-                href={`/student/simulation/${simulationId}/entry?classId=${classId}`}
+                href={`/student/simulation/${simulationId}/entry?classId=${classId}&new=1`}
                 className="flex items-center gap-3 px-8 py-4 bg-primary-container text-on-primary font-bold rounded-xl shadow-lg hover:opacity-90 active:scale-95 transition-all"
               >
                 <MaterialIcon name="replay" />

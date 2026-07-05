@@ -112,12 +112,25 @@ export function TempoSimulationEntryView({
 }: TempoSimulationEntryViewProps): React.ReactElement {
   const entryRedirectHref = `/student/simulation/${simulationId}/entry?classId=${classId}`;
 
+  const heroNavLinkClass =
+    "inline-flex items-center gap-1.5 text-sm font-medium text-white/70 hover:text-white transition-colors";
+
   return (
     <div>
       {/* Hero — full bleed */}
-      <section className="relative w-full bg-primary-container px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        {hasInProgressAttempt && restartAttemptId && (
-          <div className="absolute top-6 right-6 z-10">
+      <section className="relative w-full bg-primary-container px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+        <div className="max-w-[1100px] mx-auto mb-8 lg:mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link href={`/student/classes/${classId}`} className={heroNavLinkClass}>
+              <MaterialIcon name="arrow_back" className="text-[18px]" />
+              Rehearse Essentials
+            </Link>
+            <Link href="/student/dashboard" className={heroNavLinkClass}>
+              <MaterialIcon name="home" className="text-[18px]" />
+              Dashboard
+            </Link>
+          </div>
+          {hasInProgressAttempt && restartAttemptId && (
             <RestartSimulationButton
               attemptId={restartAttemptId}
               simulationId={simulationId}
@@ -126,10 +139,10 @@ export function TempoSimulationEntryView({
               variant="onDark"
               redirectHref={entryRedirectHref}
             />
-          </div>
-        )}
+          )}
+        </div>
 
-        <div className="max-w-[1100px] mx-auto flex flex-col lg:flex-row items-start justify-between gap-10 lg:gap-12">
+        <div className="max-w-[1100px] mx-auto flex flex-col lg:flex-row items-start justify-between gap-10 lg:gap-12 pb-8 lg:pb-10">
           <div className="flex-1 min-w-0">
             {hasInProgressAttempt ? (
               <span className="font-code-md text-tertiary-container text-sm uppercase tracking-widest">

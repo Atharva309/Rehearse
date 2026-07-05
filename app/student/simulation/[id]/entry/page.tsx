@@ -8,7 +8,6 @@
  * Only rendered for the Tempo simulation in the default class.
  */
 
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { TempoSimulationEntryView } from "@/components/student/TempoSimulationEntryView";
 import { DEFAULT_CLASS_ID } from "@/lib/constants";
@@ -24,7 +23,7 @@ import type { SimulationStage } from "@/types";
 
 type PageProps = {
   params: { id: string };
-  searchParams: { classId?: string };
+  searchParams: { classId?: string; new?: string };
 };
 
 /**
@@ -71,7 +70,7 @@ export default async function TempoSimulationEntryPage({
     redirect("/student/dashboard");
   }
 
-  const { data: inProgressAttempt } = await supabase
+  let { data: inProgressAttempt } = await supabase
     .from("attempts")
     .select("id, status, current_stage, total_score")
     .eq("student_id", session.studentId)
@@ -79,6 +78,22 @@ export default async function TempoSimulationEntryPage({
     .eq("class_id", classId)
     .eq("status", "in_progress")
     .maybeSingle();
+
+  if (!inProgressAttempt && searchParams.new === "1") {
+    const { data: created } = await supabase
+      .from("attempts")
+      .insert({
+        student_id: session.studentId,
+        class_id: classId,
+        student_class_id: enrollment.id,
+        simulation_id: params.id,
+        current_stage: "lead_gen",
+      })
+      .select("id, status, current_stage, total_score")
+      .single();
+
+    inProgressAttempt = created;
+  }
 
   const hasInProgressAttempt = !!inProgressAttempt;
   const attemptId = inProgressAttempt?.id ?? null;
@@ -117,16 +132,6 @@ export default async function TempoSimulationEntryPage({
 
   return (
     <div>
-      <div className="px-4 sm:px-6">
-        <Link
-          href={`/student/classes/${classId}`}
-          className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:underline mb-4 transition-colors"
-        >
-          <span aria-hidden>←</span>
-          Back to Rehearse Essentials
-        </Link>
-      </div>
-
       <TempoSimulationEntryView
         classId={classId}
         simulationId={params.id}
