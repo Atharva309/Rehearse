@@ -603,7 +603,7 @@ export function NegotiationStageLayout({
 
         {/* ── Right panel ─── */}
         <aside className="fixed right-0 top-16 h-[calc(100vh-64px)] w-[320px] bg-surface-container border-l border-outline-variant flex flex-col z-30">
-          <div className="p-6 border-b border-outline-variant bg-surface">
+          <div className="p-6 border-b border-outline-variant bg-surface shrink-0">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center">
                 <MaterialIcon name="description" className="text-secondary text-lg" />
@@ -628,7 +628,7 @@ export function NegotiationStageLayout({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          <div className="flex-1 overflow-y-auto p-6 pb-8 space-y-8">
             {rightTab === 0 && (
               <>
                 <section className="space-y-4">
@@ -732,10 +732,7 @@ export function NegotiationStageLayout({
         </aside>
       </div>
 
-      <footer
-        className="fixed bottom-0 h-24 bg-surface border-t border-outline-variant px-8 flex items-center justify-between z-50"
-        style={{ left: "280px", right: "0" }}
-      >
+      <footer className="fixed bottom-0 left-[280px] right-[320px] h-24 bg-surface border-t border-outline-variant px-8 flex items-center justify-between z-40">
         <div className="flex items-center gap-4">
           <div
             className={`w-12 h-12 rounded-full flex items-center justify-center ${
