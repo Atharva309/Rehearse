@@ -256,12 +256,12 @@ export function ObjectionHandlingCallSession({
   ] as const;
 
   return (
-    <section className="flex-1 bg-[#0a0a0a] relative flex flex-col items-center justify-center overflow-hidden min-w-0">
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 flex gap-3 flex-wrap justify-center px-4">
+    <section className="flex-1 bg-[#0a0a0a] relative flex flex-col min-w-0 overflow-hidden">
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 flex gap-3 flex-wrap justify-center px-4 pointer-events-none">
         {objectionChips.map((obj) => (
           <div
             key={obj.label}
-            className={`px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-lg border ${
+            className={`px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-lg border pointer-events-auto ${
               obj.handled
                 ? "bg-green-900/40 border-green-600/40 text-green-300"
                 : obj.raised
@@ -284,18 +284,18 @@ export function ObjectionHandlingCallSession({
         ))}
       </div>
 
-      {!connected ? (
-        <div className="flex flex-col items-center justify-center">
-          <div className="w-10 h-10 border-2 border-white/20 border-t-tertiary-container rounded-full animate-spin" />
-          <p className="mt-4 text-sm text-white/70">Connecting to Dr. Saul Kim…</p>
-          <div className="pointer-events-none absolute opacity-0 h-px w-px overflow-hidden">
-            <Avatar ref={voice.avatarRef} faceId={faceId} />
+      <div className="flex-1 flex flex-col items-center justify-center px-4 pt-16 pb-4 min-h-0">
+        {!connected ? (
+          <div className="flex flex-col items-center justify-center">
+            <div className="w-10 h-10 border-2 border-white/20 border-t-tertiary-container rounded-full animate-spin" />
+            <p className="mt-4 text-sm text-white/70">Connecting to Dr. Saul Kim…</p>
+            <div className="pointer-events-none absolute opacity-0 h-px w-px overflow-hidden">
+              <Avatar ref={voice.avatarRef} faceId={faceId} />
+            </div>
           </div>
-        </div>
-      ) : (
-        <>
+        ) : (
           <div
-            className={`relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden transition-all duration-700 mx-4 ${
+            className={`relative w-full max-w-4xl aspect-video max-h-[min(56vh,calc(100%-1rem))] rounded-3xl overflow-hidden transition-all duration-700 ${
               isDrKimSpeaking ? "speaking-ring-gold" : "border border-white/10"
             }`}
           >
@@ -331,15 +331,16 @@ export function ObjectionHandlingCallSession({
               </div>
             </div>
           </div>
+        )}
+      </div>
 
-          <div className="mt-4 flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
+      <div className="shrink-0 py-5 px-4 flex items-center justify-center gap-6 border-t border-white/10 bg-black/30 backdrop-blur-md">
+        {connected && (
+          <div className="hidden sm:flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full mr-2">
             <MaterialIcon name="timer" className="text-white/60 text-[18px]" />
             <span className="font-code-md text-white/80">{formatObjectionTime(seconds)}</span>
           </div>
-        </>
-      )}
-
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex items-center gap-6">
+        )}
         {[
           { icon: "mic" as const, muted: micMuted, onClick: toggleMute },
           { icon: "videocam" as const, muted: cameraOff, onClick: toggleCamera },
@@ -348,7 +349,8 @@ export function ObjectionHandlingCallSession({
             key={ctrl.icon}
             type="button"
             onClick={ctrl.onClick}
-            className={`w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 transition-all ${
+            disabled={!connected}
+            className={`w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-40 ${
               ctrl.muted ? "bg-error/80" : ""
             }`}
           >
@@ -375,13 +377,15 @@ export function ObjectionHandlingCallSession({
         </button>
         <button
           type="button"
-          className="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 transition-all"
+          disabled={!connected}
+          className="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-40"
         >
           <MaterialIcon name="closed_caption" />
         </button>
         <button
           type="button"
-          className="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 transition-all"
+          disabled={!connected}
+          className="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-40"
         >
           <MaterialIcon name="more_horiz" />
         </button>
