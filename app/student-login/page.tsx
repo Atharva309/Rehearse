@@ -1,14 +1,18 @@
 /**
  * page.tsx — student login
- * Returning students sign in with username and password only.
+ * Centered auth card for returning students — username and password sign-in.
  */
 
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { AuthSplitLayout } from "@/components/ui/AuthSplitLayout";
 import { getStudentSession } from "@/lib/student-session";
 import { StudentLoginForm } from "./StudentLoginForm";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Sign In — Rehearse",
+};
 
 /**
  * Student login page — redirects if session already exists.
@@ -20,13 +24,28 @@ export default async function StudentLoginPage(): Promise<React.ReactElement> {
   }
 
   return (
-    <AuthSplitLayout accent="accent" subtitle="Sign in to continue your sales training.">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Student</p>
-      <h2 className="text-2xl font-bold text-primary mt-2">Student Sign In</h2>
-      <p className="text-sm text-text-secondary mt-1">
-        Sign in with your username and password — no class code needed.
-      </p>
-      <StudentLoginForm />
-    </AuthSplitLayout>
+    <div className="min-h-dvh bg-surface flex items-center justify-center p-4">
+      <div className="w-full max-w-[440px] bg-surface-container-lowest border border-outline-variant rounded-xl shadow-md p-10 animate-fade-in-up">
+        <div className="flex flex-col items-center text-center">
+          <img
+            src="/pitchlab-logo-new.png"
+            alt="Rehearse logo"
+            className="h-8 w-auto"
+          />
+          <h1 className="font-headline-lg text-headline-lg text-primary font-bold mt-6">
+            Welcome back
+          </h1>
+          <p className="text-on-surface-variant font-body-md mt-2">
+            Sign in to continue your training
+          </p>
+        </div>
+
+        <StudentLoginForm />
+
+        <p className="text-label-sm text-on-surface-variant text-center mt-6">
+          New student? Use your professor&apos;s join link to register
+        </p>
+      </div>
+    </div>
   );
 }

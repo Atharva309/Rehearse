@@ -34,7 +34,7 @@ import { redirect } from "next/navigation";
 import type { StageScore } from "@/types";
 
 export const metadata: Metadata = {
-  title: "Results — Tempo Simulation | Rehearse",
+  title: "Results — Rehearse",
 };
 
 type PageProps = {
@@ -90,20 +90,22 @@ export default async function SimulationCompletePage({
     );
 
     return (
-      <TempoSimulationResultsView
-        simulationId={params.id}
-        classId={DEFAULT_CLASS_ID}
-        displayName={session.displayName}
-        totalScore={mock.totalScore}
-        grade={mock.grade}
-        dealWon={mock.dealWon}
-        stageScores={mock.stageScores}
-        leaderboard={leaderboard}
-        studentId={session.studentId}
-        completedAt={mock.completedAt}
-        startedAt={mock.startedAt}
-        negotiationOutcome={mock.negotiationOutcome}
-      />
+      <div className="animate-fade-in-up">
+        <TempoSimulationResultsView
+          simulationId={params.id}
+          classId={DEFAULT_CLASS_ID}
+          displayName={session.displayName}
+          totalScore={mock.totalScore}
+          grade={mock.grade}
+          dealWon={mock.dealWon}
+          stageScores={mock.stageScores}
+          leaderboard={leaderboard}
+          studentId={session.studentId}
+          completedAt={mock.completedAt}
+          startedAt={mock.startedAt}
+          negotiationOutcome={mock.negotiationOutcome}
+        />
+      </div>
     );
   }
 
@@ -192,19 +194,21 @@ export default async function SimulationCompletePage({
     );
 
     return (
-      <TempoSimulationResultsView
-        simulationId={params.id}
-        classId={DEFAULT_CLASS_ID}
-        displayName={session.displayName}
-        totalScore={totalScore}
-        grade={grade}
-        dealWon={dealWon}
-        stageScores={scores}
-        leaderboard={leaderboard}
-        studentId={session.studentId}
-        completedAt={attempt.completed_at as string | null}
-        startedAt={attempt.started_at as string | null}
-      />
+      <div className="animate-fade-in-up">
+        <TempoSimulationResultsView
+          simulationId={params.id}
+          classId={DEFAULT_CLASS_ID}
+          displayName={session.displayName}
+          totalScore={totalScore}
+          grade={grade}
+          dealWon={dealWon}
+          stageScores={scores}
+          leaderboard={leaderboard}
+          studentId={session.studentId}
+          completedAt={attempt.completed_at as string | null}
+          startedAt={attempt.started_at as string | null}
+        />
+      </div>
     );
   }
 
@@ -214,7 +218,7 @@ export default async function SimulationCompletePage({
   const pipelineItems = buildStageProgress("results", scores);
 
   return (
-    <div className="w-full px-4 sm:px-6">
+    <div className="w-full px-4 sm:px-6 animate-fade-in-up">
       <BackButton label="Back to Dashboard" href="/student/dashboard" />
 
       <div className="mb-6">

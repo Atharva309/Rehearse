@@ -9,6 +9,7 @@
  */
 
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { TempoSimulationEntryView } from "@/components/student/TempoSimulationEntryView";
 import { DEFAULT_CLASS_ID } from "@/lib/constants";
 import {
@@ -24,6 +25,10 @@ import type { SimulationStage } from "@/types";
 type PageProps = {
   params: { id: string };
   searchParams: { classId?: string; new?: string };
+};
+
+export const metadata: Metadata = {
+  title: "Tempo Simulation — Rehearse",
 };
 
 /**
@@ -131,7 +136,7 @@ export default async function TempoSimulationEntryPage({
       : "Begin Simulation →";
 
   return (
-    <div>
+    <div className="animate-fade-in-up">
       <TempoSimulationEntryView
         classId={classId}
         simulationId={params.id}
