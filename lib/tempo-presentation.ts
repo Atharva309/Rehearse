@@ -108,12 +108,14 @@ export const TEMPO_REFERENCE_SECTIONS = [
 ] as const;
 
 const STORAGE_PREFIX = "tempo-presentation-";
+const MIN_FIELD_LENGTH = 6;
+const MIN_AI_FIELD_LENGTH = 6;
 
 /**
- * Returns true when a trimmed string has content.
+ * Returns true when a trimmed string meets the minimum length.
  */
-function filled(value: string): boolean {
-  return value.trim().length > 0;
+function minFilled(value: string, minLen = MIN_FIELD_LENGTH): boolean {
+  return value.trim().length >= minLen;
 }
 
 /**
@@ -125,22 +127,22 @@ export function isPresentationSectionComplete(
 ): boolean {
   switch (sectionNumber) {
     case 1:
-      return filled(form.businessIssue);
+      return minFilled(form.businessIssue);
     case 2:
       return (
-        filled(form.valueDriverNoShows) &&
-        filled(form.valueDriverFrontDesk) &&
-        filled(form.valueDriverAfterHours) &&
-        filled(form.valueDriverRepeat)
+        minFilled(form.valueDriverNoShows) &&
+        minFilled(form.valueDriverFrontDesk) &&
+        minFilled(form.valueDriverAfterHours) &&
+        minFilled(form.valueDriverRepeat)
       );
     case 3:
-      return filled(form.roiCalculation);
+      return minFilled(form.roiCalculation);
     case 4:
-      return filled(form.proofPoint);
+      return minFilled(form.proofPoint);
     case 5:
-      return filled(form.nextStep);
+      return minFilled(form.nextStep);
     case 6:
-      return filled(form.bothStakeholders);
+      return minFilled(form.bothStakeholders);
     default:
       return false;
   }
@@ -161,8 +163,8 @@ export function countCompletedPresentationSections(form: PresentationForm): numb
 export function canSubmitPresentation(form: PresentationForm): boolean {
   return (
     countCompletedPresentationSections(form) === 6 &&
-    form.aiPrompts.trim().length > 20 &&
-    form.aiRefinement.trim().length > 20
+    minFilled(form.aiPrompts, MIN_AI_FIELD_LENGTH) &&
+    minFilled(form.aiRefinement, MIN_AI_FIELD_LENGTH)
   );
 }
 
@@ -170,7 +172,24 @@ export function canSubmitPresentation(form: PresentationForm): boolean {
  * True when AI work section meets submission requirements.
  */
 export function isPresentationAiWorkComplete(form: PresentationForm): boolean {
-  return form.aiPrompts.trim().length > 20 && form.aiRefinement.trim().length > 20;
+  return (
+    minFilled(form.aiPrompts, MIN_AI_FIELD_LENGTH) &&
+    minFilled(form.aiRefinement, MIN_AI_FIELD_LENGTH)
+  );
+}
+
+/**
+ * Short footer hint explaining what still blocks submission.
+ */
+export function getPresentationSubmitHint(form: PresentationForm): string {
+  const completed = countCompletedPresentationSections(form);
+  if (completed < 6) {
+    return `${completed} of 6 sections complete — finish all sections to submit.`;
+  }
+  if (!isPresentationAiWorkComplete(form)) {
+    return "All 6 sections done — expand “Show Your AI Work” and fill in your prompt and refinement.";
+  }
+  return "Great! You're ready to submit.";
 }
 
 /**

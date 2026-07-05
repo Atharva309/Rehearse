@@ -12,6 +12,7 @@ import {
   canSubmitPresentation,
   countCompletedPresentationSections,
   EMPTY_PRESENTATION_FORM,
+  getPresentationSubmitHint,
   isPresentationAiWorkComplete,
   loadPresentationFromStorage,
   savePresentationToStorage,
@@ -33,6 +34,7 @@ type UsePresentationStageResult = {
   completedSections: number;
   canSubmit: boolean;
   aiWorkComplete: boolean;
+  submitHint: string;
   handleSaveDraft: () => Promise<void>;
   handleSubmit: () => Promise<void>;
 };
@@ -155,6 +157,7 @@ export function usePresentationStage({
     completedSections: countCompletedPresentationSections(form),
     canSubmit: canSubmitPresentation(form),
     aiWorkComplete: isPresentationAiWorkComplete(form),
+    submitHint: getPresentationSubmitHint(form),
     handleSaveDraft,
     handleSubmit,
   };

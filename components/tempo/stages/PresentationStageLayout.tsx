@@ -30,6 +30,7 @@ type PresentationStageLayoutProps = {
   completedSections: number;
   canSubmit: boolean;
   aiWorkComplete: boolean;
+  submitHint: string;
   aiWorkOpen: boolean;
   isSaving: boolean;
   isSubmitting: boolean;
@@ -51,6 +52,7 @@ export function PresentationStageLayout({
   completedSections,
   canSubmit,
   aiWorkComplete,
+  submitHint,
   aiWorkOpen,
   isSaving,
   isSubmitting,
@@ -62,7 +64,7 @@ export function PresentationStageLayout({
   onSubmit,
   onOpenHandoff,
 }: PresentationStageLayoutProps): React.ReactElement {
-  const readyToSubmit = canSubmit && aiWorkComplete;
+  const readyToSubmit = canSubmit;
 
   return (
     <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
@@ -457,12 +459,23 @@ export function PresentationStageLayout({
                 6 of 6 complete + AI work done
               </span>
             ) : (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-body-lg font-bold">
-                  {completedSections} of 6 sections complete
-                </span>
-                <span className="text-on-surface-variant/40">—</span>
-                <span className="text-[12px] text-on-surface-variant">Drafting Stage</span>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-body-lg font-bold">
+                    {completedSections} of 6 sections complete
+                  </span>
+                  {!readyToSubmit && (
+                    <>
+                      <span className="text-on-surface-variant/40">—</span>
+                      <span className="text-[12px] text-on-surface-variant">Drafting Stage</span>
+                    </>
+                  )}
+                </div>
+                {!readyToSubmit && (
+                  <span className="text-[12px] text-on-surface-variant leading-snug">
+                    {submitHint}
+                  </span>
+                )}
               </div>
             )}
           </div>

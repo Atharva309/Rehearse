@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HandoffModal } from "@/components/tempo/HandoffModal";
@@ -45,6 +45,13 @@ export function PresentationStage({
   const [openRef, setOpenRef] = useState<string | null>(null);
 
   const presentation = usePresentationStage({ attemptId });
+
+  // Open the AI work section once the six main sections are complete.
+  useEffect(() => {
+    if (presentation.completedSections === 6 && !presentation.aiWorkComplete) {
+      presentation.setAiWorkOpen(true);
+    }
+  }, [presentation.completedSections, presentation.aiWorkComplete, presentation.setAiWorkOpen]);
 
   const presentationMeta = TEMPO_HANDOFF_STAGE_META.presentation;
   const objectionsMeta = TEMPO_HANDOFF_STAGE_META.objections;
@@ -96,6 +103,7 @@ export function PresentationStage({
           completedSections={presentation.completedSections}
           canSubmit={presentation.canSubmit}
           aiWorkComplete={presentation.aiWorkComplete}
+          submitHint={presentation.submitHint}
           aiWorkOpen={presentation.aiWorkOpen}
           isSaving={presentation.isSaving}
           isSubmitting={presentation.isSubmitting}
