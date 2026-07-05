@@ -173,10 +173,11 @@ export type TempoTestResultsOutcome = "deal_agreed" | "partial_close" | "kim_wal
 export const TEMPO_TEST_RESULTS_OUTCOMES: {
   id: TempoTestResultsOutcome;
   label: string;
+  shortLabel: string;
 }[] = [
-  { id: "deal_agreed", label: "Deal Agreed (strong win)" },
-  { id: "partial_close", label: "Partial Close (mixed)" },
-  { id: "kim_walked", label: "Kim Walked (deal lost)" },
+  { id: "deal_agreed", label: "Deal Agreed (strong win)", shortLabel: "Won" },
+  { id: "partial_close", label: "Partial Close (mixed)", shortLabel: "Partial" },
+  { id: "kim_walked", label: "Kim Walked (deal lost)", shortLabel: "Lost" },
 ];
 
 function buildCloseTranscript(outcome: TempoTestResultsOutcome): string {

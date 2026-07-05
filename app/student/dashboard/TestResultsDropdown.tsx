@@ -23,32 +23,30 @@ export function TestResultsDropdown({
   const router = useRouter();
 
   return (
-    <label className="inline-flex items-center gap-1 rounded-lg border border-emerald-900/30 bg-emerald-800 pl-3 pr-1 py-1 text-sm font-bold text-white shadow-sm">
-      <span className="hidden sm:inline whitespace-nowrap">Test Results</span>
-      <select
-        className="cursor-pointer rounded-md border-0 bg-emerald-700 px-2 py-1.5 text-sm font-bold text-white outline-none focus:ring-2 focus:ring-white/30"
-        defaultValue=""
-        onChange={(e) => {
-          const outcome = e.target.value;
-          if (!outcome) {
-            return;
-          }
-          router.push(
-            `/student/simulation/${simulationId}/complete?classId=${classId}&testresults=${outcome}`
-          );
-          e.target.value = "";
-        }}
-        aria-label="Test results page outcome"
-      >
-        <option value="" disabled>
-          Outcome…
+    <select
+      className="cursor-pointer shrink-0 w-[4.25rem] border-0 bg-emerald-600 px-1 py-2 text-xs font-bold text-white outline-none transition-colors hover:bg-emerald-500 focus:ring-2 focus:ring-white/30"
+      defaultValue=""
+      title="Test results page"
+      onChange={(e) => {
+        const outcome = e.target.value;
+        if (!outcome) {
+          return;
+        }
+        router.push(
+          `/student/simulation/${simulationId}/complete?classId=${classId}&testresults=${outcome}`
+        );
+        e.target.value = "";
+      }}
+      aria-label="Test results page outcome"
+    >
+      <option value="" disabled>
+        Res
+      </option>
+      {TEMPO_TEST_RESULTS_OUTCOMES.map((item) => (
+        <option key={item.id} value={item.id} title={item.label}>
+          {item.shortLabel}
         </option>
-        {TEMPO_TEST_RESULTS_OUTCOMES.map((item) => (
-          <option key={item.id} value={item.id} className="text-on-surface bg-white">
-            {item.label}
-          </option>
-        ))}
-      </select>
-    </label>
+      ))}
+    </select>
   );
 }

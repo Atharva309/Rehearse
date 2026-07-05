@@ -64,31 +64,35 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
                 : `${enrolledClasses.length} classes — open one to view simulations.`}
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Link
             href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=discovery`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-black shadow-sm transition-colors hover:bg-amber-400"
+            title="Test Stage 2"
+            className="inline-flex items-center rounded-md bg-amber-500 px-2 py-1.5 text-xs font-bold text-black shadow-sm transition-colors hover:bg-amber-400"
           >
-            🧪 Test: Stage 2
+            🧪 2
           </Link>
           <Link
             href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=presentation`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-violet-500"
+            title="Test Stage 3"
+            className="inline-flex items-center rounded-md bg-violet-600 px-2 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-violet-500"
           >
-            🧪 Test: Stage 3
+            🧪 3
           </Link>
           <Link
             href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=objections`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-700 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-600"
+            title="Test Stage 4"
+            className="inline-flex items-center rounded-md bg-indigo-700 px-2 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-600"
           >
-            🧪 Test: Stage 4
+            🧪 4
           </Link>
-          <div className="inline-flex items-stretch rounded-lg overflow-hidden shadow-sm">
+          <div className="inline-flex items-stretch rounded-md overflow-hidden shadow-sm">
             <Link
               href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=negotiation`}
-              className="inline-flex items-center gap-1.5 bg-emerald-700 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-600 border-r border-emerald-900/30"
+              title="Test Stage 5"
+              className="inline-flex items-center bg-emerald-700 px-2 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-600 border-r border-emerald-900/30"
             >
-              🧪 Test: Stage 5
+              🧪 5
             </Link>
             <TestResultsDropdown
               simulationId={TEMPO_SIMULATION_ID}
