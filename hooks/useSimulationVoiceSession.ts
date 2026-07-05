@@ -104,6 +104,15 @@ export function useSimulationVoiceSession(
     return canIngestStudentSpeech() && !isProcessingUserRef.current;
   };
 
+  const queuePendingUtterance = (text: string): void => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return;
+    }
+    const existing = pendingUtteranceRef.current.trim();
+    pendingUtteranceRef.current = existing ? `${existing} ${trimmed}` : trimmed;
+  };
+
   const flushPendingUtterance = useCallback((): void => {
     const pending = pendingUtteranceRef.current.trim();
     if (!pending || !canProcessStudentSpeech()) {
@@ -113,6 +122,12 @@ export function useSimulationVoiceSession(
     void handleUserSentenceRef.current(pending);
   }, []);
 
+  const scheduleFlushPending = useCallback((): void => {
+    flushPendingUtterance();
+    window.setTimeout(() => flushPendingUtterance(), 150);
+    window.setTimeout(() => flushPendingUtterance(), 600);
+  }, [flushPendingUtterance]);
+
   const handleUserSentenceRef = useRef<(text: string) => Promise<void>>(async () => {
     /* assigned after handleUserSentence is defined */
   });
@@ -121,6 +136,7 @@ export function useSimulationVoiceSession(
     async (text: string): Promise<void> => {
       setPersonaTranscripts(text);
       appendTranscript("Persona", text);
+      isSpeakingRef.current = true;
       const epoch = playbackEpochRef.current;
 
       try {
@@ -150,10 +166,20 @@ export function useSimulationVoiceSession(
         if (!data.audioBase64 || epoch !== playbackEpochRef.current) return;
 
         const buffer = base64ToArrayBuffer(data.audioBase64);
+        let playbackMs = 2500;
+        try {
+          const decodeCtx = new AudioContext();
+          const decoded = await decodeCtx.decodeAudioData(buffer.slice(0));
+          playbackMs = Math.max(900, Math.ceil(decoded.duration * 1000));
+          void decodeCtx.close();
+        } catch {
+          /* fall back to default estimate */
+        }
+
         if (avatarRef.current && epoch === playbackEpochRef.current) {
-          isSpeakingRef.current = true;
-          utteranceBufferRef.current?.cancel();
           await avatarRef.current.speakAudio({ audio: buffer });
+          canListenAfterRef.current =
+            Date.now() + playbackMs + SIMULATION_POST_SPEAK_COOLDOWN_MS;
         }
       } catch (err) {
         console.error(err);
@@ -161,15 +187,14 @@ export function useSimulationVoiceSession(
       } finally {
         if (epoch === playbackEpochRef.current) {
           isSpeakingRef.current = false;
-          canListenAfterRef.current = Date.now() + SIMULATION_POST_SPEAK_COOLDOWN_MS;
           if (isActiveRef.current) {
             setStatusText("Your turn — speak when ready.");
           }
-          flushPendingUtterance();
+          scheduleFlushPending();
         }
       }
     },
-    [appendTranscript, flushPendingUtterance]
+    [appendTranscript, scheduleFlushPending]
   );
 
   const handleUserSentence = useCallback(
@@ -180,7 +205,7 @@ export function useSimulationVoiceSession(
       }
 
       if (!canProcessStudentSpeech()) {
-        pendingUtteranceRef.current = trimmed;
+        queuePendingUtterance(trimmed);
         return;
       }
 
@@ -224,10 +249,10 @@ export function useSimulationVoiceSession(
         setStatusText(err instanceof Error ? err.message : "Could not get reply.");
       } finally {
         isProcessingUserRef.current = false;
-        flushPendingUtterance();
+        scheduleFlushPending();
       }
     },
-    [speakFromApi, appendTranscript, flushPendingUtterance]
+    [speakFromApi, appendTranscript, scheduleFlushPending]
   );
 
   handleUserSentenceRef.current = handleUserSentence;
@@ -269,7 +294,7 @@ export function useSimulationVoiceSession(
                 return;
               }
               if (!canProcessStudentSpeech()) {
-                pendingUtteranceRef.current = trimmed;
+                queuePendingUtterance(trimmed);
                 return;
               }
               void handleUserSentence(trimmed);
