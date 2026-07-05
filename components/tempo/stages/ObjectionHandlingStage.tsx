@@ -187,7 +187,6 @@ export function ObjectionHandlingStage({
           transcript={transcript}
           objectionTracker={objectionTracker}
           presentationSummary={presentationSummary}
-          onOpenSupport={() => setShowHandoff(true)}
           lobbySlot={
             <ObjectionHandlingLobby connectError={connectError} onJoin={handleJoinCall} />
           }

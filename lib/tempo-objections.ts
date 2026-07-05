@@ -96,6 +96,13 @@ export const TEMPO_OBJECTION_FACTS = [
   { label: "Time to go live", value: "Days, not weeks" },
 ] as const;
 
+export const OBJECTION_TIPS = [
+  "Acknowledge objections before answering.",
+  "Pivot from cost to return on effort — not discounts.",
+  "Dr. Kim leads with price, then adoption, then status quo.",
+  "Hold firm on price; trade value, not margin.",
+] as const;
+
 const PRICE_RAISED = /price|cost|worth it|adds up|budget|expensive|pay for itself|monthly/i;
 const ADOPTION_RAISED =
   /adopt|front desk|staff|homework|rollout|training|onboard|new software|twenty years/i;

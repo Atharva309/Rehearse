@@ -8,6 +8,7 @@ import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { PresentationForm } from "@/lib/tempo-presentation";
 import {
   OBJECTION_SUMMARY_FIELDS,
+  OBJECTION_TIPS,
   TEMPO_OBJECTION_FACTS,
   formatObjectionTime,
   type ObjectionHandlingPhase,
@@ -31,16 +32,7 @@ type ObjectionHandlingStageLayoutProps = {
   canSubmitSummary: boolean;
   isSubmitting: boolean;
   onSubmitSummary: () => void;
-  onOpenSupport: () => void;
 };
-
-const STAGE_NAV = [
-  { label: "Prospecting", icon: "check_circle", done: true },
-  { label: "Discovery", icon: "check_circle", done: true },
-  { label: "Presentation", icon: "check_circle", done: true },
-  { label: "Objection Handling", icon: "forum", active: true },
-  { label: "Negotiation", icon: "handshake", locked: true },
-] as const;
 
 /**
  * Renders the Objection Handling chrome; center panel swaps by phase.
@@ -60,82 +52,113 @@ export function ObjectionHandlingStageLayout({
   canSubmitSummary,
   isSubmitting,
   onSubmitSummary,
-  onOpenSupport,
 }: ObjectionHandlingStageLayoutProps): React.ReactElement {
   const isCallPhase = phase === "connecting" || phase === "active";
 
   return (
     <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
       <main className="flex flex-1 min-h-0 overflow-hidden">
-        {/* ── Left panel ─── */}
-        <aside className="w-[280px] bg-inverse-surface text-surface-variant flex flex-col py-6 px-4 z-40 overflow-y-auto shrink-0 border-r border-outline-variant/10 hidden lg:flex">
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center">
-                <MaterialIcon name="target" className="text-on-primary-fixed" />
+        {/* ── Left panel (matches Stage 2 Discovery mission briefing) ─── */}
+        <aside className="w-60 xl:w-72 bg-primary-container text-on-primary p-lg flex flex-col gap-lg border-r border-white/5 shrink-0 hidden lg:flex overflow-y-auto">
+          <section>
+            <h2 className="font-label-sm text-label-sm uppercase tracking-widest text-on-primary-container mb-4">
+              Mission Briefing
+            </h2>
+            <h1 className="font-headline-md text-headline-md mb-2">
+              Handle Dr. Kim&apos;s objections on a follow-up video call.
+            </h1>
+            <p className="text-on-primary/70 font-body-md">
+              Address his price, adoption, and status quo concerns before moving to final
+              negotiation.
+            </p>
+          </section>
+
+          <section className="bg-white/5 rounded-xl p-md border border-white/10">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center font-bold text-lg text-on-secondary-container">
+                SK
               </div>
               <div>
-                <h2 className="text-headline-md font-headline-md text-primary-fixed leading-none">
-                  Current Mission
-                </h2>
-                <p className="text-surface-variant opacity-70 text-mono-label font-mono-label uppercase tracking-wider">
-                  Phase 4: Handle Objections
-                </p>
+                <div className="font-label-md text-label-md">Dr. Saul Kim</div>
+                <div className="text-xs text-on-primary/50 flex items-center gap-1">
+                  {phase === "summary" ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-gray-400" />
+                      Call ended · {formatObjectionTime(callSeconds)}
+                    </>
+                  ) : phase === "active" || phase === "connecting" ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-green-500 tempo-pulse-green" />
+                      On call
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-green-500 tempo-pulse-green" />
+                      Ready · Waiting on call
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="space-y-4 flex-1 flex flex-col min-h-0">
-            {phase === "active" && (
-              <div className="bg-surface-variant/10 p-4 rounded-xl border border-white/5">
-                <p className="text-mono-label font-mono-label text-surface-variant/60 mb-1">
-                  CALL DURATION
-                </p>
-                <p className="text-headline-md font-headline-md text-primary-fixed tracking-tight font-code-md">
-                  {formatObjectionTime(callSeconds)}
-                </p>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-on-primary/70">
+                <MaterialIcon name="work" className="text-sm" />
+                <span>Founder & Owner, Summit Dental</span>
               </div>
-            )}
+              <div className="flex items-center gap-2 text-on-primary/70">
+                <MaterialIcon name="psychology" className="text-sm" />
+                <span>Leads with objections · cost-first mindset</span>
+              </div>
+            </div>
+          </section>
 
-            <nav className="space-y-1">
-              {STAGE_NAV.map((item) => (
-                <div
-                  key={item.label}
-                  className={`p-3 flex items-center gap-3 rounded-lg ${
-                    "active" in item && item.active
-                      ? "bg-primary-container text-on-primary-container font-bold scale-95"
-                      : "done" in item && item.done
-                        ? "text-surface-variant/50"
-                        : "text-surface-variant opacity-70 hover:bg-surface-variant/10"
-                  }`}
-                >
-                  <MaterialIcon name={item.icon} />
-                  <span className="font-mono-label text-mono-label">{item.label}</span>
-                </div>
+          <section className="bg-tertiary/10 border border-tertiary/20 rounded-xl p-md">
+            <div className="flex items-center gap-2 mb-2 text-tertiary-fixed">
+              <MaterialIcon name="warning" className="text-[18px]" />
+              <span className="font-label-md text-label-md uppercase tracking-tight">
+                Mission Critical
+              </span>
+            </div>
+            <p className="text-sm text-on-primary/80 leading-relaxed">
+              Dr. Kim built Summit from one chair to eight locations. He views every line item as
+              an attack on his margins — he is looking for a reason to say no.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-label-md text-label-md mb-3 flex items-center gap-2">
+              <MaterialIcon name="lightbulb" className="text-tertiary-fixed" />
+              Objection Tips
+            </h3>
+            <ul className="space-y-3">
+              {OBJECTION_TIPS.map((tip) => (
+                <li key={tip} className="flex gap-3 text-sm text-on-primary/80">
+                  <MaterialIcon
+                    name="check_box_outline_blank"
+                    className="text-on-primary/40 shrink-0"
+                  />
+                  {tip}
+                </li>
               ))}
-            </nav>
+            </ul>
+          </section>
 
-            {phase === "summary" && (
-              <div className="mt-auto bg-error/10 border border-error/20 rounded-xl p-4 flex flex-col items-center text-center">
-                <MaterialIcon name="call_end" className="text-error mb-2 text-3xl" />
-                <span className="text-on-error-container font-bold text-body-md">Call Ended</span>
-                <p className="text-on-error-container/70 text-xs mt-1">
-                  Duration: {formatObjectionTime(callSeconds)}
-                </p>
-              </div>
-            )}
+          <div className="inline-flex items-center gap-2 bg-tertiary-container/20 px-3 py-1.5 rounded-full border border-tertiary/30 w-fit">
+            <MaterialIcon name="block" className="text-[14px] text-tertiary-fixed" />
+            <span className="font-mono-label text-mono-label text-tertiary-fixed">NO AI ASSISTANCE</span>
           </div>
 
-          <div className="mt-auto pt-6 border-t border-white/5 space-y-2">
-            <button
-              type="button"
-              onClick={onOpenSupport}
-              className="w-full p-3 bg-surface-variant/10 text-primary-fixed rounded-lg font-bold flex items-center gap-2 hover:bg-surface-variant/20 transition-all"
-            >
-              <MaterialIcon name="help" />
-              Support
-            </button>
-          </div>
+          {phase === "active" && (
+            <section className="mt-auto">
+              <h3 className="font-label-sm text-label-sm uppercase tracking-widest text-on-primary-container mb-2">
+                Call Duration
+              </h3>
+              <span className="font-code-lg text-code-lg text-white">
+                {formatObjectionTime(callSeconds)}
+              </span>
+              <p className="text-white/40 text-xs mt-1">Target: ~15 minutes</p>
+            </section>
+          )}
         </aside>
 
         {/* ── Center panel ─── */}

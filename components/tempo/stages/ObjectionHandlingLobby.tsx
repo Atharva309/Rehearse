@@ -1,12 +1,13 @@
 /**
  * ObjectionHandlingLobby.tsx
- * Pre-call lobby for Tempo Stage 4 — Dr. Kim briefing card in the center column.
- * Mic and camera are acquired when the student clicks Join Call.
+ * Pre-call waiting room for Tempo Stage 4 — center column of the 3-column layout.
+ * Mic and camera are acquired only when the student toggles them (same pattern as
+ * Stage 2 Discovery). Streams are handed to the video call session on Join Call.
  */
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 
 export type ObjectionJoinStreams = {
@@ -20,104 +21,208 @@ type ObjectionHandlingLobbyProps = {
 };
 
 /**
- * Center-column pre-call lobby with Dr. Kim profile and Join Call action.
+ * Center-column device setup + Dr. Kim briefing + Join Call for the lobby phase.
  */
 export function ObjectionHandlingLobby({
   connectError,
   onJoin,
 }: ObjectionHandlingLobbyProps): React.ReactElement {
+  const [micOn, setMicOn] = useState(false);
+  const [cameraOn, setCameraOn] = useState(false);
   const [deviceError, setDeviceError] = useState("");
-  const [joining, setJoining] = useState(false);
 
-  const handleJoin = useCallback(async (): Promise<void> => {
-    setDeviceError("");
-    setJoining(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      const audioTracks = stream.getAudioTracks();
-      const videoTracks = stream.getVideoTracks();
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const handedOffRef = useRef(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
-      if (audioTracks.length === 0) {
-        setDeviceError("Microphone access is required to join the call.");
-        stream.getTracks().forEach((t) => t.stop());
-        return;
+  useEffect(() => {
+    return () => {
+      if (!handedOffRef.current) {
+        micStreamRef.current?.getTracks().forEach((t) => t.stop());
+        cameraStreamRef.current?.getTracks().forEach((t) => t.stop());
       }
+    };
+  }, []);
 
-      const audioStream = new MediaStream(audioTracks);
-      const videoStream = videoTracks.length > 0 ? new MediaStream(videoTracks) : null;
-
-      onJoin({ audioStream, videoStream });
-    } catch {
-      setDeviceError(
-        "Could not access microphone or camera. Allow permissions in your browser settings and try again."
-      );
-    } finally {
-      setJoining(false);
+  const toggleMic = useCallback(async (): Promise<void> => {
+    setDeviceError("");
+    if (micOn) {
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
+      micStreamRef.current = null;
+      setMicOn(false);
+      return;
     }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      setMicOn(true);
+    } catch {
+      setDeviceError("Microphone access was blocked. Allow it in your browser settings to join.");
+    }
+  }, [micOn]);
+
+  const toggleCamera = useCallback(async (): Promise<void> => {
+    setDeviceError("");
+    if (cameraOn) {
+      cameraStreamRef.current?.getTracks().forEach((t) => t.stop());
+      cameraStreamRef.current = null;
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      setCameraOn(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      cameraStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        void videoRef.current.play().catch(() => undefined);
+      }
+      setCameraOn(true);
+    } catch {
+      setDeviceError("Camera access was blocked. Enable it for the video call PiP.");
+    }
+  }, [cameraOn]);
+
+  const handleJoin = useCallback((): void => {
+    const audioStream = micStreamRef.current;
+    if (!audioStream) {
+      return;
+    }
+    handedOffRef.current = true;
+    onJoin({
+      audioStream,
+      videoStream: cameraStreamRef.current,
+    });
   }, [onJoin]);
 
   return (
-    <div className="flex-grow bg-surface-container-low flex items-center justify-center p-gutter overflow-y-auto min-w-0 flex-1">
-      <div className="max-w-2xl w-full">
-        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-10 flex flex-col items-center text-center shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+    <section className="flex-1 bg-surface p-4 lg:p-xl flex flex-col items-center justify-center relative overflow-y-auto min-w-0">
+      <div className="max-w-lg w-full flex flex-col gap-6">
+        <div className="text-center flex flex-col items-center gap-3">
+          <span className="bg-surface-container-high text-primary font-label-sm text-label-sm px-3 py-1.5 rounded-lg tracking-wider font-bold">
+            OBJECTION HANDLING · STAGE 4 OF 5
+          </span>
+          <h2 className="font-display text-display text-primary">Ready to meet Dr. Saul Kim?</h2>
+          <p className="text-on-surface-variant font-body-md max-w-md">
+            Dr. Kim wants a follow-up video call before signing off on Tempo. Enable your mic and
+            camera, then join when you&apos;re ready. He will lead with price — acknowledge before
+            you answer.
+          </p>
+        </div>
 
-          <div className="w-24 h-24 rounded-full bg-[#1a1a2e] flex items-center justify-center text-tertiary-fixed text-headline-md font-bold mb-6 ring-4 ring-surface-container-high">
+        {/* Dr. Kim preview card */}
+        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 flex flex-col items-center text-center shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-[#1a1a2e] flex items-center justify-center text-tertiary-fixed font-headline-md font-bold mb-3 ring-4 ring-surface-container-high">
             SK
           </div>
-
-          <h2 className="text-headline-md font-headline-md text-on-surface">Dr. Saul Kim</h2>
-          <p className="text-body-lg text-on-surface-variant mb-2">Practice Owner & Founder</p>
-          <p className="text-body-md text-on-surface-variant mb-2">Summit Dental Group</p>
-
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-surface-container-highest rounded-full mb-10">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-body-md font-medium text-on-surface">Ready · Waiting on call</span>
-          </div>
-
-          <div className="w-full bg-surface-container-low p-6 rounded-xl border-l-4 border-primary italic mb-10 text-left relative">
-            <MaterialIcon
-              name="format_quote"
-              className="text-outline-variant absolute -translate-y-4 -translate-x-2"
-            />
-            <p className="text-body-lg leading-relaxed text-on-surface-variant relative z-10">
+          <p className="font-label-md text-label-md text-on-surface">Dr. Saul Kim</p>
+          <p className="text-sm text-on-surface-variant mb-3">Founder & Owner · Summit Dental Group</p>
+          <div className="w-full bg-surface-container-low p-4 rounded-xl border-l-4 border-primary italic text-left mb-4">
+            <p className="text-body-md leading-relaxed text-on-surface-variant">
               &ldquo;Eight locations times that price adds up fast — is it really worth it? My staff
               are already stretched thin; I&apos;m not looking to buy them more homework.&rdquo;
             </p>
           </div>
-
-          <div className="flex flex-wrap justify-center gap-3 mb-12">
-            <div className="flex items-center gap-2 bg-tertiary-fixed text-on-tertiary-fixed px-4 py-1.5 rounded-full font-bold text-body-md">
-              <MaterialIcon name="monetization_on" className="text-[18px]" />
+          <div className="flex flex-wrap justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 bg-tertiary-fixed text-on-tertiary-fixed px-3 py-1 rounded-full text-xs font-bold">
+              <MaterialIcon name="monetization_on" className="text-[14px]" />
               Price Sensitive
-            </div>
-            <div className="flex items-center gap-2 bg-tertiary-fixed text-on-tertiary-fixed px-4 py-1.5 rounded-full font-bold text-body-md">
-              <MaterialIcon name="psychology_alt" className="text-[18px]" />
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-tertiary-fixed text-on-tertiary-fixed px-3 py-1 rounded-full text-xs font-bold">
+              <MaterialIcon name="psychology_alt" className="text-[14px]" />
               Evasion Patterns
-            </div>
-            <div className="flex items-center gap-2 bg-secondary-fixed text-on-secondary-fixed px-4 py-1.5 rounded-full font-bold text-body-md">
-              <MaterialIcon name="verified" className="text-[18px]" />
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-secondary-fixed text-on-secondary-fixed px-3 py-1 rounded-full text-xs font-bold">
+              <MaterialIcon name="verified" className="text-[14px]" />
               Softening Required
+            </span>
+          </div>
+        </div>
+
+        {/* Camera preview */}
+        <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-[#0a0a0a] border border-outline-variant shadow-inner">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`w-full h-full object-cover scale-x-[-1] ${cameraOn ? "" : "hidden"}`}
+          />
+          {!cameraOn && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 gap-2">
+              <MaterialIcon name="videocam_off" className="text-4xl" />
+              <span className="text-label-sm font-label-sm">Camera off</span>
+            </div>
+          )}
+          <div className="absolute top-3 left-3">
+            <div className="bg-black/40 backdrop-blur-md text-white font-label-sm text-label-sm px-3 py-1 rounded-full flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              YOU
             </div>
           </div>
 
-          {(deviceError.length > 0 || connectError.length > 0) && (
-            <p className="text-sm text-error mb-4">{deviceError || connectError}</p>
-          )}
-
-          <button
-            type="button"
-            onClick={() => void handleJoin()}
-            disabled={joining}
-            className="w-64 bg-[#1a1a2e] hover:bg-[#252545] text-white py-4 rounded-xl font-bold text-title-lg transition-transform active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-[#1a1a2e]/20 disabled:opacity-60"
-          >
-            <MaterialIcon name="video_call" filled />
-            {joining ? "Connecting…" : "Join Call"}
-          </button>
-
-          <p className="mt-6 text-body-md text-on-surface-variant/60">Estimated duration: 15 minutes</p>
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void toggleMic()}
+              title="Toggle Microphone"
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+                micOn ? "bg-primary text-on-primary" : "bg-white/90 text-on-surface hover:bg-white"
+              }`}
+            >
+              <MaterialIcon name={micOn ? "mic" : "mic_off"} filled={micOn} />
+            </button>
+            <button
+              type="button"
+              onClick={() => void toggleCamera()}
+              title="Toggle Camera"
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+                cameraOn ? "bg-primary text-on-primary" : "bg-white/90 text-on-surface hover:bg-white"
+              }`}
+            >
+              <MaterialIcon name={cameraOn ? "videocam" : "videocam_off"} filled={cameraOn} />
+            </button>
+          </div>
         </div>
+
+        {(deviceError.length > 0 || connectError.length > 0) && (
+          <p className="text-sm text-error text-center">{deviceError || connectError}</p>
+        )}
+
+        <div className="flex items-center justify-center gap-6">
+          <div className={`flex items-center gap-2 ${micOn ? "text-primary" : "text-on-surface-variant/50"}`}>
+            <MaterialIcon name={micOn ? "mic" : "mic_off"} className="text-[20px]" filled={micOn} />
+            <span className="text-label-sm font-label-sm uppercase tracking-tighter">
+              {micOn ? "Mic ready" : "Mic off"}
+            </span>
+          </div>
+          <div className={`flex items-center gap-2 ${cameraOn ? "text-primary" : "text-on-surface-variant/50"}`}>
+            <MaterialIcon
+              name={cameraOn ? "videocam" : "videocam_off"}
+              className="text-[20px]"
+              filled={cameraOn}
+            />
+            <span className="text-label-sm font-label-sm uppercase tracking-tighter">
+              {cameraOn ? "Camera on" : "Camera off"}
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleJoin}
+          disabled={!micOn}
+          className="w-full h-14 bg-[#1a1a2e] text-white font-headline-md rounded-xl flex items-center justify-center gap-3 hover:bg-[#252545] transition-all active:scale-95 shadow-lg group disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+        >
+          <MaterialIcon name="video_call" filled className="group-hover:scale-105 transition-transform" />
+          {micOn ? "Join Call" : "Enable mic to join"}
+        </button>
+
+        <p className="text-center text-body-md text-on-surface-variant/60">Estimated duration: 15 minutes</p>
       </div>
-    </div>
+    </section>
   );
 }
