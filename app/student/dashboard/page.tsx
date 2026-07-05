@@ -82,6 +82,12 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
           >
             🧪 Test: Stage 4
           </Link>
+          <Link
+            href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=negotiation`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600"
+          >
+            🧪 Test: Stage 5
+          </Link>
           <JoinClassButton />
         </div>
       </div>

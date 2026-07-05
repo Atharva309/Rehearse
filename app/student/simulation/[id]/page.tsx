@@ -5,12 +5,14 @@
 
 import { redirect } from "next/navigation";
 import { DiscoveryStage } from "@/components/tempo/stages/DiscoveryStage";
+import { NegotiationStage } from "@/components/tempo/stages/NegotiationStage";
 import { ObjectionHandlingStage } from "@/components/tempo/stages/ObjectionHandlingStage";
 import { PresentationStage } from "@/components/tempo/stages/PresentationStage";
 import { ProspectingWizard } from "@/components/tempo/stages/ProspectingWizard";
 import { SimulationRunner } from "@/components/SimulationRunner";
 import { ATTEMPT_STATUS, DEFAULT_CLASS_ID } from "@/lib/constants";
 import { parseDiscoverySummaryFromTranscript, parsePresentationFormFromTranscript } from "@/lib/tempo-presentation";
+import { parseObjectionSummaryFromTranscript } from "@/lib/tempo-negotiation";
 import { isTempoDefaultSimulation } from "@/lib/tempo-simulation";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -140,11 +142,15 @@ export default async function StudentSimulationPage({
   const testStageDiscovery = searchParams.teststage?.trim() === "discovery";
   const testStagePresentation = searchParams.teststage?.trim() === "presentation";
   const testStageObjections = searchParams.teststage?.trim() === "objections";
+  const testStageNegotiation =
+    searchParams.teststage?.trim() === "negotiation" ||
+    searchParams.teststage?.trim() === "close";
   const showTempoProspectingWizard =
     isTempoDefault &&
     !testStageDiscovery &&
     !testStagePresentation &&
     !testStageObjections &&
+    !testStageNegotiation &&
     !hasProspectingScore &&
     (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting");
 
@@ -162,6 +168,12 @@ export default async function StudentSimulationPage({
 
   const showTempoObjections =
     isTempoDefault && (attempt.current_stage === "objections" || testStageObjections);
+
+  const showTempoNegotiation =
+    isTempoDefault && (attempt.current_stage === "close" || testStageNegotiation);
+
+  const objectionScore = scores.find((s) => s.stage === "objections");
+  const objectionSummary = parseObjectionSummaryFromTranscript(objectionScore?.transcript);
 
   if (showTempoProspectingWizard) {
     return (
@@ -207,6 +219,19 @@ export default async function StudentSimulationPage({
         simulationTitle={simulation.title}
         presentationSummary={presentationSummary}
         simliFaceId={simulation.simli_face_id}
+      />
+    );
+  }
+
+  if (showTempoNegotiation) {
+    return (
+      <NegotiationStage
+        attemptId={attempt.id}
+        simulationId={simulation.id}
+        classId={classId}
+        simulationTitle={simulation.title}
+        presentationSummary={presentationSummary}
+        objectionSummary={objectionSummary}
       />
     );
   }
