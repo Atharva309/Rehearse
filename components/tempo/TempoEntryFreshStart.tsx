@@ -35,13 +35,6 @@ export function TempoEntryFreshStart({
       <section className="bg-primary-container text-white py-16">
         <div className="max-w-[1100px] mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7">
-            <Link
-              href={`/student/classes/${classId}`}
-              className="flex items-center gap-2 text-white/50 hover:text-white transition-colors mb-8 group"
-            >
-              <MaterialIcon name="arrow_back" className="text-[18px]" />
-              <span className="text-body-md">Rehearse Essentials</span>
-            </Link>
             <div className="inline-block px-3 py-1 rounded bg-tertiary-fixed text-on-tertiary-fixed font-code-md text-[11px] font-bold mb-4">
               NEW SIMULATION
             </div>

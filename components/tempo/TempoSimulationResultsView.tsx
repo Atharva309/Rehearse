@@ -92,13 +92,6 @@ export function TempoSimulationResultsView({
             <MaterialIcon name="home" className="text-[18px]" />
             Dashboard
           </Link>
-          <Link
-            href={`/student/simulation/${simulationId}/entry?classId=${classId}`}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-on-surface-variant hover:text-secondary transition-colors"
-          >
-            <MaterialIcon name="arrow_back" className="text-[18px]" />
-            Rehearse Essentials
-          </Link>
         </div>
 
         {/* Hero card */}
