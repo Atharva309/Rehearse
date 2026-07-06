@@ -1,0 +1,423 @@
+/**
+ * TempoEntryInProgress.tsx
+ * In-progress briefing layout for the Tempo simulation entry page — shown after Stage 1 begins.
+ * Structural reference: Stitch "Simulation Entry - In Progress" with dynamic stage data.
+ */
+
+import Link from "next/link";
+import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import { RestartSimulationButton } from "@/components/simulation/RestartSimulationButton";
+import {
+  TEMPO_STAGES,
+  getCurrentTempoStage,
+  normalizeToTempoStageKey,
+  type TempoStageDefinition,
+} from "@/lib/tempo-simulation";
+import type { SimulationStage } from "@/types";
+
+type TempoEntryInProgressProps = {
+  classId: string;
+  simulationId: string;
+  simulationTitle: string;
+  ctaHref: string;
+  ctaLabel: string;
+  currentStage: SimulationStage;
+  completedStageKeys: ReadonlySet<string>;
+  lastStageScore: number | null;
+  restartAttemptId: string | null;
+};
+
+type StageObjective = {
+  objective: string;
+  kpiLabel: string;
+  simTime: string;
+};
+
+/** Tempo-specific assignment objectives keyed by simulation stage. */
+const TEMPO_STAGE_OBJECTIVES: Record<SimulationStage, StageObjective> = {
+  lead_gen: {
+    objective:
+      "Define your ideal customer profile, research Summit Dental Group, qualify the account, and craft your opening outreach to Dana Reyes.",
+    kpiLabel: "ICP Fit Score",
+    simTime: "15 Minutes",
+  },
+  prospecting: {
+    objective:
+      "Define your ideal customer profile, research Summit Dental Group, qualify the account, and craft your opening outreach to Dana Reyes.",
+    kpiLabel: "ICP Fit Score",
+    simTime: "15 Minutes",
+  },
+  discovery: {
+    objective:
+      "On your live call with Dana Reyes, uncover at least three operational pain points — staffing, no-shows, and front-desk overload — without pitching Tempo yet.",
+    kpiLabel: "Discovery Depth",
+    simTime: "20 Minutes",
+  },
+  presentation: {
+    objective:
+      "Write a tailored pitch connecting Tempo's scheduling automation to Summit Dental's specific revenue and staffing challenges. Show your AI-assisted work.",
+    kpiLabel: "Value Alignment",
+    simTime: "10 Minutes",
+  },
+  objections: {
+    objective:
+      "On your follow-up call with Dr. Saul Kim, address his concerns about cost, adoption risk, and integration with their existing PMP — and keep the deal alive.",
+    kpiLabel: "Objection Handling %",
+    simTime: "15 Minutes",
+  },
+  close: {
+    objective:
+      "Navigate two written negotiation scenarios — defend your per-location pricing and manage concessions to close Summit Dental on an annual contract.",
+    kpiLabel: "Close Rate",
+    simTime: "10 Minutes",
+  },
+  results: {
+    objective: "Review your simulation results and manager feedback.",
+    kpiLabel: "Overall Score",
+    simTime: "—",
+  },
+};
+
+type RoadmapNodeStatus = "completed" | "current" | "upcoming";
+
+/**
+ * Resolves roadmap node visual state from stage index vs current stage.
+ */
+function getRoadmapStatus(
+  stage: TempoStageDefinition,
+  currentStage: SimulationStage,
+  completedStageKeys: ReadonlySet<string>
+): RoadmapNodeStatus {
+  const normalizedCurrent = normalizeToTempoStageKey(currentStage);
+  const currentIndex = TEMPO_STAGES.findIndex((s) => s.stageKey === normalizedCurrent);
+  const stageIndex = stage.number - 1;
+
+  if (completedStageKeys.has(stage.stageKey) || (currentIndex >= 0 && stageIndex < currentIndex)) {
+    return "completed";
+  }
+  if (stage.stageKey === normalizedCurrent) {
+    return "current";
+  }
+  return "upcoming";
+}
+
+/**
+ * Renders one node in the horizontal simulation roadmap.
+ */
+function RoadmapNode({
+  stage,
+  status,
+}: {
+  stage: TempoStageDefinition;
+  status: RoadmapNodeStatus;
+}): React.ReactElement {
+  const icon =
+    stage.stageKey === "discovery"
+      ? "forum"
+      : stage.stageKey === "objections"
+        ? "shield"
+        : stage.icon;
+
+  if (status === "completed") {
+    return (
+      <div className="flex flex-col items-center gap-4 bg-surface px-4">
+        <div className="w-12 h-12 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary-fixed shadow-sm border-2 border-tertiary-container">
+          <MaterialIcon name="check" filled />
+        </div>
+        <div className="text-center">
+          <p className="font-code-md text-tertiary-container font-bold text-[13px]">STAGE {stage.number}</p>
+          <p className="text-body-md font-bold text-on-surface">{stage.title}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "current") {
+    return (
+      <div className="flex flex-col items-center gap-4 bg-surface px-4">
+        <div className="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center text-secondary border-2 border-secondary animate-pulse shadow-sm">
+          <MaterialIcon name={icon} />
+        </div>
+        <div className="text-center">
+          <p className="font-code-md text-secondary font-bold text-[13px]">STAGE {stage.number}</p>
+          <p className="text-body-md font-bold text-on-surface">{stage.title}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-4 bg-surface px-4 opacity-40">
+      <div className="w-12 h-12 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center text-outline">
+        <MaterialIcon name={icon} />
+      </div>
+      <div className="text-center">
+        <p className="font-code-md text-outline font-bold text-[13px]">STAGE {stage.number}</p>
+        <p className="text-body-md font-bold text-on-surface">{stage.title}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Renders the Tempo simulation entry page for students with an in-progress attempt.
+ */
+export function TempoEntryInProgress({
+  classId,
+  simulationId,
+  simulationTitle,
+  ctaHref,
+  ctaLabel,
+  currentStage,
+  completedStageKeys,
+  lastStageScore,
+  restartAttemptId,
+}: TempoEntryInProgressProps): React.ReactElement {
+  const currentTempoStage = getCurrentTempoStage(currentStage);
+  const stageNumber = currentTempoStage?.number ?? 1;
+  const stageObjective = TEMPO_STAGE_OBJECTIVES[currentStage] ?? TEMPO_STAGE_OBJECTIVES.prospecting;
+  const normalizedCurrent = normalizeToTempoStageKey(currentStage);
+  const currentIndex = TEMPO_STAGES.findIndex((s) => s.stageKey === normalizedCurrent);
+  const progressPercent = Math.max(0, Math.min(100, (currentIndex + 1) * 20));
+  const completedCount = TEMPO_STAGES.filter(
+    (s) => getRoadmapStatus(s, currentStage, completedStageKeys) === "completed"
+  ).length;
+  const entryRedirectHref = `/student/simulation/${simulationId}/entry?classId=${classId}`;
+
+  return (
+    <div className="animate-fade-in-up flex min-h-full">
+      {/* Simulation sidebar */}
+      <aside className="hidden lg:flex flex-col p-4 space-y-2 w-[280px] shrink-0 bg-surface-container-low border-r border-outline-variant">
+        <div className="mb-6 px-2">
+          <h2 className="text-headline-md font-bold text-primary">Simulation Status</h2>
+          <p className="text-body-md text-on-surface-variant">
+            Stage {stageNumber} of {TEMPO_STAGES.length}
+          </p>
+        </div>
+        {[
+          { icon: "assignment", label: "Mission" },
+          { icon: "play_circle", label: "Simulation", active: true },
+          { icon: "analytics", label: "Results" },
+          { icon: "menu_book", label: "Playbook" },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-default ${
+              item.active
+                ? "bg-primary-container text-on-primary-container font-medium"
+                : "text-on-surface-variant"
+            }`}
+          >
+            <MaterialIcon name={item.icon} filled={item.active} />
+            <span className="font-body-md">{item.label}</span>
+          </div>
+        ))}
+        <div className="mt-auto pb-4 px-2">
+          <div className="p-4 bg-surface rounded-xl border border-outline-variant">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-outline">Progress</span>
+              <span className="text-[10px] font-bold text-secondary">{progressPercent}%</span>
+            </div>
+            <div className="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+              <div className="bg-secondary h-full transition-all" style={{ width: `${progressPercent}%` }} />
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main column */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Hero */}
+        <section className="bg-primary-container py-16 px-6 lg:px-8 relative overflow-hidden">
+          <div className="max-w-6xl mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+            <Link
+              href={`/student/classes/${classId}`}
+              className="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm"
+            >
+              <MaterialIcon name="arrow_back" className="text-[18px]" />
+              Rehearse Essentials
+            </Link>
+            {restartAttemptId && (
+              <RestartSimulationButton
+                attemptId={restartAttemptId}
+                simulationId={simulationId}
+                classId={classId}
+                simulationTitle={simulationTitle}
+                variant="onDark"
+                redirectHref={entryRedirectHref}
+              />
+            )}
+          </div>
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+            <div className="space-y-6">
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-[12px] font-bold tracking-widest uppercase">
+                IN PROGRESS
+              </div>
+              <h1 className="text-[48px] leading-[56px] font-bold text-white">
+                Rehearse Essentials: Stage {stageNumber}
+              </h1>
+              <p className="text-body-lg text-white/70 max-w-lg">
+                {stageNumber > 1
+                  ? `You have successfully completed the ${TEMPO_STAGES[stageNumber - 2]?.title ?? "previous"} phase. Now, engage with your prospect to advance the deal.`
+                  : "Your simulation is underway. Complete Stage 1 to unlock your discovery call with Dana Reyes."}
+              </p>
+            </div>
+
+            {/* CRM Card */}
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 shadow-xl">
+              <div className="flex items-center justify-between mb-6 border-b border-outline-variant pb-4">
+                <div className="flex items-center gap-3">
+                  <MaterialIcon name="hub" className="text-secondary" />
+                  <span className="font-bold text-on-surface">CRM Context: Summit Dental Group</span>
+                </div>
+                <span className="font-code-md text-outline uppercase tracking-tighter text-[13px]">
+                  Deal ID: 8849-B
+                </span>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { label: "Lead Name", value: "Dana Reyes" },
+                  { label: "Role", value: "Director of Operations" },
+                  { label: "Industry", value: "Healthcare / Dentistry" },
+                  { label: "Region", value: "Mountain West" },
+                  { label: "Est. Deal Value", value: "$14,600/yr", highlight: true },
+                  { label: "Product", value: "Tempo" },
+                ].map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex justify-between items-center p-3 bg-surface-container-low rounded-lg"
+                  >
+                    <span className="text-on-surface-variant">{row.label}</span>
+                    <span
+                      className={`font-medium ${row.highlight ? "text-tertiary-container" : "text-on-surface"}`}
+                    >
+                      {row.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Assignment & Product bento */}
+        <section className="px-6 lg:px-8 py-12 max-w-6xl mx-auto w-full">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12 md:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl p-8">
+              <div className="flex items-center gap-2 text-secondary mb-4">
+                <MaterialIcon name="task_alt" />
+                <h3 className="text-headline-md font-bold">Assignment Objective</h3>
+              </div>
+              <p className="text-body-lg text-on-surface-variant mb-6 leading-relaxed">
+                {stageObjective.objective}
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 border border-outline-variant rounded-lg flex items-start gap-3">
+                  <MaterialIcon name="verified" className="text-secondary" />
+                  <div>
+                    <div className="font-bold text-on-surface">Key KPI</div>
+                    <div className="text-body-md text-on-surface-variant">{stageObjective.kpiLabel}</div>
+                  </div>
+                </div>
+                <div className="p-4 border border-outline-variant rounded-lg flex items-start gap-3">
+                  <MaterialIcon name="timer" className="text-secondary" />
+                  <div>
+                    <div className="font-bold text-on-surface">Sim Time</div>
+                    <div className="text-body-md text-on-surface-variant">{stageObjective.simTime}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="col-span-12 md:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-8 flex flex-col justify-center items-center text-center">
+              <div className="w-20 h-20 bg-secondary-container rounded-2xl flex items-center justify-center mb-4">
+                <MaterialIcon name="inventory_2" className="text-secondary scale-150" />
+              </div>
+              <h3 className="text-headline-md font-bold mb-2">Product Focus</h3>
+              <p className="text-body-md text-on-surface-variant">Tempo</p>
+              <span className="mt-4 text-secondary font-bold cursor-default">View Datasheet</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Roadmap */}
+        <section className="bg-surface py-16 px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-headline-md text-on-surface mb-12 text-center">Simulation Roadmap</h2>
+            <div className="relative">
+              <div className="absolute top-1/2 left-0 w-full h-0.5 bg-outline-variant -translate-y-1/2 z-0 hidden md:block" />
+              <div className="relative z-10 flex flex-col md:flex-row justify-between gap-8 md:gap-4">
+                {TEMPO_STAGES.map((stage) => (
+                  <RoadmapNode
+                    key={stage.number}
+                    stage={stage}
+                    status={getRoadmapStatus(stage, currentStage, completedStageKeys)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="bg-primary-container py-20 px-6 lg:px-8">
+          <div className="max-w-2xl mx-auto text-center flex flex-col items-center">
+            <Link
+              href={ctaHref}
+              className="bg-tertiary-container hover:opacity-90 text-on-tertiary-fixed font-bold text-lg px-12 py-4 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg flex items-center gap-3 group"
+            >
+              {ctaLabel}
+              <MaterialIcon name="arrow_forward" className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+            {lastStageScore !== null && (
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <p className="text-white/40 text-[12px] font-code-md tracking-widest uppercase">
+                  Last stage score: {lastStageScore}/100
+                </p>
+                <div className="flex gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        i < completedCount ? "bg-tertiary-container" : "bg-white/20"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="flex flex-col sm:flex-row justify-between items-center w-full px-6 lg:px-8 py-4 mt-auto border-t border-outline-variant bg-surface gap-4">
+          <span className="text-body-md font-bold text-on-surface">
+            © 2024 Rehearse Simulation Provider. All rights reserved.
+          </span>
+          <div className="flex gap-6">
+            <span className="text-on-surface-variant cursor-default">Support</span>
+            <span className="text-on-surface-variant cursor-default">Privacy Policy</span>
+          </div>
+        </footer>
+      </div>
+
+      {/* Floating reference tabs */}
+      <div className="fixed right-0 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-2 p-2 z-30">
+        {[
+          { icon: "auto_stories", label: "Playbook" },
+          { icon: "description", label: "Brief" },
+          { icon: "support_agent", label: "Mentor Chat" },
+        ].map((tab) => (
+          <div
+            key={tab.label}
+            className="w-12 h-12 bg-white border border-outline-variant rounded-l-lg flex items-center justify-center text-secondary shadow-md group relative cursor-default"
+          >
+            <MaterialIcon name={tab.icon} />
+            <span className="absolute right-full mr-2 px-2 py-1 bg-on-surface text-white text-[10px] rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none">
+              {tab.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
