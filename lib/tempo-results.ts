@@ -430,7 +430,7 @@ export function tempoResultsOutcomeTheme(outcome: TempoTestResultsOutcome): Temp
   switch (outcome) {
     case "partial_close":
       return {
-        heroBgClass: "bg-[#4a6278]",
+        heroBgClass: "bg-tempo-results-partial",
         gradeBadgeClass: "bg-tertiary-fixed text-on-tertiary-fixed shadow-lg shadow-black/20",
         barFillClass: "bg-tertiary-fixed",
         barLabelClass: "text-tertiary-container",
@@ -438,7 +438,7 @@ export function tempoResultsOutcomeTheme(outcome: TempoTestResultsOutcome): Temp
       };
     case "kim_walked":
       return {
-        heroBgClass: "bg-[#6b4040]",
+        heroBgClass: "bg-tempo-results-lost",
         gradeBadgeClass: "bg-error text-on-primary",
         barFillClass: "bg-error-container",
         barLabelClass: "text-error",

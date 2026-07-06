@@ -36,6 +36,10 @@ export const COLORS = {
   crmCardDepth: "#0f172a",
   /** Gold CTA hover on Tempo entry page (10% darker than tertiary-container) */
   tertiaryGoldHover: "#b8943d",
+  /** Muted blue hero on Tempo results — Partial Close outcome */
+  tempoResultsPartialHero: "#4a6278",
+  /** Muted red hero on Tempo results — Deal Lost outcome */
+  tempoResultsLostHero: "#6b4040",
 } as const;
 
 export const FONT = {
