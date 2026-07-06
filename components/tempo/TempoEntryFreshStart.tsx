@@ -313,17 +313,6 @@ export function TempoEntryFreshStart({
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-surface border-t border-outline-variant py-8 px-6 lg:px-8">
-        <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-body-md">
-          <div className="text-on-surface font-bold">Rehearse</div>
-          <div className="flex gap-8 text-on-surface-variant">
-            <span className="text-on-surface-variant/50">© 2024 Rehearse Simulation Provider</span>
-            <span className="text-on-surface-variant/50 cursor-default">Support</span>
-            <span className="text-on-surface-variant/50 cursor-default">Privacy Policy</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -6,6 +6,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { ProfessorButtonContent } from "@/components/professor/ProfessorSpinner";
 
 type ConfirmModalProps = {
@@ -33,8 +34,13 @@ export function ConfirmModal({
   confirmingLabel = "Deleting...",
   onConfirm,
   onCancel,
-}: ConfirmModalProps): React.ReactElement {
+}: ConfirmModalProps): React.ReactElement | null {
   const [isClosing, setIsClosing] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const requestClose = useCallback((): void => {
     if (isConfirming) return;
@@ -50,9 +56,13 @@ export function ConfirmModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [requestClose]);
 
-  return (
+  if (!isMounted) {
+    return null;
+  }
+
+  return createPortal(
     <div
-      className={`fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4 ${
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4 ${
         isClosing ? "animate-overlay-out" : "animate-overlay-in"
       }`}
       role="dialog"
@@ -94,6 +104,7 @@ export function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -176,56 +176,13 @@ export function TempoEntryInProgress({
   const currentTempoStage = getCurrentTempoStage(currentStage);
   const stageNumber = currentTempoStage?.number ?? 1;
   const stageObjective = TEMPO_STAGE_OBJECTIVES[currentStage] ?? TEMPO_STAGE_OBJECTIVES.prospecting;
-  const normalizedCurrent = normalizeToTempoStageKey(currentStage);
-  const currentIndex = TEMPO_STAGES.findIndex((s) => s.stageKey === normalizedCurrent);
-  const progressPercent = Math.max(0, Math.min(100, (currentIndex + 1) * 20));
   const completedCount = TEMPO_STAGES.filter(
     (s) => getRoadmapStatus(s, currentStage, completedStageKeys) === "completed"
   ).length;
   const entryRedirectHref = `/student/simulation/${simulationId}/entry?classId=${classId}`;
 
   return (
-    <div className="animate-fade-in-up flex min-h-full">
-      {/* Simulation sidebar */}
-      <aside className="hidden lg:flex flex-col p-4 space-y-2 w-[280px] shrink-0 bg-surface-container-low border-r border-outline-variant">
-        <div className="mb-6 px-2">
-          <h2 className="text-headline-md font-bold text-primary">Simulation Status</h2>
-          <p className="text-body-md text-on-surface-variant">
-            Stage {stageNumber} of {TEMPO_STAGES.length}
-          </p>
-        </div>
-        {[
-          { icon: "assignment", label: "Mission" },
-          { icon: "play_circle", label: "Simulation", active: true },
-          { icon: "analytics", label: "Results" },
-          { icon: "menu_book", label: "Playbook" },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-default ${
-              item.active
-                ? "bg-primary-container text-on-primary-container font-medium"
-                : "text-on-surface-variant"
-            }`}
-          >
-            <MaterialIcon name={item.icon} filled={item.active} />
-            <span className="font-body-md">{item.label}</span>
-          </div>
-        ))}
-        <div className="mt-auto pb-4 px-2">
-          <div className="p-4 bg-surface rounded-xl border border-outline-variant">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-outline">Progress</span>
-              <span className="text-[10px] font-bold text-secondary">{progressPercent}%</span>
-            </div>
-            <div className="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
-              <div className="bg-secondary h-full transition-all" style={{ width: `${progressPercent}%` }} />
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main column */}
+    <div className="animate-fade-in-up flex flex-col min-h-full">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Hero */}
         <section className="bg-primary-container py-16 px-6 lg:px-8 relative overflow-hidden">
@@ -388,35 +345,6 @@ export function TempoEntryInProgress({
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="flex flex-col sm:flex-row justify-between items-center w-full px-6 lg:px-8 py-4 mt-auto border-t border-outline-variant bg-surface gap-4">
-          <span className="text-body-md font-bold text-on-surface">
-            © 2024 Rehearse Simulation Provider. All rights reserved.
-          </span>
-          <div className="flex gap-6">
-            <span className="text-on-surface-variant cursor-default">Support</span>
-            <span className="text-on-surface-variant cursor-default">Privacy Policy</span>
-          </div>
-        </footer>
-      </div>
-
-      {/* Floating reference tabs */}
-      <div className="fixed right-0 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-2 p-2 z-30">
-        {[
-          { icon: "auto_stories", label: "Playbook" },
-          { icon: "description", label: "Brief" },
-          { icon: "support_agent", label: "Mentor Chat" },
-        ].map((tab) => (
-          <div
-            key={tab.label}
-            className="w-12 h-12 bg-white border border-outline-variant rounded-l-lg flex items-center justify-center text-secondary shadow-md group relative cursor-default"
-          >
-            <MaterialIcon name={tab.icon} />
-            <span className="absolute right-full mr-2 px-2 py-1 bg-on-surface text-white text-[10px] rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none">
-              {tab.label}
-            </span>
-          </div>
-        ))}
       </div>
     </div>
   );

@@ -154,7 +154,7 @@ export default async function TempoSimulationEntryPage({
   if (isMidSimulation && currentStage) {
     const currentTempoStage = getCurrentTempoStage(currentStage);
     const ctaLabel = currentTempoStage
-      ? `Continue — Stage ${currentTempoStage.number}: ${currentTempoStage.title}`
+      ? `Continue Stage ${currentTempoStage.number}: ${currentTempoStage.title}`
       : "Continue →";
 
     return (
