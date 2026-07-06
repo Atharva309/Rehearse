@@ -291,7 +291,6 @@ export function TempoEntryInProgress({
               </div>
               <h3 className="text-headline-md font-bold mb-2">Product Focus</h3>
               <p className="text-body-md text-on-surface-variant">Tempo</p>
-              <span className="mt-4 text-secondary font-bold cursor-default">View Datasheet</span>
             </div>
           </div>
         </section>
