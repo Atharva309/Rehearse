@@ -2,21 +2,20 @@
  * entry/page.tsx
  * Simulation entry page for the Tempo simulation.
  * Shown when a student clicks Start or Continue on the
- * Rehearse Essentials class card. Explains the simulation,
- * the 5 stages, scoring, and ground rules before the
- * student begins Stage 1.
+ * Rehearse Essentials class card. Branches between fresh-start
+ * and in-progress briefing layouts before the student enters a stage.
  * Only rendered for the Tempo simulation in the default class.
  */
 
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { TempoSimulationEntryView } from "@/components/student/TempoSimulationEntryView";
+import { TempoEntryFreshStart } from "@/components/tempo/TempoEntryFreshStart";
+import { TempoEntryInProgress } from "@/components/tempo/TempoEntryInProgress";
 import { DEFAULT_CLASS_ID } from "@/lib/constants";
 import {
   buildTempoEntryCtaHref,
   getCurrentTempoStage,
   isTempoDefaultSimulation,
-  normalizeToTempoStageKey,
 } from "@/lib/tempo-simulation";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -27,12 +26,20 @@ type PageProps = {
   searchParams: { classId?: string; new?: string };
 };
 
+const IN_PROGRESS_STAGES: SimulationStage[] = [
+  "prospecting",
+  "discovery",
+  "presentation",
+  "objections",
+  "close",
+];
+
 export const metadata: Metadata = {
   title: "Tempo Simulation — Rehearse",
 };
 
 /**
- * Loads Tempo entry data and renders the briefing page for default-class students.
+ * Loads Tempo entry data and renders the appropriate briefing layout.
  */
 export default async function TempoSimulationEntryPage({
   params,
@@ -100,9 +107,18 @@ export default async function TempoSimulationEntryPage({
     inProgressAttempt = created;
   }
 
-  const hasInProgressAttempt = !!inProgressAttempt;
-  const attemptId = inProgressAttempt?.id ?? null;
   const currentStage = (inProgressAttempt?.current_stage as SimulationStage | undefined) ?? null;
+
+  if (currentStage === "results" && inProgressAttempt) {
+    redirect(`/student/simulation/${params.id}/complete?classId=${classId}&attempt=${inProgressAttempt.id}`);
+  }
+
+  const isFreshStart = !inProgressAttempt || currentStage === "lead_gen" || currentStage === null;
+  const isMidSimulation =
+    !!inProgressAttempt && !!currentStage && IN_PROGRESS_STAGES.includes(currentStage);
+
+  const attemptId = inProgressAttempt?.id ?? null;
+  const hasInProgressAttempt = !!inProgressAttempt;
 
   let completedStageKeys = new Set<string>();
   let lastStageScore: number | null = null;
@@ -122,7 +138,6 @@ export default async function TempoSimulationEntryPage({
     }
   }
 
-  const currentTempoStage = hasInProgressAttempt ? getCurrentTempoStage(currentStage) : null;
   const ctaHref = buildTempoEntryCtaHref(
     params.id,
     classId,
@@ -130,25 +145,32 @@ export default async function TempoSimulationEntryPage({
     hasInProgressAttempt
   );
 
-  const ctaLabel =
-    hasInProgressAttempt && currentTempoStage
-      ? `Continue — Stage ${currentTempoStage.number}: ${currentTempoStage.title} →`
-      : "Begin Simulation →";
+  if (isFreshStart) {
+    return (
+      <TempoEntryFreshStart classId={classId} ctaHref={ctaHref} />
+    );
+  }
 
-  return (
-    <div className="animate-fade-in-up">
-      <TempoSimulationEntryView
+  if (isMidSimulation && currentStage) {
+    const currentTempoStage = getCurrentTempoStage(currentStage);
+    const ctaLabel = currentTempoStage
+      ? `Continue — Stage ${currentTempoStage.number}: ${currentTempoStage.title}`
+      : "Continue →";
+
+    return (
+      <TempoEntryInProgress
         classId={classId}
         simulationId={params.id}
         simulationTitle={simulation.title}
         ctaHref={ctaHref}
         ctaLabel={ctaLabel}
-        hasInProgressAttempt={hasInProgressAttempt}
-        restartAttemptId={hasInProgressAttempt ? attemptId : null}
+        currentStage={currentStage}
         completedStageKeys={completedStageKeys}
-        currentStage={currentStage ? normalizeToTempoStageKey(currentStage) : null}
         lastStageScore={lastStageScore}
+        restartAttemptId={attemptId}
       />
-    </div>
-  );
+    );
+  }
+
+  return <TempoEntryFreshStart classId={classId} ctaHref={ctaHref} />;
 }
