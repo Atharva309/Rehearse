@@ -186,8 +186,15 @@ export function TempoEntryInProgress({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Hero */}
         <section className="bg-primary-container py-16 px-6 lg:px-8 relative overflow-hidden">
-          {restartAttemptId && (
-            <div className="max-w-6xl mx-auto flex justify-end mb-8">
+          <div className="max-w-6xl mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+            <Link
+              href={`/student/classes/${classId}`}
+              className="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm"
+            >
+              <MaterialIcon name="arrow_back" className="text-[18px]" />
+              Back
+            </Link>
+            {restartAttemptId && (
               <RestartSimulationButton
                 attemptId={restartAttemptId}
                 simulationId={simulationId}
@@ -196,8 +203,8 @@ export function TempoEntryInProgress({
                 variant="onDark"
                 redirectHref={entryRedirectHref}
               />
-            </div>
-          )}
+            )}
+          </div>
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
             <div className="space-y-6">
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-[12px] font-bold tracking-widest uppercase">
