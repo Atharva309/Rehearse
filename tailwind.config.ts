@@ -52,6 +52,7 @@ const config: Config = {
         "pipeline-inactive": "#94a3b8",
         "tempo-results-partial": COLORS.tempoResultsPartialHero,
         "tempo-results-lost": COLORS.tempoResultsLostHero,
+        "tempo-results-lost-bar": COLORS.tempoResultsLostBar,
       },
       fontFamily: {
         display: ["Inter", "system-ui", "sans-serif"],

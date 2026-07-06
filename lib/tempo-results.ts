@@ -440,7 +440,7 @@ export function tempoResultsOutcomeTheme(outcome: TempoTestResultsOutcome): Temp
       return {
         heroBgClass: "bg-tempo-results-lost",
         gradeBadgeClass: "bg-error text-on-primary",
-        barFillClass: "bg-error-container",
+        barFillClass: "bg-tempo-results-lost-bar",
         barLabelClass: "text-error",
         stageIconClass: "text-error",
       };

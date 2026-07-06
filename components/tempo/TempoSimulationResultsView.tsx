@@ -5,14 +5,12 @@
  */
 
 import Link from "next/link";
+import { TempoCompetencyBreakdown } from "@/components/tempo/TempoCompetencyBreakdown";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import { buildStudentLeaderboardRows } from "@/lib/leaderboard";
 import {
   TEMPO_RESULTS_MAX_SCORE,
   TEMPO_RESULTS_STAGE_CONFIG,
-  TEMPO_RESULTS_STAGE_SUBTITLES,
-  TEMPO_STYLE_FEEDBACK_PLACEHOLDER,
-  tempoResultsCompetencyLabel,
   tempoResultsDurationLabel,
   tempoResultsGradeColor,
   tempoResultsGradeFromPercent,
@@ -20,7 +18,6 @@ import {
   tempoResultsHeroTitle,
   tempoResultsManagerNote,
   tempoResultsOutcomeTheme,
-  tempoResultsSubstanceStyle,
   resolveTempoResultsOutcome,
   type TempoTestResultsOutcome,
 } from "@/lib/tempo-results";
@@ -214,119 +211,11 @@ export function TempoSimulationResultsView({
               </p>
             </div>
 
-            {/* Competency breakdown — all 5 stages */}
-            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
-              <h3 className="text-headline-md font-bold text-on-surface mb-6">
-                Competency Breakdown
-              </h3>
-              <div className="space-y-4">
-                {TEMPO_RESULTS_STAGE_CONFIG.map((stage) => {
-                  const stageScore = stageScores.find((s) => s.stage === stage.id);
-                  const score = stageScore?.score ?? 0;
-                  const pct = Math.min(100, Math.round(score));
-                  const feedback =
-                    stageScore?.feedback?.trim() || "Submitted — scoring coming soon";
-                  const { substance, style, substanceMax, styleMax } =
-                    tempoResultsSubstanceStyle(score);
-                  const isCritical = outcome === "kim_walked" && pct < 50;
-
-                  return (
-                    <div
-                      key={stage.id}
-                      className={`border border-outline-variant rounded-lg overflow-hidden ${
-                        isCritical ? "bg-error-container/5" : "bg-surface-container-lowest"
-                      }`}
-                    >
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border-b border-outline-variant">
-                        <div className="flex items-center gap-4">
-                          <MaterialIcon
-                            name={isCritical ? "priority_high" : stage.icon}
-                            className={theme.stageIconClass}
-                          />
-                          <div>
-                            <p className="font-bold text-on-surface">{stage.label}</p>
-                            <p className="text-body-md text-on-surface-variant">
-                              {TEMPO_RESULTS_STAGE_SUBTITLES[stage.id]}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="font-code-md font-bold text-on-surface">
-                            {score}/100
-                          </span>
-                          <span
-                            className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${stage.modalityColor}`}
-                          >
-                            {stage.modality}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="p-4 space-y-4">
-                        {/* Overall competency bar */}
-                        <div className="w-full md:max-w-xs md:ml-auto">
-                          <div className="flex justify-between font-code-md text-[13px] mb-1">
-                            <span>{pct}%</span>
-                            <span className={theme.barLabelClass}>
-                              {tempoResultsCompetencyLabel(pct)}
-                            </span>
-                          </div>
-                          <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${theme.barFillClass}`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Substance */}
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-secondary">
-                              Substance
-                            </span>
-                            <span className="font-code-md text-body-md text-on-surface">
-                              {substance}/{substanceMax}
-                            </span>
-                          </div>
-                          <div className="h-2 bg-surface-container rounded-full overflow-hidden mb-2">
-                            <div
-                              className={`h-full rounded-full ${theme.barFillClass}`}
-                              style={{ width: `${(substance / substanceMax) * 100}%` }}
-                            />
-                          </div>
-                          <p className="text-body-md text-on-surface-variant leading-relaxed">
-                            {feedback}
-                          </p>
-                        </div>
-
-                        {/* Style */}
-                        <div className="border border-dashed border-outline-variant rounded-lg p-4 bg-surface-container-low">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-tertiary-container flex items-center gap-1.5">
-                              <MaterialIcon name="timer" className="text-[16px]" />
-                              Style
-                            </span>
-                            <span className="font-code-md text-body-md text-on-surface">
-                              {style}/{styleMax}
-                            </span>
-                          </div>
-                          <div className="h-2 bg-surface-container rounded-full overflow-hidden mb-2">
-                            <div
-                              className={`h-full rounded-full ${theme.barFillClass}`}
-                              style={{ width: `${(style / styleMax) * 100}%` }}
-                            />
-                          </div>
-                          <p className="text-body-md text-outline leading-relaxed">
-                            {TEMPO_STYLE_FEEDBACK_PLACEHOLDER}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <TempoCompetencyBreakdown
+              stageScores={stageScores}
+              outcome={outcome}
+              theme={theme}
+            />
           </div>
 
           {/* Right column */}

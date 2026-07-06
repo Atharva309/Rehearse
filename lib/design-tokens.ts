@@ -40,6 +40,8 @@ export const COLORS = {
   tempoResultsPartialHero: "#4a6278",
   /** Muted red hero on Tempo results — Deal Lost outcome */
   tempoResultsLostHero: "#6b4040",
+  /** Darker red fill for Deal Lost competency bars */
+  tempoResultsLostBar: "#8f3a3a",
 } as const;
 
 export const FONT = {
