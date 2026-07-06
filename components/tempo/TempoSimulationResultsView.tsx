@@ -115,7 +115,7 @@ export function TempoSimulationResultsView({
                   Simulation Complete
                 </span>
                 <h1 className="text-headline-lg font-bold mb-2">{heroTitle}</h1>
-                <p className="text-body-lg opacity-90 mb-6">{heroSubtitle}</p>
+                <p className="text-body-lg text-white/90 mb-6">{heroSubtitle}</p>
 
                 <div className="flex flex-wrap gap-3 mb-8">
                   {[

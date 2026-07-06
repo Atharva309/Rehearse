@@ -424,13 +424,13 @@ export function resolveTempoResultsOutcome(
 
 /**
  * Per-outcome visual theme for the Tempo results hero and competency bars.
- * Partial amber (#ffbf00) maps to tertiary-fixed — closest existing token.
+ * Partial/lost hero backgrounds use muted hex values (no matching token yet).
  */
 export function tempoResultsOutcomeTheme(outcome: TempoTestResultsOutcome): TempoResultsOutcomeTheme {
   switch (outcome) {
     case "partial_close":
       return {
-        heroBgClass: "bg-secondary",
+        heroBgClass: "bg-[#4a6278]",
         gradeBadgeClass: "bg-tertiary-fixed text-on-tertiary-fixed shadow-lg shadow-black/20",
         barFillClass: "bg-tertiary-fixed",
         barLabelClass: "text-tertiary-container",
@@ -438,9 +438,9 @@ export function tempoResultsOutcomeTheme(outcome: TempoTestResultsOutcome): Temp
       };
     case "kim_walked":
       return {
-        heroBgClass: "bg-secondary",
+        heroBgClass: "bg-[#6b4040]",
         gradeBadgeClass: "bg-error text-on-primary",
-        barFillClass: "bg-error",
+        barFillClass: "bg-error-container",
         barLabelClass: "text-error",
         stageIconClass: "text-error",
       };
