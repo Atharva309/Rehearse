@@ -61,6 +61,28 @@ export const TEMPO_RESULTS_STAGE_CONFIG: TempoResultsStageConfig[] = [
   },
 ];
 
+/** Short competency subtitle shown under each stage label on the results breakdown. */
+export const TEMPO_RESULTS_STAGE_SUBTITLES: Record<SimulationStage, string> = {
+  lead_gen: "",
+  prospecting: "Lead quality and outreach strategy",
+  discovery: "Uncovering critical pain points",
+  presentation: "Value proposition delivery",
+  objections: "Resolving customer concerns",
+  close: "Contract terms and closing",
+  results: "",
+};
+
+export type TempoResultsOutcomeTheme = {
+  heroBgClass: string;
+  gradeBadgeClass: string;
+  barFillClass: string;
+  barLabelClass: string;
+  stageIconClass: string;
+};
+
+export const TEMPO_STYLE_FEEDBACK_PLACEHOLDER =
+  "Our analysis engine is processing your vocal tone and pace. Full report arriving in 12 hours.";
+
 type NegotiationTranscriptPayload = {
   scenarioA?: { outcome?: { status?: string } | null };
   scenarioB?: { outcome?: { status?: string } | null };
@@ -364,4 +386,97 @@ export function tempoResultsManagerNote(
     return TEMPO_MANAGER_NOTE_PARTIAL;
   }
   return dealWon ? TEMPO_MANAGER_NOTE_WON : TEMPO_MANAGER_NOTE_LOST;
+}
+
+/**
+ * Parses scenario B outcome from the close-stage transcript JSON.
+ */
+export function parseNegotiationOutcomeFromCloseStage(
+  closeStageScore: StageScore | undefined
+): TempoTestResultsOutcome | null {
+  if (!closeStageScore?.transcript?.trim()) {
+    return null;
+  }
+  try {
+    const data = JSON.parse(closeStageScore.transcript) as NegotiationTranscriptPayload;
+    const status = data.scenarioB?.outcome?.status;
+    if (status === "deal_agreed" || status === "partial_close" || status === "kim_walked") {
+      return status;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolves the effective UI outcome when transcript parsing is missing.
+ */
+export function resolveTempoResultsOutcome(
+  negotiationOutcome: TempoTestResultsOutcome | null,
+  dealWon: boolean
+): TempoTestResultsOutcome {
+  if (negotiationOutcome) {
+    return negotiationOutcome;
+  }
+  return dealWon ? "deal_agreed" : "kim_walked";
+}
+
+/**
+ * Per-outcome visual theme for the Tempo results hero and competency bars.
+ * Partial amber (#ffbf00) maps to tertiary-fixed — closest existing token.
+ */
+export function tempoResultsOutcomeTheme(outcome: TempoTestResultsOutcome): TempoResultsOutcomeTheme {
+  switch (outcome) {
+    case "partial_close":
+      return {
+        heroBgClass: "bg-secondary",
+        gradeBadgeClass: "bg-tertiary-fixed text-on-tertiary-fixed shadow-lg shadow-black/20",
+        barFillClass: "bg-tertiary-fixed",
+        barLabelClass: "text-tertiary-container",
+        stageIconClass: "text-secondary",
+      };
+    case "kim_walked":
+      return {
+        heroBgClass: "bg-[#1a1a1a]",
+        gradeBadgeClass: "bg-error text-on-primary",
+        barFillClass: "bg-error",
+        barLabelClass: "text-error",
+        stageIconClass: "text-error",
+      };
+    default:
+      return {
+        heroBgClass: "bg-primary-container",
+        gradeBadgeClass: "bg-tertiary-fixed text-on-tertiary-fixed",
+        barFillClass: "bg-tertiary-fixed",
+        barLabelClass: "text-tertiary-container",
+        stageIconClass: "text-secondary",
+      };
+  }
+}
+
+/**
+ * Human-readable label for a stage competency percentage.
+ */
+export function tempoResultsCompetencyLabel(pct: number): string {
+  if (pct >= 90) return "Excellent";
+  if (pct >= 80) return "Strong";
+  if (pct >= 70) return "Good";
+  if (pct >= 60) return "Progressing";
+  if (pct >= 50) return "Needs work";
+  return "Critical";
+}
+
+/**
+ * Hero headline from resolved negotiation outcome.
+ */
+export function tempoResultsHeroTitle(outcome: TempoTestResultsOutcome): string {
+  switch (outcome) {
+    case "partial_close":
+      return "Partial Close.";
+    case "kim_walked":
+      return "Deal Lost.";
+    default:
+      return "Deal Won.";
+  }
 }

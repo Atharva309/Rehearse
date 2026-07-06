@@ -21,6 +21,7 @@ import {
   TEMPO_RESULTS_MAX_SCORE,
   buildTempoTestLeaderboard,
   buildTempoTestResultsMock,
+  parseNegotiationOutcomeFromCloseStage,
   tempoResultsDealWon,
   tempoResultsGradeFromPercent,
   tempoResultsTotalScore,
@@ -188,6 +189,7 @@ export default async function SimulationCompletePage({
   if (isTempoDefault) {
     const closeScore = scores.find((s) => s.stage === "close");
     const dealWon = tempoResultsDealWon(closeScore);
+    const negotiationOutcome = parseNegotiationOutcomeFromCloseStage(closeScore);
     const totalScore = tempoResultsTotalScore(scores);
     const grade = tempoResultsGradeFromPercent(
       Math.round((totalScore / TEMPO_RESULTS_MAX_SCORE) * 100)
@@ -207,6 +209,7 @@ export default async function SimulationCompletePage({
           studentId={session.studentId}
           completedAt={attempt.completed_at as string | null}
           startedAt={attempt.started_at as string | null}
+          negotiationOutcome={negotiationOutcome}
         />
       </div>
     );
