@@ -139,6 +139,7 @@ export default async function StudentSimulationPage({
   const isTempoDefault =
     classId === DEFAULT_CLASS_ID && isTempoDefaultSimulation(simulation.id, simulation.title);
   // Dev shortcuts for testing individual Tempo stages.
+  const testStageProspecting = searchParams.teststage?.trim() === "prospecting";
   const testStageDiscovery = searchParams.teststage?.trim() === "discovery";
   const testStagePresentation = searchParams.teststage?.trim() === "presentation";
   const testStageObjections = searchParams.teststage?.trim() === "objections";
@@ -147,12 +148,13 @@ export default async function StudentSimulationPage({
     searchParams.teststage?.trim() === "close";
   const showTempoProspectingWizard =
     isTempoDefault &&
-    !testStageDiscovery &&
-    !testStagePresentation &&
-    !testStageObjections &&
-    !testStageNegotiation &&
-    !hasProspectingScore &&
-    (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting");
+    (testStageProspecting ||
+      (!testStageDiscovery &&
+        !testStagePresentation &&
+        !testStageObjections &&
+        !testStageNegotiation &&
+        !hasProspectingScore &&
+        (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting")));
 
   const showTempoDiscovery =
     isTempoDefault && (attempt.current_stage === "discovery" || testStageDiscovery);
