@@ -4,7 +4,6 @@
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { StudentClassCard } from "@/components/StudentClassCard";
@@ -12,11 +11,10 @@ import {
   StudentAttemptHistory,
   type StudentAttemptRow,
 } from "@/components/StudentAttemptHistory";
-import { DEFAULT_CLASS_ID, TEMPO_SIMULATION_ID } from "@/lib/constants";
+import { DEFAULT_CLASS_ID } from "@/lib/constants";
 import { loadStudentEnrolledClasses } from "@/lib/student-class-data";
 import { getStudentSession } from "@/lib/student-session";
 import { createServiceClient } from "@/lib/supabase/server";
-import { TestResultsDropdown } from "./TestResultsDropdown";
 
 export const metadata: Metadata = {
   title: "My Simulations — Rehearse",
@@ -68,43 +66,6 @@ export default async function StudentDashboardPage(): Promise<React.ReactElement
                   ? "Open your class to start a simulation."
                   : `${enrolledClasses.length} classes — open one to view simulations.`}
             </p>
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Link
-              href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=discovery`}
-              title="Test Stage 2"
-              className="inline-flex items-center rounded-md bg-amber-500 px-2 py-1.5 text-xs font-bold text-black shadow-sm transition-colors hover:bg-amber-400"
-            >
-              🧪 2
-            </Link>
-            <Link
-              href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=presentation`}
-              title="Test Stage 3"
-              className="inline-flex items-center rounded-md bg-violet-600 px-2 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-violet-500"
-            >
-              🧪 3
-            </Link>
-            <Link
-              href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=objections`}
-              title="Test Stage 4"
-              className="inline-flex items-center rounded-md bg-indigo-700 px-2 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-600"
-            >
-              🧪 4
-            </Link>
-            <div className="inline-flex items-stretch rounded-md overflow-hidden shadow-sm">
-              <Link
-                href={`/student/simulation/${TEMPO_SIMULATION_ID}?classId=${DEFAULT_CLASS_ID}&teststage=negotiation`}
-                title="Test Stage 5"
-                className="inline-flex items-center bg-emerald-700 px-2 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-600 border-r border-emerald-900/30"
-              >
-                🧪 5
-              </Link>
-              <TestResultsDropdown
-                simulationId={TEMPO_SIMULATION_ID}
-                classId={DEFAULT_CLASS_ID}
-              />
-            </div>
           </div>
         </div>
 
