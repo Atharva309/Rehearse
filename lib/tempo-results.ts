@@ -438,7 +438,7 @@ export function tempoResultsOutcomeTheme(outcome: TempoTestResultsOutcome): Temp
       };
     case "kim_walked":
       return {
-        heroBgClass: "bg-[#1a1a1a]",
+        heroBgClass: "bg-secondary",
         gradeBadgeClass: "bg-error text-on-primary",
         barFillClass: "bg-error",
         barLabelClass: "text-error",
