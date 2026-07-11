@@ -301,6 +301,20 @@ export function saveNegotiationToStorage(attemptId: string, data: NegotiationSta
 }
 
 /**
+ * Clears negotiation draft from localStorage (e.g. on simulation restart).
+ */
+export function clearNegotiationFromStorage(attemptId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    localStorage.removeItem(getNegotiationStorageKey(attemptId));
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
  * Parses GPT outcome block from the final negotiation turn reply.
  */
 export function parseNegotiationOutcome(reply: string): {

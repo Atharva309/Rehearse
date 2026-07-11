@@ -13,6 +13,7 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import { useToast } from "@/hooks/useToast";
 import { buildRestartRedirectHref } from "@/lib/simulation-restart";
+import { clearNegotiationFromStorage } from "@/lib/tempo-negotiation";
 import { clearProspectingWizardFromStorage } from "@/lib/tempo-prospecting";
 import { clearPresentationFromStorage } from "@/lib/tempo-presentation";
 import type { RestartSimulationResponse } from "@/types";
@@ -74,6 +75,7 @@ export function RestartSimulationButton({
     const data = (await res.json()) as RestartSimulationResponse;
     clearProspectingWizardFromStorage(attemptId);
     clearPresentationFromStorage(attemptId);
+    clearNegotiationFromStorage(attemptId);
     const href =
       redirectHref ??
       buildRestartRedirectHref(simulationId, classId, simulationTitle, data.newAttemptId);
