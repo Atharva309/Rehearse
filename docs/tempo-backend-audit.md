@@ -1,6 +1,6 @@
 # Tempo / Summit Dental Backend Audit
 
-**Date:** 2026-07-11  
+**Date:** 2026-07-11 (updated same day — §13 after negotiation localStorage clear fix)  
 **Scope:** Read-only factual audit of current Tempo (Rehearse Essentials default class) backend behavior.  
 **Method:** Direct inspection of source files. No recommendations.
 
@@ -605,12 +605,13 @@ Badge-earning logic / data source: **NOT IMPLEMENTED**.
 
 ### Client: `RestartSimulationButton`
 
-After successful API response, clears **two** localStorage drafts, then full-page navigates:
+After successful API response, clears **three** localStorage drafts, then full-page navigates:
 
-```74:82:components/simulation/RestartSimulationButton.tsx
+```75:83:components/simulation/RestartSimulationButton.tsx
     const data = (await res.json()) as RestartSimulationResponse;
     clearProspectingWizardFromStorage(attemptId);
     clearPresentationFromStorage(attemptId);
+    clearNegotiationFromStorage(attemptId);
     const href =
       redirectHref ??
       buildRestartRedirectHref(simulationId, classId, simulationTitle, data.newAttemptId);
@@ -620,16 +621,31 @@ After successful API response, clears **two** localStorage drafts, then full-pag
 
 Keys cleared:
 
-- Prospecting: `rehearse-prospecting-wizard-${attemptId}` (`lib/tempo-prospecting.ts`)
-- Presentation: `tempo-presentation-${attemptId}` (`lib/tempo-presentation.ts`)
+- Prospecting: `rehearse-prospecting-wizard-${attemptId}` (`clearProspectingWizardFromStorage` in `lib/tempo-prospecting.ts`)
+- Presentation: `tempo-presentation-${attemptId}` (`clearPresentationFromStorage` in `lib/tempo-presentation.ts`)
+- Negotiation: `tempo-negotiation-${attemptId}` (`clearNegotiationFromStorage` → `getNegotiationStorageKey` in `lib/tempo-negotiation.ts`)
 
-### Negotiation localStorage
+### Negotiation localStorage clear helper
 
-Negotiation key is `tempo-negotiation-${attemptId}` (`getNegotiationStorageKey` in `lib/tempo-negotiation.ts`).
+```303:315:lib/tempo-negotiation.ts
+/**
+ * Clears negotiation draft from localStorage (e.g. on simulation restart).
+ */
+export function clearNegotiationFromStorage(attemptId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    localStorage.removeItem(getNegotiationStorageKey(attemptId));
+  } catch {
+    /* ignore */
+  }
+}
+```
 
-There is **no** `clearNegotiationFromStorage` (or equivalent) called from `RestartSimulationButton`. Grep finds only get/load/save for that key — **no clear on restart**.
+**Current behavior:** On restart, prospecting, presentation, and negotiation `localStorage` drafts for the same `attemptId` are all cleared on the client. Server still nulls `stage_data` and deletes `stage_scores` as above.
 
-**Confirmed:** On restart, negotiation `localStorage` for the same `attemptId` is **not** cleared by current client code. Because restart reuses the same attempt id, a leftover `tempo-negotiation-${attemptId}` draft can reload on next Stage 5 visit via `loadNegotiationFromStorage`.
+*(Historical note: an earlier audit revision found negotiation was not cleared; that gap was fixed in commit `794e4b8`.)*
 
 ---
 
@@ -644,4 +660,4 @@ There is **no** `clearNegotiationFromStorage` (or equivalent) called from `Resta
 | Results | `app/student/simulation/[id]/complete/page.tsx`, `lib/tempo-results.ts`, `components/tempo/TempoSimulationResultsView.tsx` |
 | Handoffs / prompts | `lib/tempo-prospecting.ts`, `lib/constants.ts`, `components/tempo/HandoffModal.tsx` |
 | Prior transcripts | `app/student/simulation/[id]/page.tsx`, `lib/tempo-negotiation.ts`, `lib/tempo-presentation.ts` |
-| Restart | `app/api/student/simulation/restart/route.ts`, `components/simulation/RestartSimulationButton.tsx` |
+| Restart | `app/api/student/simulation/restart/route.ts`, `components/simulation/RestartSimulationButton.tsx`, `lib/tempo-negotiation.ts` (`clearNegotiationFromStorage`) |
