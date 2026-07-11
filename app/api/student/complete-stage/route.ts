@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { requireStudentApi } from "@/lib/api-auth";
 import { getNextStage } from "@/lib/stages";
 import { createServiceClient } from "@/lib/supabase/server";
+import { detectTempoBadges } from "@/lib/tempo-badges";
 import type { SimulationStage } from "@/types";
 
 type CompleteStageBody = {
@@ -48,6 +49,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
     }
 
+    let badgesEarned: string[] = [];
+    if (stage === "discovery" || stage === "objections") {
+      badgesEarned = await detectTempoBadges(stage, transcript);
+    }
+
     await supabase.from("stage_scores").upsert(
       {
         attempt_id: attemptId,
@@ -55,6 +61,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         score,
         feedback,
         transcript,
+        badges_earned: badgesEarned,
       },
       { onConflict: "attempt_id,stage" }
     );
