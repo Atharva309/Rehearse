@@ -1,6 +1,6 @@
 /**
  * tempo-badges.ts
- * Badge definitions and GPT-based detection for Tempo Discovery and Objection Handling.
+ * Badge definitions and GPT-based detection for Tempo stages.
  * Wired from POST /api/student/complete-stage; results stored in stage_scores.badges_earned.
  */
 
@@ -74,10 +74,115 @@ export const OBJECTION_BADGES = [
   },
 ] as const;
 
+export const PROSPECTING_BADGES = [
+  {
+    id: "pros_guardrails",
+    name: "Built Guardrails",
+    description: "Built guardrails against AI fabrication",
+  },
+  {
+    id: "pros_reusable_system",
+    name: "Reusable System",
+    description: "Designed a reusable system, not a one-off",
+  },
+  {
+    id: "pros_directed_agent",
+    name: "Directed the Agent",
+    description: "Critiqued the AI's output rather than accepting it blindly",
+  },
+  {
+    id: "pros_real_trigger",
+    name: "Found a Real Trigger",
+    description: "Found a credible, specific trigger event",
+  },
+  {
+    id: "pros_business_issue_led",
+    name: "Led with the Business Issue",
+    description: "Led with a business issue, not features",
+  },
+] as const;
+
+export const PRESENTATION_BADGES = [
+  {
+    id: "pres_tailored",
+    name: "Tailored to Their Issues",
+    description: "Tailored the pitch to specific uncovered issues",
+  },
+  {
+    id: "pres_value_led",
+    name: "Led with Value",
+    description: "Led with value, not a feature dump",
+  },
+  {
+    id: "pres_roi_quantified",
+    name: "Quantified the ROI",
+    description: "Quantified the ROI with real math",
+  },
+  {
+    id: "pres_proof_point",
+    name: "Used a Proof Point",
+    description: "Used a relevant proof point",
+  },
+  {
+    id: "pres_next_step",
+    name: "Clear Next Step",
+    description: "Made a clear next-step ask",
+  },
+  {
+    id: "pres_ai_copilot",
+    name: "Directed the AI Copilot",
+    description: "Directed the AI copilot well, showed real critique",
+  },
+] as const;
+
+export const NEGOTIATION_BADGES = [
+  {
+    id: "neg_defended_value",
+    name: "Defended Value Before Price",
+    description: "Defended value before discussing price",
+  },
+  {
+    id: "neg_traded",
+    name: "Traded, Didn't Concede",
+    description: "Traded rather than caved on concessions",
+  },
+  {
+    id: "neg_true_priority",
+    name: "Found Their True Priority",
+    description: "Identified Kim's real priority beyond price",
+  },
+  {
+    id: "neg_protected_value",
+    name: "Protected the Value",
+    description: "Protected deal value/margin",
+  },
+  {
+    id: "neg_closed_deal",
+    name: "Closed the Deal",
+    description: "Reached an agreed or partial close",
+  },
+] as const;
+
 export type DiscoveryBadgeId = (typeof DISCOVERY_BADGES)[number]["id"];
 export type ObjectionBadgeId = (typeof OBJECTION_BADGES)[number]["id"];
+export type ProspectingBadgeId = (typeof PROSPECTING_BADGES)[number]["id"];
+export type PresentationBadgeId = (typeof PRESENTATION_BADGES)[number]["id"];
+export type NegotiationBadgeId = (typeof NEGOTIATION_BADGES)[number]["id"];
 
-export type TempoBadgeStage = "discovery" | "objections";
+export type TempoBadgeStage =
+  | "discovery"
+  | "objections"
+  | "prospecting"
+  | "presentation"
+  | "close";
+
+/** Negotiation badges judged by GPT (neg_closed_deal is deterministic). */
+const NEGOTIATION_GPT_BADGE_IDS = [
+  "neg_defended_value",
+  "neg_traded",
+  "neg_true_priority",
+  "neg_protected_value",
+] as const;
 
 const MAX_BADGE_DETECTION_TOKENS = 400;
 
@@ -88,6 +193,20 @@ const DISCOVERY_BADGE_IDS: ReadonlySet<string> = new Set(
 const OBJECTION_BADGE_IDS: ReadonlySet<string> = new Set(
   OBJECTION_BADGES.map((badge) => badge.id)
 );
+
+const PROSPECTING_BADGE_IDS: ReadonlySet<string> = new Set(
+  PROSPECTING_BADGES.map((badge) => badge.id)
+);
+
+const PRESENTATION_BADGE_IDS: ReadonlySet<string> = new Set(
+  PRESENTATION_BADGES.map((badge) => badge.id)
+);
+
+const NEGOTIATION_BADGE_IDS: ReadonlySet<string> = new Set(
+  NEGOTIATION_BADGES.map((badge) => badge.id)
+);
+
+const NEGOTIATION_GPT_ALLOWED_IDS: ReadonlySet<string> = new Set(NEGOTIATION_GPT_BADGE_IDS);
 
 // ── Prompt builders ───
 
@@ -136,17 +255,102 @@ Use only the badge IDs listed above. If none were earned, return {"badgesEarned"
 }
 
 /**
- * Returns the allowed badge ID set for a Tempo badge stage.
+ * Builds the Prospecting badge-detection system prompt with full earn criteria.
  */
-function allowedBadgeIdsForStage(stage: TempoBadgeStage): ReadonlySet<string> {
-  return stage === "discovery" ? DISCOVERY_BADGE_IDS : OBJECTION_BADGE_IDS;
+function buildProspectingBadgePrompt(): string {
+  return `You are a sales coach evaluating a Tempo Prospecting stage submission (ICP fields, research notes, agent design, chatMessages with an AI research agent, trigger event, and draft opening message) for Summit Dental / Tempo.
+
+Award a badge ONLY when the submission clearly shows the criterion was met. Be strict — do not award on weak or ambiguous evidence. Prefer an empty list over false positives.
+
+Badge criteria (award the ID only if earned):
+- pros_guardrails: the submission (research notes / agent description) explicitly describes steps to verify claims or flag unverified AI output, not blind trust of whatever the AI produced
+- pros_reusable_system: the described tool/approach is generalized (reusable for future prospects), not a one-off hardcoded lookup for this account only
+- pros_directed_agent: the chatMessages log shows the student pushing back, correcting, or refining the AI's output — not just accepting the first response
+- pros_real_trigger: the submitted trigger event is specific and credible (a real timing reason), not generic filler
+- pros_business_issue_led: the draft opening message leads with a plausible business issue/pain, not a feature pitch
+
+Return ONLY valid JSON in this exact shape, nothing else:
+{"badgesEarned":["pros_real_trigger","pros_business_issue_led"]}
+
+Use only the badge IDs listed above. If none were earned, return {"badgesEarned":[]}.`;
 }
 
 /**
- * Returns the system prompt for a Tempo badge stage.
+ * Builds the Presentation badge-detection system prompt with full earn criteria.
  */
-function systemPromptForStage(stage: TempoBadgeStage): string {
-  return stage === "discovery" ? buildDiscoveryBadgePrompt() : buildObjectionBadgePrompt();
+function buildPresentationBadgePrompt(): string {
+  return `You are a sales coach evaluating a Tempo Presentation stage submission (JSON with a pitch form: businessIssue, value drivers, roiCalculation, proofPoint, nextStep, bothStakeholders, and AI work fields aiPrompts / aiOutput / aiRefinement) for Summit Dental / Tempo.
+
+Award a badge ONLY when the submission clearly shows the criterion was met. Be strict — do not award on weak or ambiguous evidence. Prefer an empty list over false positives.
+
+Badge criteria (award the ID only if earned):
+- pres_tailored: pitch content references specific details plausibly tied to discovery findings, not a generic templated pitch
+- pres_value_led: value/outcome framing comes before or instead of a feature list
+- pres_roi_quantified: actual ROI math/numbers appear, not just vague value claims
+- pres_proof_point: a specific, relevant proof point (stat or case study) is used correctly
+- pres_next_step: the pitch ends with one clear, specific next-step ask
+- pres_ai_copilot: the AI Work section shows real prompts AND meaningful critique/editing of AI output — not blank or perfunctory ("used AI, it was fine")
+
+Return ONLY valid JSON in this exact shape, nothing else:
+{"badgesEarned":["pres_roi_quantified","pres_proof_point"]}
+
+Use only the badge IDs listed above. If none were earned, return {"badgesEarned":[]}.`;
+}
+
+/**
+ * Builds the Negotiation GPT-judged badge prompt (excludes deterministic neg_closed_deal).
+ */
+function buildNegotiationGptBadgePrompt(): string {
+  return `You are a sales coach evaluating a Tempo Negotiation (close) stage submission. The JSON includes scenarioA and scenarioB turn transcripts with Kim (buyer), plus optional aiWork.
+
+Award a badge ONLY when the material clearly shows the criterion was met. Be strict — do not award on weak or ambiguous evidence. Prefer an empty list over false positives.
+
+Do NOT judge whether a deal closed — that is handled separately. Only evaluate these four badges:
+
+Badge criteria (award the ID only if earned):
+- neg_defended_value: in Scenario A, the student resisted immediate discounting and reframed on ROI/value before any concession
+- neg_traded: in Scenario B, the student proposed trades (gave something specific to get something specific) rather than pure concessions
+- neg_true_priority: the student identified and addressed Kim's underlying priority (certainty the solution will work) rather than only negotiating surface price/terms
+- neg_protected_value: the final agreed terms preserve real deal value/margin rather than reflexive full discounting
+
+Return ONLY valid JSON in this exact shape, nothing else:
+{"badgesEarned":["neg_defended_value","neg_traded"]}
+
+Use only the four badge IDs listed above. If none were earned, return {"badgesEarned":[]}.`;
+}
+
+/**
+ * Returns the allowed badge ID set for a Tempo badge stage.
+ */
+function allowedBadgeIdsForStage(stage: TempoBadgeStage): ReadonlySet<string> {
+  switch (stage) {
+    case "discovery":
+      return DISCOVERY_BADGE_IDS;
+    case "objections":
+      return OBJECTION_BADGE_IDS;
+    case "prospecting":
+      return PROSPECTING_BADGE_IDS;
+    case "presentation":
+      return PRESENTATION_BADGE_IDS;
+    case "close":
+      return NEGOTIATION_BADGE_IDS;
+  }
+}
+
+/**
+ * Returns the GPT system prompt for stages judged entirely by the model.
+ */
+function systemPromptForStage(stage: Exclude<TempoBadgeStage, "close">): string {
+  switch (stage) {
+    case "discovery":
+      return buildDiscoveryBadgePrompt();
+    case "objections":
+      return buildObjectionBadgePrompt();
+    case "prospecting":
+      return buildProspectingBadgePrompt();
+    case "presentation":
+      return buildPresentationBadgePrompt();
+  }
 }
 
 // ── Parse / validate ───
@@ -173,10 +377,9 @@ function parseBadgesResponse(raw: string): string[] | null {
 }
 
 /**
- * Keeps only known badge IDs for the stage; drops duplicates and unknowns.
+ * Keeps only IDs present in allowed; drops duplicates and unknowns.
  */
-function filterKnownBadgeIds(stage: TempoBadgeStage, ids: string[]): string[] {
-  const allowed = allowedBadgeIdsForStage(stage);
+function filterBadgeIds(allowed: ReadonlySet<string>, ids: string[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
   for (const id of ids) {
@@ -187,6 +390,29 @@ function filterKnownBadgeIds(stage: TempoBadgeStage, ids: string[]): string[] {
     result.push(id);
   }
   return result;
+}
+
+/**
+ * Keeps only known badge IDs for the stage; drops duplicates and unknowns.
+ */
+function filterKnownBadgeIds(stage: TempoBadgeStage, ids: string[]): string[] {
+  return filterBadgeIds(allowedBadgeIdsForStage(stage), ids);
+}
+
+/**
+ * True when Scenario B outcome is deal_agreed or partial_close
+ * (same condition as tempoResultsDealWon success path; false on parse failure).
+ */
+function isNegotiationDealClosed(transcript: string): boolean {
+  try {
+    const data = JSON.parse(transcript) as {
+      scenarioB?: { outcome?: { status?: string } };
+    };
+    const status = data.scenarioB?.outcome?.status;
+    return status === "deal_agreed" || status === "partial_close";
+  } catch {
+    return false;
+  }
 }
 
 // ── OpenAI call ───
@@ -204,7 +430,7 @@ function createOpenAiClient(apiKey: string): OpenAI {
 async function requestBadgeDetection(
   openai: OpenAI,
   systemPrompt: string,
-  transcript: string
+  material: string
 ): Promise<string> {
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -214,7 +440,7 @@ async function requestBadgeDetection(
       { role: "system", content: systemPrompt },
       {
         role: "user",
-        content: `Call transcript:\n\n${transcript}`,
+        content: `Evaluate the following material:\n\n${material}`,
       },
     ],
   });
@@ -222,11 +448,67 @@ async function requestBadgeDetection(
 }
 
 /**
- * Detects which Tempo badges were earned from a stage transcript.
- * Returns validated badge IDs, or [] on any failure (API error, bad JSON, empty transcript).
+ * Runs GPT badge detection with retry-once parse and ID filtering.
+ * Returns [] on any failure.
+ */
+async function runGptBadgeDetection(
+  systemPrompt: string,
+  material: string,
+  allowedIds: ReadonlySet<string>
+): Promise<string[]> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.error("[tempo-badges] OPENAI_API_KEY not configured.");
+    return [];
+  }
+
+  try {
+    const openai = createOpenAiClient(apiKey);
+
+    let raw = await requestBadgeDetection(openai, systemPrompt, material);
+    let parsed = parseBadgesResponse(raw);
+
+    if (!parsed) {
+      raw = await requestBadgeDetection(openai, systemPrompt, material);
+      parsed = parseBadgesResponse(raw);
+    }
+
+    if (!parsed) {
+      console.error("[tempo-badges] Failed to parse badge response after retry.");
+      return [];
+    }
+
+    return filterBadgeIds(allowedIds, parsed);
+  } catch (error) {
+    console.error("[tempo-badges] Detection failed:", error);
+    return [];
+  }
+}
+
+/**
+ * Negotiation: GPT-judges four behavioral badges; neg_closed_deal is deterministic.
+ */
+async function detectNegotiationBadges(transcript: string): Promise<string[]> {
+  const gptBadges = await runGptBadgeDetection(
+    buildNegotiationGptBadgePrompt(),
+    transcript,
+    NEGOTIATION_GPT_ALLOWED_IDS
+  );
+
+  const closed = isNegotiationDealClosed(transcript);
+  if (!closed) {
+    return filterKnownBadgeIds("close", gptBadges);
+  }
+
+  return filterKnownBadgeIds("close", [...gptBadges, "neg_closed_deal"]);
+}
+
+/**
+ * Detects which Tempo badges were earned from a stage transcript/submission.
+ * Returns validated badge IDs, or [] on any failure (API error, bad JSON, empty material).
  *
- * @param stage - "discovery" or "objections"
- * @param transcript - full stage transcript text
+ * @param stage - discovery | objections | prospecting | presentation | close
+ * @param transcript - stage transcript or JSON submission payload
  */
 export async function detectTempoBadges(
   stage: TempoBadgeStage,
@@ -237,32 +519,13 @@ export async function detectTempoBadges(
     return [];
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    console.error("[tempo-badges] OPENAI_API_KEY not configured.");
-    return [];
+  if (stage === "close") {
+    return detectNegotiationBadges(trimmed);
   }
 
-  try {
-    const openai = createOpenAiClient(apiKey);
-    const systemPrompt = systemPromptForStage(stage);
-
-    let raw = await requestBadgeDetection(openai, systemPrompt, trimmed);
-    let parsed = parseBadgesResponse(raw);
-
-    if (!parsed) {
-      raw = await requestBadgeDetection(openai, systemPrompt, trimmed);
-      parsed = parseBadgesResponse(raw);
-    }
-
-    if (!parsed) {
-      console.error("[tempo-badges] Failed to parse badge response after retry.");
-      return [];
-    }
-
-    return filterKnownBadgeIds(stage, parsed);
-  } catch (error) {
-    console.error("[tempo-badges] Detection failed:", error);
-    return [];
-  }
+  return runGptBadgeDetection(
+    systemPromptForStage(stage),
+    trimmed,
+    allowedBadgeIdsForStage(stage)
+  );
 }

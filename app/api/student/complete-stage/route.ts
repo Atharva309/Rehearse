@@ -50,7 +50,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     let badgesEarned: string[] = [];
-    if (stage === "discovery" || stage === "objections") {
+    if (
+      stage === "discovery" ||
+      stage === "objections" ||
+      stage === "prospecting" ||
+      stage === "presentation" ||
+      stage === "close"
+    ) {
       badgesEarned = await detectTempoBadges(stage, transcript);
     }
 
