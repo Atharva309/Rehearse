@@ -12,11 +12,11 @@ import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
 const CRM_RECORD_STAGES = [
-  { id: "prospecting" as const, label: "Prospecting", number: 1 },
-  { id: "discovery" as const, label: "Discovery", number: 2 },
-  { id: "presentation" as const, label: "Presentation", number: 3 },
-  { id: "objections" as const, label: "Objection Handling", number: 4 },
-  { id: "close" as const, label: "Negotiation", number: 5 },
+  { id: "prospecting" as const, label: "Prospecting" },
+  { id: "discovery" as const, label: "Discovery" },
+  { id: "presentation" as const, label: "Presentation" },
+  { id: "objections" as const, label: "Objection Handling" },
+  { id: "close" as const, label: "Negotiation" },
 ];
 
 type CrmRecordStageId = (typeof CRM_RECORD_STAGES)[number]["id"];
@@ -105,11 +105,6 @@ export function OpportunityRecordView({
   );
 
   const normalizedCurrent = normalizeCrmStage(currentStage);
-  const currentIndex = crmStageIndex(normalizedCurrent);
-  const progressPct =
-    CRM_RECORD_STAGES.length <= 1
-      ? 0
-      : Math.round((currentIndex / (CRM_RECORD_STAGES.length - 1)) * 100);
 
   const defaultTab =
     CRM_RECORD_STAGES.find(
@@ -182,51 +177,6 @@ export function OpportunityRecordView({
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Stage stepper */}
-        <div className="mb-6 relative overflow-hidden">
-          <div className="flex justify-between items-center relative z-10 px-4">
-            <div className="absolute top-1/2 left-0 w-full h-[2px] bg-[#bfc8c8] -translate-y-1/2 -z-10" />
-            <div
-              className="absolute top-1/2 left-0 h-[2px] bg-[#0f4c4c] -translate-y-1/2 -z-10 transition-[width] duration-300"
-              style={{ width: `${progressPct}%` }}
-            />
-            {CRM_RECORD_STAGES.map((step) => {
-              const index = crmStageIndex(step.id);
-              const isComplete = index < currentIndex;
-              const isCurrent = index === currentIndex;
-              return (
-                <div key={step.id} className="flex flex-col items-center gap-2 bg-[#f4fbf7]">
-                  {isComplete ? (
-                    <div className="w-8 h-8 rounded-full bg-[#0f4c4c] text-white flex items-center justify-center border-4 border-[#f4fbf7] shadow-sm">
-                      <MaterialIcon name="check" className="text-[18px]" filled />
-                    </div>
-                  ) : isCurrent ? (
-                    <div className="w-8 h-8 rounded-full bg-white border-2 border-[#0f4c4c] text-[#0f4c4c] flex items-center justify-center shadow-sm relative">
-                      <div className="absolute inset-0 rounded-full border-2 border-[#0f4c4c] animate-ping opacity-25" />
-                      <span className="text-[12px] font-bold">{step.number}</span>
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-[#e8efec] border-2 border-[#bfc8c8] text-[#707978] flex items-center justify-center">
-                      <span className="text-[12px] font-medium">{step.number}</span>
-                    </div>
-                  )}
-                  <span
-                    className={`text-[12px] font-medium tracking-wide ${
-                      isCurrent
-                        ? "text-[#0f4c4c] font-bold"
-                        : isComplete
-                          ? "text-[#404848]"
-                          : "text-[#707978]"
-                    }`}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-              );
-            })}
           </div>
         </div>
 
