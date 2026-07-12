@@ -7,7 +7,7 @@
 "use client";
 
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
-import { CRM_CONTACTS, type CrmContactKey } from "@/components/crm/ContactRecordView";
+import type { CrmContactKey } from "@/components/crm/ContactRecordView";
 
 export type CrmHomeAccountSummary = {
   hasRecord: boolean;
@@ -165,19 +165,14 @@ export function CrmHomeView({
               </ul>
             )}
             {availableContactKeys.length > 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {availableContactKeys.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => onAddContact(key)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#0f4c4c] text-[#0f4c4c] text-[12px] font-medium hover:bg-[#eef5f2]"
-                  >
-                    <MaterialIcon name="person_add" className="text-[16px]" />
-                    Add {CRM_CONTACTS[key].name}
-                  </button>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => onAddContact(availableContactKeys[0])}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#0f4c4c] text-[#0f4c4c] text-[12px] font-medium hover:bg-[#eef5f2]"
+              >
+                <MaterialIcon name="person_add" className="text-[16px]" />
+                Add contact
+              </button>
             ) : null}
           </div>
         </section>

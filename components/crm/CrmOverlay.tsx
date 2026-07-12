@@ -595,22 +595,21 @@ export function CrmOverlay({
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Contacts</h3>
                 {availableContactKeysToAdd(contactSnapshots).length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {availableContactKeysToAdd(contactSnapshots).map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => {
-                          setContactKey(key);
-                          setView("contact-record");
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#0f4c4c] text-[#0f4c4c] text-[12px] font-medium hover:bg-[#eef5f2]"
-                      >
-                        <MaterialIcon name="person_add" className="text-[16px]" />
-                        Add {CRM_CONTACTS[key].name}
-                      </button>
-                    ))}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = availableContactKeysToAdd(contactSnapshots)[0];
+                      if (!next) {
+                        return;
+                      }
+                      setContactKey(next);
+                      setView("contact-record");
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#0f4c4c] text-[#0f4c4c] text-[12px] font-medium hover:bg-[#eef5f2]"
+                  >
+                    <MaterialIcon name="person_add" className="text-[16px]" />
+                    Add contact
+                  </button>
                 ) : null}
               </div>
               <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
