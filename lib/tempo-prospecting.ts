@@ -6,12 +6,7 @@
 
 import type { ChatMessage } from "@/types";
 
-export type ProspectingStepId =
-  | "icp"
-  | "research"
-  | "qualification"
-  | "trigger"
-  | "opening";
+export type ProspectingStepId = "research" | "opening";
 
 export type ProspectingStepDefinition = {
   id: ProspectingStepId;
@@ -20,15 +15,12 @@ export type ProspectingStepDefinition = {
 };
 
 export const PROSPECTING_STEPS: readonly ProspectingStepDefinition[] = [
-  { id: "icp", label: "ICP Definition", description: "Who does Tempo sell to?" },
   { id: "research", label: "AI Research", description: "Research Summit Dental" },
-  { id: "qualification", label: "Qualification", description: "Does this account fit?" },
-  { id: "trigger", label: "Trigger Event", description: "Why reach out now?" },
   { id: "opening", label: "Opening Message", description: "Write your outreach" },
 ] as const;
 
 export const TEMPO_HANDOFF_MESSAGES = {
-  prospecting: `Your outreach landed. Dana Reyes, Director of Operations at Summit Dental Group, has agreed to a 20-minute discovery call after seeing your message about their recent expansion. Before that call — I need you to put together your prospecting brief. Show me you've done your homework: who Tempo sells to, why Summit Dental fits, what triggered your outreach, and your opening message. No pitching yet. Just research and qualification. Good luck.`,
+  prospecting: `Your outreach landed. Dana Reyes, Director of Operations at Summit Dental Group, has agreed to a 20-minute discovery call after seeing your message about their recent expansion. Before that call — research Summit Dental with the AI assistant and draft your opening message. No pitching yet. Just research and a crisp outreach draft. Good luck.`,
 
   discovery: `Your outreach landed. Dana Reyes has agreed to a 20-minute discovery call next Tuesday. You are not pitching yet — you are here to understand their world and find out whether there is a business issue worth solving. Be curious. Ask good questions. Listen more than you talk. Good luck.`,
 
@@ -128,16 +120,7 @@ export const SELF_CHECK_ITEMS = [
 
 export type ProspectingWizardState = {
   currentStep: number;
-  icpField1: string;
-  icpField2: string;
   chatMessages: ChatMessage[];
-  researchNotes: string;
-  fitJustification: string;
-  dmName: string;
-  dmRole: string;
-  fitRating: string;
-  confidence: string;
-  triggerEvent: string;
   openingMessage: string;
   selfCheck: Record<string, boolean>;
   stretchOpen: boolean;
@@ -148,16 +131,7 @@ export type ProspectingWizardState = {
 
 export const DEFAULT_PROSPECTING_WIZARD_STATE: ProspectingWizardState = {
   currentStep: 0,
-  icpField1: "",
-  icpField2: "",
   chatMessages: [],
-  researchNotes: "",
-  fitJustification: "",
-  dmName: "",
-  dmRole: "",
-  fitRating: "",
-  confidence: "",
-  triggerEvent: "",
   openingMessage: "",
   selfCheck: {},
   stretchOpen: false,
@@ -165,6 +139,45 @@ export const DEFAULT_PROSPECTING_WIZARD_STATE: ProspectingWizardState = {
   agentCorrections: "",
   prospectingHandoffSeen: false,
 };
+
+/**
+ * Normalizes persisted wizard drafts (including pre-CRM-dedupe 5-step saves).
+ */
+export function normalizeProspectingWizardState(
+  raw: Partial<ProspectingWizardState> | null | undefined
+): ProspectingWizardState {
+  const anyRaw = (raw ?? {}) as Record<string, unknown>;
+  const isLegacy =
+    "icpField1" in anyRaw ||
+    "triggerEvent" in anyRaw ||
+    "researchNotes" in anyRaw ||
+    "fitJustification" in anyRaw ||
+    (typeof anyRaw.currentStep === "number" && anyRaw.currentStep > 1);
+
+  let step = typeof anyRaw.currentStep === "number" ? anyRaw.currentStep : 0;
+  if (isLegacy) {
+    step = step >= 4 ? 1 : 0;
+  } else {
+    step = Math.min(Math.max(0, step), PROSPECTING_STEPS.length - 1);
+  }
+
+  return {
+    ...DEFAULT_PROSPECTING_WIZARD_STATE,
+    chatMessages: Array.isArray(anyRaw.chatMessages)
+      ? (anyRaw.chatMessages as ProspectingWizardState["chatMessages"])
+      : [],
+    openingMessage: typeof anyRaw.openingMessage === "string" ? anyRaw.openingMessage : "",
+    selfCheck:
+      anyRaw.selfCheck && typeof anyRaw.selfCheck === "object"
+        ? (anyRaw.selfCheck as Record<string, boolean>)
+        : {},
+    stretchOpen: Boolean(anyRaw.stretchOpen),
+    agentDesign: typeof anyRaw.agentDesign === "string" ? anyRaw.agentDesign : "",
+    agentCorrections: typeof anyRaw.agentCorrections === "string" ? anyRaw.agentCorrections : "",
+    prospectingHandoffSeen: Boolean(anyRaw.prospectingHandoffSeen),
+    currentStep: step,
+  };
+}
 
 const STORAGE_PREFIX = "rehearse-prospecting-wizard-";
 
@@ -182,7 +195,7 @@ export function loadProspectingWizardFromStorage(
     if (!raw) {
       return null;
     }
-    return { ...DEFAULT_PROSPECTING_WIZARD_STATE, ...(JSON.parse(raw) as ProspectingWizardState) };
+    return normalizeProspectingWizardState(JSON.parse(raw) as ProspectingWizardState);
   } catch {
     return null;
   }
@@ -261,23 +274,10 @@ export function canAdvanceProspectingStep(
   stepIndex: number,
   state: ProspectingWizardState
 ): boolean {
-  const minLen = 10;
   switch (stepIndex) {
     case 0:
-      return state.icpField1.trim().length >= minLen && state.icpField2.trim().length >= minLen;
+      return state.chatMessages.some((msg) => msg.role === "user");
     case 1:
-      return state.researchNotes.trim().length >= 20;
-    case 2:
-      return (
-        state.fitJustification.trim().length >= minLen &&
-        state.dmName.trim().length >= 2 &&
-        state.dmRole.trim().length >= 2 &&
-        Boolean(state.fitRating) &&
-        Boolean(state.confidence)
-      );
-    case 3:
-      return state.triggerEvent.trim().length >= 20;
-    case 4:
       return canSubmitProspectingBrief(state);
     default:
       return false;
@@ -285,7 +285,7 @@ export function canAdvanceProspectingStep(
 }
 
 /**
- * Returns whether Step 5 submit is enabled.
+ * Returns whether Opening Message submit is enabled.
  */
 export function canSubmitProspectingBrief(state: ProspectingWizardState): boolean {
   const words = countWords(state.openingMessage);

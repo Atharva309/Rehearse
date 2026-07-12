@@ -1,7 +1,7 @@
 /**
  * DiscoveryStageLayout.tsx
- * Presentational 3-column shell for Tempo Stage 2 Discovery during the call and
- * post-call summary phases (mission briefing, center, reference + transcript).
+ * Presentational 3-column shell for Tempo Stage 2 Discovery during lobby, call,
+ * and post-call submit (mission briefing, center, reference + transcript).
  * The top app bar lives in DiscoveryStage; the pre-call lobby is DiscoveryLobby.
  * The active call center is injected via callSlot so the mic session only mounts
  * after Join Call.
@@ -9,13 +9,10 @@
 
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import {
-  DISCOVERY_SUMMARY_FIELDS,
   DISCOVERY_TIPS,
   TEMPO_VALUE_DRIVERS,
-  countSummaryWords,
   formatDiscoveryTime,
   type DiscoveryPhase,
-  type DiscoverySummaryForm,
   type DiscoveryTranscriptEntry,
 } from "@/lib/tempo-discovery";
 
@@ -27,15 +24,11 @@ type DiscoveryStageLayoutProps = {
   transcript: DiscoveryTranscriptEntry[];
   lobbySlot: React.ReactNode;
   callSlot: React.ReactNode;
-  summaryForm: DiscoverySummaryForm;
-  onSummaryChange: (field: keyof DiscoverySummaryForm, value: string) => void;
-  canSubmitSummary: boolean;
   isSubmitting: boolean;
-  onSubmitSummary: () => void;
 };
 
 /**
- * Renders the Discovery call/summary chrome; center swaps by phase.
+ * Renders the Discovery call/submit chrome; center swaps by phase.
  */
 export function DiscoveryStageLayout({
   phase,
@@ -45,11 +38,7 @@ export function DiscoveryStageLayout({
   transcript,
   lobbySlot,
   callSlot,
-  summaryForm,
-  onSummaryChange,
-  canSubmitSummary,
   isSubmitting,
-  onSubmitSummary,
 }: DiscoveryStageLayoutProps): React.ReactElement {
   const isCallPhase = phase === "connecting" || phase === "active";
 
@@ -142,66 +131,14 @@ export function DiscoveryStageLayout({
         {isCallPhase && callSlot}
 
         {phase === "summary" && (
-          <section className="flex-1 min-w-0 flex flex-col bg-surface-container-low relative">
-            <div className="flex-1 overflow-y-auto px-4 lg:px-xl py-lg flex flex-col gap-lg">
-              <div className="flex justify-between items-end border-b border-outline-variant pb-md">
-                <div>
-                  <span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-xs">
-                    <MaterialIcon name="check_circle" className="text-[16px]" />
-                    Call completed · {formatDiscoveryTime(callSeconds)}
-                  </span>
-                  <h1 className="font-display text-display text-on-surface mt-xs">
-                    What did you learn?
-                  </h1>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border border-outline-variant shadow-sm p-lg flex flex-col gap-xl">
-                {DISCOVERY_SUMMARY_FIELDS.map((field) => (
-                  <div key={field.id} className="flex flex-col gap-xs">
-                    <div className="flex justify-between items-baseline">
-                      <label className="font-label-md text-label-md font-bold text-on-surface">
-                        {field.label}
-                      </label>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant">
-                        {countSummaryWords(summaryForm[field.id])} / 30 min
-                      </span>
-                    </div>
-                    <p className="text-label-sm text-on-surface-variant italic mb-xs">
-                      {field.helper}
-                    </p>
-                    <textarea
-                      className="w-full p-md rounded-lg border border-outline-variant focus:ring-2 focus:ring-secondary focus:outline-none bg-surface-bright text-body-md transition-shadow"
-                      placeholder={field.placeholder}
-                      rows={field.rows}
-                      value={summaryForm[field.id]}
-                      onChange={(e) => onSummaryChange(field.id, e.target.value)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="shrink-0 w-full p-lg bg-surface/95 backdrop-blur-md border-t border-outline-variant flex justify-end items-center gap-lg flex-wrap">
-              <span className="text-label-sm text-on-surface-variant">
-                {canSubmitSummary
-                  ? "Great! You're ready to advance."
-                  : "All sections must be filled to proceed."}
-              </span>
-              <button
-                type="button"
-                disabled={!canSubmitSummary || isSubmitting}
-                onClick={onSubmitSummary}
-                className={`px-lg py-md rounded-lg font-bold flex items-center gap-md ${
-                  canSubmitSummary && !isSubmitting
-                    ? "bg-tertiary text-on-tertiary hover:bg-tertiary-container active:scale-95 transition-transform"
-                    : "bg-tertiary text-on-tertiary opacity-40 cursor-not-allowed"
-                }`}
-              >
-                {isSubmitting ? "Submitting..." : "Submit & Continue to Stage 3"}
-                <MaterialIcon name="arrow_forward" />
-              </button>
-            </div>
+          <section className="flex-1 min-w-0 flex flex-col items-center justify-center bg-surface-container-low gap-md px-lg">
+            <div className="w-10 h-10 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
+            <p className="font-headline-md text-headline-md text-on-surface">
+              {isSubmitting ? "Saving your call…" : "Call completed"}
+            </p>
+            <p className="text-body-md text-on-surface-variant">
+              Call length: {formatDiscoveryTime(callSeconds)}
+            </p>
           </section>
         )}
 

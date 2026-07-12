@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 import { requireStudentApi } from "@/lib/api-auth";
 import {
-  DEFAULT_PROSPECTING_WIZARD_STATE,
+  normalizeProspectingWizardState,
   type ProspectingWizardState,
 } from "@/lib/tempo-prospecting";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -45,9 +45,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   const saved = attempt.stage_data as ProspectingWizardState | null;
-  const state: ProspectingWizardState = saved
-    ? { ...DEFAULT_PROSPECTING_WIZARD_STATE, ...saved }
-    : DEFAULT_PROSPECTING_WIZARD_STATE;
+  const state = normalizeProspectingWizardState(saved);
 
   return NextResponse.json({ state });
 }
@@ -86,7 +84,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const { error: updateError } = await supabase
       .from("attempts")
-      .update({ stage_data: state })
+      .update({ stage_data: normalizeProspectingWizardState(state) })
       .eq("id", attemptId);
 
     if (updateError) {

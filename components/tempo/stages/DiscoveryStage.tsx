@@ -1,7 +1,7 @@
 /**
  * DiscoveryStage.tsx
  * Stage 2 of the Tempo simulation — Discovery audio call with Dana Reyes.
- * Flow: pre-call lobby (DiscoveryLobby) → active audio call → post-call summary.
+ * Flow: pre-call lobby (DiscoveryLobby) → active audio call → auto-submit.
  * The microphone is enabled by the student in the lobby and handed to the call
  * session, so no device indicator turns on automatically.
  * Only used in the Tempo/Default simulation (Rehearse Essentials class).
@@ -21,10 +21,7 @@ import { resumePlaybackContext } from "@/lib/audio-playback";
 import { completeStage } from "@/lib/attempt-actions";
 import { SIMLI_FACE_ID } from "@/lib/constants";
 import {
-  DEFAULT_DISCOVERY_SUMMARY,
-  canSubmitDiscoverySummary,
   type DiscoveryPhase,
-  type DiscoverySummaryForm,
   type DiscoveryTranscriptEntry,
 } from "@/lib/tempo-discovery";
 import {
@@ -41,7 +38,7 @@ type DiscoveryStageProps = {
 };
 
 /**
- * Tempo Discovery — lobby, audio call session, and post-call summary.
+ * Tempo Discovery — lobby, audio call session, then auto-complete on call end.
  */
 export function DiscoveryStage({
   attemptId,
@@ -57,18 +54,16 @@ export function DiscoveryStage({
   const [referenceCollapsed, setReferenceCollapsed] = useState(false);
   const [transcript, setTranscript] = useState<DiscoveryTranscriptEntry[]>([]);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
-  const [summaryForm, setSummaryForm] = useState<DiscoverySummaryForm>(DEFAULT_DISCOVERY_SUMMARY);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHandoff, setShowHandoff] = useState(false);
   const [showPresentationHandoff, setShowPresentationHandoff] = useState(false);
 
-  const finalTranscriptRef = useRef("");
+  const submittingRef = useRef(false);
 
   const faceId = simliFaceId?.trim() || SIMLI_FACE_ID;
   const discoveryMeta = TEMPO_HANDOFF_STAGE_META.discovery;
   const presentationMeta = TEMPO_HANDOFF_STAGE_META.presentation;
 
-  // ── Lobby hands over the enabled mic stream and starts the call ───
   const handleJoinCall = useCallback((stream: MediaStream): void => {
     setConnectError("");
     setCallSeconds(0);
@@ -89,44 +84,38 @@ export function DiscoveryStage({
   }, []);
 
   const handleCallEnded = useCallback(
-    (transcriptText: string, seconds: number, entries: DiscoveryTranscriptEntry[]): void => {
-      finalTranscriptRef.current = transcriptText;
+    async (
+      transcriptText: string,
+      seconds: number,
+      entries: DiscoveryTranscriptEntry[]
+    ): Promise<void> => {
+      if (submittingRef.current) {
+        return;
+      }
+      submittingRef.current = true;
+
       setCallSeconds(seconds);
       setTranscript(entries);
       setAudioStream(null);
       setPhase("summary");
+      setIsSubmitting(true);
+
+      try {
+        const payload = JSON.stringify({
+          callDurationSeconds: seconds,
+          transcript: transcriptText,
+          transcriptEntries: entries,
+        });
+
+        await completeStage(attemptId, "discovery", 0, "Submitted — scoring coming soon", payload);
+        setShowPresentationHandoff(true);
+      } finally {
+        setIsSubmitting(false);
+        submittingRef.current = false;
+      }
     },
-    []
+    [attemptId]
   );
-
-  const handleSummaryChange = useCallback(
-    (field: keyof DiscoverySummaryForm, value: string): void => {
-      setSummaryForm((prev) => ({ ...prev, [field]: value }));
-    },
-    []
-  );
-
-  const handleSubmitSummary = useCallback(async (): Promise<void> => {
-    if (!canSubmitDiscoverySummary(summaryForm) || isSubmitting) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const payload = JSON.stringify({
-        callDurationSeconds: callSeconds,
-        transcript: finalTranscriptRef.current,
-        transcriptEntries: transcript,
-        postCallSummary: summaryForm,
-      });
-
-      await completeStage(attemptId, "discovery", 0, "Submitted — scoring coming soon", payload);
-
-      setShowPresentationHandoff(true);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [summaryForm, isSubmitting, callSeconds, transcript, attemptId]);
 
   const handlePresentationBegin = (): void => {
     window.location.assign(
@@ -162,15 +151,13 @@ export function DiscoveryStage({
                 onError={handleCallError}
                 onTranscriptChange={setTranscript}
                 onSecondsChange={setCallSeconds}
-                onEnded={handleCallEnded}
+                onEnded={(text, seconds, entries) => {
+                  void handleCallEnded(text, seconds, entries);
+                }}
               />
             ) : null
           }
-          summaryForm={summaryForm}
-          onSummaryChange={handleSummaryChange}
-          canSubmitSummary={canSubmitDiscoverySummary(summaryForm)}
           isSubmitting={isSubmitting}
-          onSubmitSummary={() => void handleSubmitSummary()}
         />
       </ErrorBoundary>
 

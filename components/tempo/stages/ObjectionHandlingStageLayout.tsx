@@ -1,18 +1,17 @@
 /**
  * ObjectionHandlingStageLayout.tsx
  * Presentational 3-column shell for Tempo Stage 4 Objection Handling.
- * Lobby, active video call, and post-call summary share the same side panels.
+ * Lobby, active video call, and post-call submit share the same side panels.
+ * Objection tracker stays visible as live in-call feedback (not a post-call form).
  */
 
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { PresentationForm } from "@/lib/tempo-presentation";
 import {
-  OBJECTION_SUMMARY_FIELDS,
   OBJECTION_TIPS,
   TEMPO_OBJECTION_FACTS,
   formatObjectionTime,
   type ObjectionHandlingPhase,
-  type ObjectionSummaryForm,
   type ObjectionTracker,
   type ObjectionTranscriptEntry,
 } from "@/lib/tempo-objections";
@@ -27,11 +26,7 @@ type ObjectionHandlingStageLayoutProps = {
   presentationSummary: PresentationForm | null;
   lobbySlot: React.ReactNode;
   callSlot: React.ReactNode;
-  summaryForm: ObjectionSummaryForm;
-  onSummaryChange: (field: keyof ObjectionSummaryForm, value: string) => void;
-  canSubmitSummary: boolean;
   isSubmitting: boolean;
-  onSubmitSummary: () => void;
 };
 
 /**
@@ -47,11 +42,7 @@ export function ObjectionHandlingStageLayout({
   presentationSummary,
   lobbySlot,
   callSlot,
-  summaryForm,
-  onSummaryChange,
-  canSubmitSummary,
   isSubmitting,
-  onSubmitSummary,
 }: ObjectionHandlingStageLayoutProps): React.ReactElement {
   const isCallPhase = phase === "connecting" || phase === "active";
 
@@ -167,72 +158,14 @@ export function ObjectionHandlingStageLayout({
         {isCallPhase && callSlot}
 
         {phase === "summary" && (
-          <section className="flex-1 bg-surface min-h-0 relative flex flex-col min-w-0">
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-3xl mx-auto py-12 px-8 pb-32">
-                <header className="mb-10">
-                  <div className="flex items-center gap-3 text-on-surface-variant mb-2">
-                    <MaterialIcon name="check_circle" className="text-xl" />
-                    <h1 className="text-headline-md font-headline-md">
-                      Call completed · {formatObjectionTime(callSeconds)}
-                    </h1>
-                  </div>
-                  <p className="text-body-md text-on-surface-variant">
-                    Review the interaction and document the key objections handled during the Stage
-                    4 simulation.
-                  </p>
-                </header>
-
-                <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden mb-8">
-                  <div className="p-6 border-b border-outline-variant bg-surface-container-low">
-                    <h3 className="font-bold text-title-lg">Simulation Debrief</h3>
-                  </div>
-                  <div className="p-8 space-y-8">
-                    {OBJECTION_SUMMARY_FIELDS.map((field) => (
-                      <div key={field.id} className="space-y-2">
-                        <label className="block font-body-md font-semibold text-on-surface">
-                          {field.label}
-                        </label>
-                        <p className="text-sm text-on-surface-variant mb-3">{field.helper}</p>
-                        <textarea
-                          className="w-full h-32 bg-surface-container-lowest border border-outline-variant rounded-lg p-4 text-body-md transition-all placeholder:text-outline focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
-                          placeholder={field.placeholder}
-                          value={summaryForm[field.id]}
-                          onChange={(e) => onSummaryChange(field.id, e.target.value)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-tertiary-fixed/20 border border-tertiary-container/30 rounded-xl p-6 flex gap-4 items-start mb-12">
-                  <MaterialIcon name="info" className="text-tertiary text-2xl" />
-                  <div>
-                    <h4 className="font-bold text-tertiary">Review Process</h4>
-                    <p className="text-on-tertiary-container text-sm leading-relaxed mt-1">
-                      Your answers are reviewed alongside the full call transcript. Ensure accuracy
-                      as these notes will populate your record for the final Negotiation stage.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="shrink-0 h-20 bg-surface-container-lowest border-t border-outline-variant px-8 flex items-center justify-end z-40">
-              <button
-                type="button"
-                disabled={!canSubmitSummary || isSubmitting}
-                onClick={onSubmitSummary}
-                className={`px-8 py-3 font-bold rounded-lg flex items-center gap-2 transition-all ${
-                  canSubmitSummary && !isSubmitting
-                    ? "bg-tertiary-fixed text-on-tertiary-fixed hover:scale-[1.02] active:scale-95"
-                    : "bg-tertiary-fixed text-on-tertiary-fixed opacity-50 cursor-not-allowed"
-                }`}
-              >
-                {isSubmitting ? "Submitting…" : "Submit & Continue to Negotiation"}
-                <MaterialIcon name="arrow_forward" />
-              </button>
-            </div>
+          <section className="flex-1 bg-surface min-h-0 relative flex flex-col min-w-0 items-center justify-center gap-md px-lg">
+            <div className="w-10 h-10 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
+            <p className="font-headline-md text-headline-md text-on-surface">
+              {isSubmitting ? "Saving your call…" : "Call completed"}
+            </p>
+            <p className="text-body-md text-on-surface-variant">
+              Call length: {formatObjectionTime(callSeconds)}
+            </p>
           </section>
         )}
 

@@ -1,15 +1,9 @@
 /**
  * ObjectionHandlingStage.tsx
  * Stage 4 of the Tempo simulation — live Simli video call with Dr. Saul Kim.
- * Three sequential states: Pre-call lobby → Active video call → Post-call summary.
- * Uses Simli avatar (video, not audio-only like Stage 2).
- * The 3-column layout persists across all three states.
+ * Flow: pre-call lobby → active video call → auto-submit (no post-call form).
+ * Objection tracker is live in-call feedback derived from the transcript.
  * Only used in the Tempo/Default simulation.
- *
- * State flow:
- * 'lobby' → student clicks Join Call → 'active'
- * 'active' → student clicks End Call → 'summary'
- * 'summary' → student submits form → Stage 5 handoff modal
  */
 
 "use client";
@@ -32,11 +26,8 @@ import { completeStage } from "@/lib/attempt-actions";
 import { SIMLI_FACE_ID } from "@/lib/constants";
 import type { PresentationForm } from "@/lib/tempo-presentation";
 import {
-  EMPTY_SUMMARY,
   EMPTY_TRACKER,
-  canSubmitObjectionSummary,
   type ObjectionHandlingPhase,
-  type ObjectionSummaryForm,
   type ObjectionTracker,
   type ObjectionTranscriptEntry,
 } from "@/lib/tempo-objections";
@@ -55,7 +46,7 @@ type ObjectionHandlingStageProps = {
 };
 
 /**
- * Tempo Objection Handling — lobby, video call session, and post-call summary.
+ * Tempo Objection Handling — lobby, video call, then auto-complete on call end.
  */
 export function ObjectionHandlingStage({
   attemptId,
@@ -74,12 +65,11 @@ export function ObjectionHandlingStage({
   const [objectionTracker, setObjectionTracker] = useState<ObjectionTracker>(EMPTY_TRACKER);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
-  const [summaryForm, setSummaryForm] = useState<ObjectionSummaryForm>(EMPTY_SUMMARY);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHandoff, setShowHandoff] = useState(false);
   const [showNegotiationHandoff, setShowNegotiationHandoff] = useState(false);
 
-  const finalTranscriptRef = useRef("");
+  const submittingRef = useRef(false);
 
   const faceId = simliFaceId?.trim() || SIMLI_FACE_ID;
   const objectionsMeta = TEMPO_HANDOFF_STAGE_META.objections;
@@ -114,52 +104,42 @@ export function ObjectionHandlingStage({
   }, []);
 
   const handleCallEnded = useCallback(
-    (
+    async (
       transcriptText: string,
       seconds: number,
       entries: ObjectionTranscriptEntry[],
       tracker: ObjectionTracker
-    ): void => {
-      finalTranscriptRef.current = transcriptText;
+    ): Promise<void> => {
+      if (submittingRef.current) {
+        return;
+      }
+      submittingRef.current = true;
+
       setCallSeconds(seconds);
       setTranscript(entries);
       setObjectionTracker(tracker);
       setAudioStream(null);
       setVideoStream(null);
       setPhase("summary");
+      setIsSubmitting(true);
+
+      try {
+        const payload = JSON.stringify({
+          callDurationSeconds: seconds,
+          transcript: transcriptText,
+          transcriptEntries: entries,
+          objectionTracker: tracker,
+        });
+
+        await completeStage(attemptId, "objections", 0, "Submitted — scoring coming soon", payload);
+        setShowNegotiationHandoff(true);
+      } finally {
+        setIsSubmitting(false);
+        submittingRef.current = false;
+      }
     },
-    []
+    [attemptId]
   );
-
-  const handleSummaryChange = useCallback(
-    (field: keyof ObjectionSummaryForm, value: string): void => {
-      setSummaryForm((prev) => ({ ...prev, [field]: value }));
-    },
-    []
-  );
-
-  const handleSubmitSummary = useCallback(async (): Promise<void> => {
-    if (!canSubmitObjectionSummary(summaryForm) || isSubmitting) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const payload = JSON.stringify({
-        callDurationSeconds: callSeconds,
-        transcript: finalTranscriptRef.current,
-        transcriptEntries: transcript,
-        postCallSummary: summaryForm,
-        objectionTracker,
-      });
-
-      await completeStage(attemptId, "objections", 0, "Submitted — scoring coming soon", payload);
-
-      setShowNegotiationHandoff(true);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [summaryForm, isSubmitting, callSeconds, transcript, objectionTracker, attemptId]);
 
   const handleNegotiationBegin = (): void => {
     window.location.assign(
@@ -201,15 +181,13 @@ export function ObjectionHandlingStage({
                 onTranscriptChange={setTranscript}
                 onTrackerChange={setObjectionTracker}
                 onSecondsChange={setCallSeconds}
-                onEnded={handleCallEnded}
+                onEnded={(text, seconds, entries, tracker) => {
+                  void handleCallEnded(text, seconds, entries, tracker);
+                }}
               />
             ) : null
           }
-          summaryForm={summaryForm}
-          onSummaryChange={handleSummaryChange}
-          canSubmitSummary={canSubmitObjectionSummary(summaryForm)}
           isSubmitting={isSubmitting}
-          onSubmitSummary={() => void handleSubmitSummary()}
         />
       </ErrorBoundary>
 

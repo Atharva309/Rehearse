@@ -248,22 +248,27 @@ const NEGOTIATION_GPT_ALLOWED_IDS: ReadonlySet<string> = new Set(NEGOTIATION_GPT
 
 /**
  * Builds the Discovery badge-detection system prompt with full earn criteria.
+ * CRM-dependent badges judge crm log fields; behavior badges judge the call transcript.
  */
-function buildDiscoveryBadgePrompt(): string {
-  return `You are a sales coach evaluating a Tempo Discovery call transcript between a student (rep) and Dana (buyer at Summit Dental).
+function buildDiscoveryBadgePrompt(hasCrmFields: boolean): string {
+  const crmCriteria = hasCrmFields
+    ? `- disc_business_issue: CRM businessIssue (and supporting painPoints) shows a time-bound, measurable business issue — not just a vague complaint
+- disc_value_buyer: CRM quantifiedValue / painPoints show quantified numbers that came from the buyer, not asserted by the rep
+- disc_personal_value: CRM stakeholders / painPoints / businessIssue evidence surfaces Dana's personal stake (e.g. looking good to Dr. Kim, protecting staff)
+`
+    : "";
 
-Award a badge ONLY when the transcript clearly shows the criterion was met. Be strict — do not award on weak or ambiguous evidence. Prefer an empty list over false positives.
+  return `You are a sales coach evaluating a Tempo Discovery submission. Material includes a live call transcript and, when present, CRM log fields for this stage.
+
+Award a badge ONLY when the evidence clearly shows the criterion was met. Be strict — do not award on weak or ambiguous evidence. Prefer an empty list over false positives.
 
 Badge criteria (award the ID only if earned):
-- disc_business_issue: the call reached a time-bound, measurable business issue (e.g. revenue lost to no-show rate at a specific scale) — not just a vague complaint
-- disc_value_buyer: quantified numbers (no-show %, appointment value, hours lost) came from Dana being asked, not asserted by the rep
-- disc_personal_value: the rep surfaced Dana's personal stake — not wanting to look bad to Dr. Kim, protecting staff from burnout
-- disc_opc: visible Open -> Probe -> Confirm question cadence, not a flat checklist of closed questions
-- disc_earned_right: the rep opened with brief credibility/framing rather than diving straight into questions or a pitch
-- disc_held_line: the rep held off pitching Tempo features until the issue and value were understood
+${crmCriteria}- disc_opc: visible Open -> Probe -> Confirm question cadence in the CALL TRANSCRIPT, not a flat checklist of closed questions
+- disc_earned_right: in the CALL TRANSCRIPT, the rep opened with brief credibility/framing rather than diving straight into questions or a pitch
+- disc_held_line: in the CALL TRANSCRIPT, the rep held off pitching Tempo features until the issue and value were understood
 
 Return ONLY valid JSON in this exact shape, nothing else:
-{"badgesEarned":["disc_business_issue","disc_opc"]}
+{"badgesEarned":["disc_opc"]}
 
 Use only the badge IDs listed above. If none were earned, return {"badgesEarned":[]}.`;
 }
@@ -271,18 +276,22 @@ Use only the badge IDs listed above. If none were earned, return {"badgesEarned"
 /**
  * Builds the Objection Handling badge-detection system prompt with full earn criteria.
  */
-function buildObjectionBadgePrompt(): string {
-  return `You are a sales coach evaluating a Tempo Objection Handling call transcript between a student (rep) and Kim (buyer / decision-maker at Summit Dental).
+function buildObjectionBadgePrompt(hasCrmFields: boolean): string {
+  const crmCriteria = hasCrmFields
+    ? `- obj_business_issue: CRM howResolved / objectionsRaised reconnect objections to Kim's measurable business issue rather than staying on surface complaints
+- obj_cost_value: CRM howResolved / remainingConcerns show price pushback reframed via ROI/value, not argued on price alone
+- obj_differentiated: CRM howResolved / objectionsRaised show Tempo specifically differentiated (vs SlotEasy/status quo), not just asserted quality
+`
+    : "";
 
-Award a badge ONLY when the transcript clearly shows the criterion was met. Be strict — do not award on weak or ambiguous evidence. Prefer an empty list over false positives.
+  return `You are a sales coach evaluating a Tempo Objection Handling submission. Material includes a live call transcript and, when present, CRM log fields for this stage.
+
+Award a badge ONLY when the evidence clearly shows the criterion was met. Be strict — do not award on weak or ambiguous evidence. Prefer an empty list over false positives.
 
 Badge criteria (award the ID only if earned):
-- obj_business_issue: the rep brought each objection back to Kim's measurable business issue rather than staying stuck on the surface complaint
-- obj_cost_value: price pushback was reframed via ROI/value, not argued on price alone
-- obj_differentiated: the rep showed why Tempo specifically (vs. SlotEasy/status quo) addresses the issue, not just asserted quality
-- obj_real_concern: the rep used questions to find the ROOT concern behind a surface objection (e.g. "too expensive" -> ROI doubt) instead of rebutting immediately
-- obj_acknowledged: the rep validated/acknowledged each concern before responding to it
-- obj_held_line: the rep stayed composed and did not reflexively discount to make an objection go away
+${crmCriteria}- obj_real_concern: in the CALL TRANSCRIPT, the rep used questions to find the ROOT concern behind a surface objection instead of rebutting immediately
+- obj_acknowledged: in the CALL TRANSCRIPT, the rep validated/acknowledged each concern before responding to it
+- obj_held_line: in the CALL TRANSCRIPT, the rep stayed composed and did not reflexively discount to make an objection go away
 
 Return ONLY valid JSON in this exact shape, nothing else:
 {"badgesEarned":["obj_acknowledged","obj_held_line"]}
@@ -293,20 +302,24 @@ Use only the badge IDs listed above. If none were earned, return {"badgesEarned"
 /**
  * Builds the Prospecting badge-detection system prompt with full earn criteria.
  */
-function buildProspectingBadgePrompt(): string {
-  return `You are a sales coach evaluating a Tempo Prospecting stage submission (ICP fields, research notes, agent design, chatMessages with an AI research agent, trigger event, and draft opening message) for Summit Dental / Tempo.
+function buildProspectingBadgePrompt(hasCrmFields: boolean): string {
+  const crmCriteria = hasCrmFields
+    ? `- pros_real_trigger: CRM trigger field is specific and credible (a real timing reason), not generic filler
+- pros_business_issue_led: CRM whyFit leads with a plausible business issue/pain for the account, not a feature pitch
+`
+    : "";
+
+  return `You are a sales coach evaluating a Tempo Prospecting stage submission (JSON with chatMessages from an AI research agent, selfCheck, and draft openingMessage) plus optional CRM log fields.
 
 Award a badge ONLY when the submission clearly shows the criterion was met. Be strict — do not award on weak or ambiguous evidence. Prefer an empty list over false positives.
 
 Badge criteria (award the ID only if earned):
-- pros_guardrails: the submission (research notes / agent description) explicitly describes steps to verify claims or flag unverified AI output, not blind trust of whatever the AI produced
-- pros_reusable_system: the described tool/approach is generalized (reusable for future prospects), not a one-off hardcoded lookup for this account only
-- pros_directed_agent: the chatMessages log shows the student pushing back, correcting, or refining the AI's output — not just accepting the first response
-- pros_real_trigger: the submitted trigger event is specific and credible (a real timing reason), not generic filler
-- pros_business_issue_led: the draft opening message leads with a plausible business issue/pain, not a feature pitch
-
+- pros_guardrails: chatMessages / selfCheck show the student verifying claims or flagging unverified AI output, not blind trust of whatever the AI produced
+- pros_reusable_system: chatMessages show a generalized reusable research approach, not a one-off hardcoded lookup for this account only
+- pros_directed_agent: chatMessages show the student pushing back, correcting, or refining the AI's output — not just accepting the first response
+${crmCriteria}
 Return ONLY valid JSON in this exact shape, nothing else:
-{"badgesEarned":["pros_real_trigger","pros_business_issue_led"]}
+{"badgesEarned":["pros_directed_agent"]}
 
 Use only the badge IDs listed above. If none were earned, return {"badgesEarned":[]}.`;
 }
@@ -355,38 +368,76 @@ Return ONLY valid JSON in this exact shape, nothing else:
 Use only the four badge IDs listed above. If none were earned, return {"badgesEarned":[]}.`;
 }
 
+const CRM_DEPENDENT_BADGE_IDS: Record<
+  "prospecting" | "discovery" | "objections",
+  readonly string[]
+> = {
+  prospecting: ["pros_real_trigger", "pros_business_issue_led"],
+  discovery: ["disc_business_issue", "disc_value_buyer", "disc_personal_value"],
+  objections: ["obj_business_issue", "obj_cost_value", "obj_differentiated"],
+};
+
 /**
  * Returns the allowed badge ID set for a Tempo badge stage.
+ * When CRM fields are missing, CRM-dependent badges are excluded (not earned).
  */
-function allowedBadgeIdsForStage(stage: TempoBadgeStage): ReadonlySet<string> {
-  switch (stage) {
-    case "discovery":
-      return DISCOVERY_BADGE_IDS;
-    case "objections":
-      return OBJECTION_BADGE_IDS;
-    case "prospecting":
-      return PROSPECTING_BADGE_IDS;
-    case "presentation":
-      return PRESENTATION_BADGE_IDS;
-    case "close":
-      return NEGOTIATION_BADGE_IDS;
+function allowedBadgeIdsForStage(
+  stage: TempoBadgeStage,
+  crmFields: Record<string, string> | null
+): ReadonlySet<string> {
+  const base = (() => {
+    switch (stage) {
+      case "discovery":
+        return DISCOVERY_BADGE_IDS;
+      case "objections":
+        return OBJECTION_BADGE_IDS;
+      case "prospecting":
+        return PROSPECTING_BADGE_IDS;
+      case "presentation":
+        return PRESENTATION_BADGE_IDS;
+      case "close":
+        return NEGOTIATION_BADGE_IDS;
+    }
+  })();
+
+  if (crmFields !== null || (stage !== "prospecting" && stage !== "discovery" && stage !== "objections")) {
+    return base;
   }
+
+  const excluded = new Set(CRM_DEPENDENT_BADGE_IDS[stage]);
+  return new Set(Array.from(base).filter((id) => !excluded.has(id)));
 }
 
 /**
  * Returns the GPT system prompt for stages judged entirely by the model.
  */
-function systemPromptForStage(stage: Exclude<TempoBadgeStage, "close">): string {
+function systemPromptForStage(
+  stage: Exclude<TempoBadgeStage, "close">,
+  hasCrmFields: boolean
+): string {
   switch (stage) {
     case "discovery":
-      return buildDiscoveryBadgePrompt();
+      return buildDiscoveryBadgePrompt(hasCrmFields);
     case "objections":
-      return buildObjectionBadgePrompt();
+      return buildObjectionBadgePrompt(hasCrmFields);
     case "prospecting":
-      return buildProspectingBadgePrompt();
+      return buildProspectingBadgePrompt(hasCrmFields);
     case "presentation":
       return buildPresentationBadgePrompt();
   }
+}
+
+/**
+ * Builds the evaluation material string: transcript plus optional CRM fields JSON.
+ */
+function buildBadgeMaterial(
+  transcript: string,
+  crmFields: Record<string, string> | null
+): string {
+  if (!crmFields) {
+    return transcript;
+  }
+  return `${transcript}\n\nCRM_LOG_FIELDS:\n${JSON.stringify(crmFields)}`;
 }
 
 // ── Parse / validate ───
@@ -431,8 +482,12 @@ function filterBadgeIds(allowed: ReadonlySet<string>, ids: string[]): string[] {
 /**
  * Keeps only known badge IDs for the stage; drops duplicates and unknowns.
  */
-function filterKnownBadgeIds(stage: TempoBadgeStage, ids: string[]): string[] {
-  return filterBadgeIds(allowedBadgeIdsForStage(stage), ids);
+function filterKnownBadgeIds(
+  stage: TempoBadgeStage,
+  ids: string[],
+  crmFields: Record<string, string> | null = null
+): string[] {
+  return filterBadgeIds(allowedBadgeIdsForStage(stage, crmFields), ids);
 }
 
 /**
@@ -545,10 +600,12 @@ async function detectNegotiationBadges(transcript: string): Promise<string[]> {
  *
  * @param stage - discovery | objections | prospecting | presentation | close
  * @param transcript - stage transcript or JSON submission payload
+ * @param crmFields - matching crm_log_entries.fields for CRM-dependent criteria, or null
  */
 export async function detectTempoBadges(
   stage: TempoBadgeStage,
-  transcript: string
+  transcript: string,
+  crmFields: Record<string, string> | null = null
 ): Promise<string[]> {
   const trimmed = transcript.trim();
   if (trimmed.length === 0) {
@@ -559,9 +616,12 @@ export async function detectTempoBadges(
     return detectNegotiationBadges(trimmed);
   }
 
+  const hasCrmFields = crmFields !== null;
+  const material = buildBadgeMaterial(trimmed, crmFields);
+
   return runGptBadgeDetection(
-    systemPromptForStage(stage),
-    trimmed,
-    allowedBadgeIdsForStage(stage)
+    systemPromptForStage(stage, hasCrmFields),
+    material,
+    allowedBadgeIdsForStage(stage, crmFields)
   );
 }

@@ -57,7 +57,31 @@ export async function POST(request: Request): Promise<NextResponse> {
       stage === "presentation" ||
       stage === "close"
     ) {
-      badgesEarned = await detectTempoBadges(stage, transcript);
+      let crmFields: Record<string, string> | null = null;
+
+      if (stage === "prospecting" || stage === "discovery" || stage === "objections") {
+        const { data: crmLog } = await supabase
+          .from("crm_log_entries")
+          .select("fields")
+          .eq("attempt_id", attemptId)
+          .eq("stage", stage)
+          .maybeSingle();
+
+        const rawFields = crmLog?.fields;
+        if (rawFields && typeof rawFields === "object" && !Array.isArray(rawFields)) {
+          const normalized: Record<string, string> = {};
+          for (const [key, value] of Object.entries(rawFields as Record<string, unknown>)) {
+            if (typeof value === "string") {
+              normalized[key] = value;
+            } else if (value != null) {
+              normalized[key] = String(value);
+            }
+          }
+          crmFields = normalized;
+        }
+      }
+
+      badgesEarned = await detectTempoBadges(stage, transcript, crmFields);
     }
 
     await supabase.from("stage_scores").upsert(

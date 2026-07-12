@@ -17,6 +17,7 @@ import {
   saveProspectingWizardToStorage,
   TEMPO_RESEARCH_SYSTEM_PROMPT,
   sanitizeAiResearchReply,
+  normalizeProspectingWizardState,
   type ProspectingWizardState,
 } from "@/lib/tempo-prospecting";
 import type { ChatMessage } from "@/types";
@@ -93,18 +94,15 @@ export function useProspectingWizard({
         if (res.ok) {
           const body = (await res.json()) as { state: ProspectingWizardState };
           if (!cancelled) {
-            setState({ ...DEFAULT_PROSPECTING_WIZARD_STATE, ...body.state });
-            saveProspectingWizardToStorage(attemptId, {
-              ...DEFAULT_PROSPECTING_WIZARD_STATE,
-              ...body.state,
-            });
+            setState(normalizeProspectingWizardState(body.state));
+            saveProspectingWizardToStorage(attemptId, normalizeProspectingWizardState(body.state));
           }
         } else if (local && !cancelled) {
-          setState({ ...DEFAULT_PROSPECTING_WIZARD_STATE, ...local });
+          setState(normalizeProspectingWizardState(local));
         }
       } catch {
         if (local && !cancelled) {
-          setState({ ...DEFAULT_PROSPECTING_WIZARD_STATE, ...local });
+          setState(normalizeProspectingWizardState(local));
         }
       } finally {
         if (!cancelled) {
@@ -228,19 +226,8 @@ export function useProspectingWizard({
     setIsSubmitting(true);
     try {
       const transcript = JSON.stringify({
-        icpField1: state.icpField1,
-        icpField2: state.icpField2,
-        researchNotes: state.researchNotes,
-        fitJustification: state.fitJustification,
-        dmName: state.dmName,
-        dmRole: state.dmRole,
-        fitRating: state.fitRating,
-        confidence: state.confidence,
-        triggerEvent: state.triggerEvent,
-        openingMessage: state.openingMessage,
-        agentDesign: state.agentDesign,
-        agentCorrections: state.agentCorrections,
         chatMessages: state.chatMessages,
+        openingMessage: state.openingMessage,
         selfCheck: state.selfCheck,
       });
 

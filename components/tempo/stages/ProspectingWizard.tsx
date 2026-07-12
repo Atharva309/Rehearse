@@ -231,7 +231,6 @@ export function ProspectingWizard({
               onSendMessage={() => void wizard.handleSendMessage()}
               onFieldChange={wizard.updateField}
               onSelfCheckChange={wizard.toggleSelfCheck}
-              onStretchToggle={() => wizard.updateField("stretchOpen", !state.stretchOpen)}
             />
           </div>
         </section>
@@ -311,8 +310,8 @@ export function ProspectingWizard({
                 <span className="font-bold text-label-sm">Professor&apos;s Tip</span>
               </div>
               <p className="text-label-sm text-[#584400] leading-relaxed">
-                Keep the opening message under 120 words. Focus on the trigger identified in Step 4
-                to ensure a higher response rate.
+                Keep the opening message under 120 words. Lead with their business issue and a
+                specific trigger to ensure a higher response rate.
               </p>
             </div>
           </div>
