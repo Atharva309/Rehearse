@@ -1,16 +1,16 @@
 /**
  * CrmOverlay.tsx
- * In-place Rehearse CRM overlay (Stitch opportunities UI). Slides over the live Tempo stage
- * without unmounting it — open/close is parent-controlled; this file also exports CrmAccess
- * because the simulation page is a Server Component and cannot hold useState itself.
+ * In-place Rehearse CRM overlay — opportunities list and opportunity record views
+ * share one sidebar/top bar. Exports CrmAccess for the server simulation page.
  */
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
+import { OpportunityRecordView } from "@/components/crm/OpportunityRecordView";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
-import type { SimulationStage } from "@/types";
+import type { CrmLogEntry, SimulationStage } from "@/types";
 
 const SLIDE_OUT_MS = 250;
 
@@ -19,6 +19,7 @@ type CrmOverlayProps = {
   onClose: () => void;
   simulationId: string;
   classId: string;
+  attemptId: string;
   currentStage: SimulationStage;
   displayName: string;
 };
@@ -26,6 +27,7 @@ type CrmOverlayProps = {
 type CrmAccessProps = {
   simulationId: string;
   classId: string;
+  attemptId: string;
   currentStage: SimulationStage;
   displayName: string;
 };
@@ -60,15 +62,20 @@ function crmStageLabel(stage: SimulationStage): string {
 export function CrmOverlay({
   isOpen,
   onClose,
+  attemptId,
   currentStage,
   displayName,
 }: CrmOverlayProps): React.ReactElement | null {
   const [closing, setClosing] = useState(false);
+  const [view, setView] = useState<"list" | "record">("list");
+  const [logEntries, setLogEntries] = useState<CrmLogEntry[]>([]);
+  const [logsLoaded, setLogsLoaded] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setClosing(false);
+      setView("list");
     }
   }, [isOpen]);
 
@@ -80,11 +87,43 @@ export function CrmOverlay({
     };
   }, []);
 
+  /**
+   * Loads CRM logs once per overlay open (or when entering record view if still empty).
+   */
+  const loadLogs = useCallback(async (): Promise<void> => {
+    try {
+      const res = await fetch(
+        `/api/student/crm-log?attemptId=${encodeURIComponent(attemptId)}`
+      );
+      if (!res.ok) {
+        return;
+      }
+      const body = (await res.json()) as { entries?: CrmLogEntry[] };
+      setLogEntries(body.entries ?? []);
+      setLogsLoaded(true);
+    } catch {
+      /* keep prior entries */
+    }
+  }, [attemptId]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setLogsLoaded(false);
+      setLogEntries([]);
+      return;
+    }
+    void loadLogs();
+  }, [isOpen, loadLogs]);
+
   if (!isOpen) {
     return null;
   }
 
   const stageLabel = crmStageLabel(currentStage);
+  const lastActivityLabel =
+    logEntries.length > 0
+      ? `Logged ${logEntries.length} stage${logEntries.length === 1 ? "" : "s"}`
+      : "Not yet logged";
 
   /**
    * Plays slide-out, then signals the parent to unmount via onClose.
@@ -102,6 +141,26 @@ export function CrmOverlay({
     }, SLIDE_OUT_MS);
   };
 
+  /**
+   * Upserts a saved log into local state after a successful POST.
+   */
+  const handleLogSaved = (entry: CrmLogEntry): void => {
+    setLogEntries((prev) => {
+      const without = prev.filter((row) => row.stage !== entry.stage);
+      return [...without, entry];
+    });
+  };
+
+  /**
+   * Opens the record view (prefetch logs if open race left them empty).
+   */
+  const openRecord = (): void => {
+    setView("record");
+    if (!logsLoaded) {
+      void loadLogs();
+    }
+  };
+
   return (
     <div
       className={`fixed inset-0 z-[70] flex min-h-screen text-[#161d1b] bg-[#f4fbf7] ${
@@ -111,7 +170,7 @@ export function CrmOverlay({
       aria-modal="true"
       aria-label="Rehearse CRM"
     >
-      {/* Side nav */}
+      {/* Side nav — shared by list and record */}
       <aside className="fixed left-0 top-0 h-full z-40 flex flex-col pt-8 w-[240px] text-[#dde4e1] bg-[#2d3142]">
         <div className="px-4 mb-8">
           <h1 className="text-lg font-bold text-white leading-6">Rehearse CRM</h1>
@@ -171,88 +230,112 @@ export function CrmOverlay({
           </button>
         </header>
 
-        <div className="p-6 flex-grow overflow-auto">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <header className="flex items-end justify-between">
-              <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">My Opportunities</h3>
-            </header>
+        {view === "record" ? (
+          <OpportunityRecordView
+            attemptId={attemptId}
+            currentStage={currentStage}
+            logEntries={logEntries}
+            onLogSaved={handleLogSaved}
+            onBackToList={() => setView("list")}
+          />
+        ) : (
+          <div className="p-6 flex-grow overflow-auto">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <header className="flex items-end justify-between">
+                <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">
+                  My Opportunities
+                </h3>
+              </header>
 
-            <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-[#eef5f2]">
-                  <tr>
-                    <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                      Account
-                    </th>
-                    <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                      Stage
-                    </th>
-                    <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                      Value
-                    </th>
-                    <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                      Last Activity
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="group hover:bg-[#eef5f2] transition-colors duration-150">
-                    <td className="px-6 py-6 border-b border-[#bfc8c8]">
-                      <span className="text-sm text-[#161d1b] font-medium">
-                        Summit Dental Group — Tempo Pro
-                      </span>
-                    </td>
-                    <td className="px-6 py-6 border-b border-[#bfc8c8]">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#0f4c4c] text-white text-[10px] font-bold uppercase tracking-widest">
-                        {stageLabel}
-                      </span>
-                    </td>
-                    <td className="px-6 py-6 border-b border-[#bfc8c8]">
-                      <span className="font-code-md text-[13px] text-[#161d1b]">$14,600/yr</span>
-                    </td>
-                    <td className="px-6 py-6 border-b border-[#bfc8c8]">
-                      <div className="flex items-center gap-1 text-[#404848] opacity-60">
-                        <MaterialIcon name="history" className="text-[18px]" />
-                        <span className="text-sm">Not yet logged</span>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-[#eef5f2]">
+                    <tr>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Account
+                      </th>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Stage
+                      </th>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Value
+                      </th>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Last Activity
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
+                      onClick={openRecord}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openRecord();
+                        }
+                      }}
+                      tabIndex={0}
+                      role="link"
+                      aria-label="Open Summit Dental Group opportunity"
+                    >
+                      <td className="px-6 py-6 border-b border-[#bfc8c8]">
+                        <span className="text-sm text-[#161d1b] font-medium">
+                          Summit Dental Group — Tempo Pro
+                        </span>
+                      </td>
+                      <td className="px-6 py-6 border-b border-[#bfc8c8]">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#0f4c4c] text-white text-[10px] font-bold uppercase tracking-widest">
+                          {stageLabel}
+                        </span>
+                      </td>
+                      <td className="px-6 py-6 border-b border-[#bfc8c8]">
+                        <span className="font-code-md text-[13px] text-[#161d1b]">$14,600/yr</span>
+                      </td>
+                      <td className="px-6 py-6 border-b border-[#bfc8c8]">
+                        <div className="flex items-center gap-1 text-[#404848] opacity-60">
+                          <MaterialIcon name="history" className="text-[18px]" />
+                          <span className="text-sm">{lastActivityLabel}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
 
-              <div className="px-6 py-4 bg-white border-t border-[#bfc8c8] flex justify-between items-center">
-                <span className="text-[12px] font-medium text-[#404848]">1 of 1 opportunity</span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled
-                    className="w-8 h-8 flex items-center justify-center rounded border border-[#bfc8c8] text-[#707978] opacity-40 cursor-not-allowed"
-                    aria-label="Previous page"
-                  >
-                    <MaterialIcon name="chevron_left" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    className="w-8 h-8 flex items-center justify-center rounded border border-[#bfc8c8] text-[#707978] opacity-40 cursor-not-allowed"
-                    aria-label="Next page"
-                  >
-                    <MaterialIcon name="chevron_right" />
-                  </button>
+                <div className="px-6 py-4 bg-white border-t border-[#bfc8c8] flex justify-between items-center">
+                  <span className="text-[12px] font-medium text-[#404848]">1 of 1 opportunity</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled
+                      className="w-8 h-8 flex items-center justify-center rounded border border-[#bfc8c8] text-[#707978] opacity-40 cursor-not-allowed"
+                      aria-label="Previous page"
+                    >
+                      <MaterialIcon name="chevron_left" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      className="w-8 h-8 flex items-center justify-center rounded border border-[#bfc8c8] text-[#707978] opacity-40 cursor-not-allowed"
+                      aria-label="Next page"
+                    >
+                      <MaterialIcon name="chevron_right" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative rounded-xl overflow-hidden h-48 border border-[#bfc8c8] shadow-[0_1px_3px_rgba(0,0,0,0.05)] opacity-60">
+                <div className="absolute inset-0 flex flex-col justify-center items-center p-8 text-center bg-[#f4fbf7]/40 backdrop-blur-sm">
+                  <p className="text-base text-[#003434] max-w-md">
+                    No further opportunities pending review. Your current pipeline is clean and
+                    updated.
+                  </p>
                 </div>
               </div>
             </div>
-
-            <div className="relative rounded-xl overflow-hidden h-48 border border-[#bfc8c8] shadow-[0_1px_3px_rgba(0,0,0,0.05)] opacity-60">
-              <div className="absolute inset-0 flex flex-col justify-center items-center p-8 text-center bg-[#f4fbf7]/40 backdrop-blur-sm">
-                <p className="text-base text-[#003434] max-w-md">
-                  No further opportunities pending review. Your current pipeline is clean and
-                  updated.
-                </p>
-              </div>
-            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
@@ -265,6 +348,7 @@ export function CrmOverlay({
 export function CrmAccess({
   simulationId,
   classId,
+  attemptId,
   currentStage,
   displayName,
 }: CrmAccessProps): React.ReactElement {
@@ -278,6 +362,7 @@ export function CrmAccess({
         onClose={() => setIsCrmOpen(false)}
         simulationId={simulationId}
         classId={classId}
+        attemptId={attemptId}
         currentStage={currentStage}
         displayName={displayName}
       />

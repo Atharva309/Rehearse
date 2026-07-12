@@ -71,6 +71,13 @@ export type StageScore = {
   badges_earned: string[];
 };
 
+/** Saved CRM opportunity log for one Tempo stage. */
+export type CrmLogEntry = {
+  stage: SimulationStage;
+  fields: Record<string, string>;
+  submitted_at: string;
+};
+
 export type LeaderboardEntry = {
   rank: number;
   student_id: string;

@@ -251,6 +251,7 @@ export default async function StudentSimulationPage({
         <CrmAccess
           simulationId={simulation.id}
           classId={classId}
+          attemptId={attempt.id}
           currentStage={attempt.current_stage}
           displayName={session.displayName}
         />
