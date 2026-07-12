@@ -1,15 +1,16 @@
 /**
  * crm-account/route.ts
- * GET/POST /api/student/crm-account — load and upsert account strategy notes.
+ * GET/POST /api/student/crm-account — load and upsert account profile + strategy notes.
  */
 
 import { NextResponse } from "next/server";
 import { requireStudentApi } from "@/lib/api-auth";
 import { createServiceClient } from "@/lib/supabase/server";
 
-type AccountNotesBody = {
+type AccountBody = {
   attemptId?: string;
   notes?: string;
+  fields?: Record<string, unknown>;
 };
 
 /**
@@ -27,6 +28,24 @@ async function loadOwnedAttempt(
     .eq("student_id", studentId)
     .single();
   return attempt;
+}
+
+/**
+ * Normalizes jsonb fields into a string map.
+ */
+function normalizeFields(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return {};
+  }
+  const next: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === "string") {
+      next[key] = value;
+    } else if (value != null) {
+      next[key] = String(value);
+    }
+  }
+  return next;
 }
 
 /**
@@ -52,26 +71,27 @@ export async function GET(request: Request): Promise<NextResponse> {
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from("crm_account_notes")
-      .select("notes, updated_at")
+      .select("notes, fields, updated_at")
       .eq("attempt_id", attemptId)
       .maybeSingle();
 
     if (error) {
       console.error("[crm-account] GET failed:", error);
-      return NextResponse.json({ error: "Could not load account notes." }, { status: 500 });
+      return NextResponse.json({ error: "Could not load account." }, { status: 500 });
     }
 
     return NextResponse.json({
       notes: (data?.notes as string | undefined) ?? "",
+      fields: normalizeFields(data?.fields),
       updated_at: (data?.updated_at as string | null | undefined) ?? null,
     });
   } catch {
-    return NextResponse.json({ error: "Could not load account notes." }, { status: 500 });
+    return NextResponse.json({ error: "Could not load account." }, { status: 500 });
   }
 }
 
 /**
- * POST /api/student/crm-account — upsert account notes for the owned attempt.
+ * POST /api/student/crm-account — upsert account profile + notes for the owned attempt.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const auth = await requireStudentApi();
@@ -80,10 +100,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   try {
-    const body = (await request.json()) as AccountNotesBody;
+    const body = (await request.json()) as AccountBody;
     const attemptId = body.attemptId?.trim();
-    if (!attemptId || typeof body.notes !== "string") {
+    if (!attemptId || typeof body.notes !== "string" || body.fields === undefined) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    }
+
+    const fields = normalizeFields(body.fields);
+    if (!(fields.accountName ?? "").trim()) {
+      return NextResponse.json({ error: "Account name is required." }, { status: 400 });
     }
 
     const attempt = await loadOwnedAttempt(attemptId, auth.session.studentId);
@@ -99,23 +124,25 @@ export async function POST(request: Request): Promise<NextResponse> {
         {
           attempt_id: attemptId,
           notes: body.notes,
+          fields,
           updated_at: updatedAt,
         },
         { onConflict: "attempt_id" }
       )
-      .select("notes, updated_at")
+      .select("notes, fields, updated_at")
       .single();
 
     if (error || !data) {
       console.error("[crm-account] POST failed:", error);
-      return NextResponse.json({ error: "Could not save account notes." }, { status: 500 });
+      return NextResponse.json({ error: "Could not save account." }, { status: 500 });
     }
 
     return NextResponse.json({
       notes: data.notes as string,
+      fields: normalizeFields(data.fields),
       updated_at: data.updated_at as string,
     });
   } catch {
-    return NextResponse.json({ error: "Could not save account notes." }, { status: 500 });
+    return NextResponse.json({ error: "Could not save account." }, { status: 500 });
   }
 }

@@ -32,6 +32,7 @@ import {
   primaryContactFromLogs,
   type ContactNotesSnapshot,
 } from "@/components/crm/crm-display";
+import { accountHasProfile, type CrmAccountRecord } from "@/lib/tempo-crm-account";
 import { findStageNeedingCrmLog } from "@/lib/tempo-crm-fields";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
@@ -179,8 +180,7 @@ export function CrmOverlay({
   const [contactKey, setContactKey] = useState<CrmContactKey>("dana_reyes");
   const [logEntries, setLogEntries] = useState<CrmLogEntry[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
-  const [accountNotes, setAccountNotes] = useState("");
-  const [accountUpdatedAt, setAccountUpdatedAt] = useState<string | null>(null);
+  const [accountRecord, setAccountRecord] = useState<CrmAccountRecord | null>(null);
   const [contactSnapshots, setContactSnapshots] = useState<ContactNotesSnapshot[]>([]);
   const [activeDeepLink, setActiveDeepLink] = useState<CrmRecordStageId | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,10 +236,14 @@ export function CrmOverlay({
       if (accountRes.ok) {
         const body = (await accountRes.json()) as {
           notes?: string;
+          fields?: Record<string, string>;
           updated_at?: string | null;
         };
-        setAccountNotes(body.notes ?? "");
-        setAccountUpdatedAt(body.updated_at ?? null);
+        setAccountRecord({
+          fields: body.fields ?? {},
+          notes: body.notes ?? "",
+          updated_at: body.updated_at ?? null,
+        });
       }
 
       const snapshots: ContactNotesSnapshot[] = [];
@@ -272,8 +276,7 @@ export function CrmOverlay({
     if (!isOpen) {
       setLogsLoaded(false);
       setLogEntries([]);
-      setAccountNotes("");
-      setAccountUpdatedAt(null);
+      setAccountRecord(null);
       setContactSnapshots([]);
       return;
     }
@@ -298,11 +301,13 @@ export function CrmOverlay({
   const stageLabel = crmStageLabel(currentStage);
   const activeNav = activeNavForView(view);
   const hasOpportunity = logEntries.length > 0;
-  const hasAccount =
-    Boolean(accountUpdatedAt) || accountNotes.trim().length > 0 || accountNameFromLogs(logEntries).length > 0;
+  const hasAccount = accountHasProfile(accountRecord);
   const savedContacts = contactSnapshots.filter(contactHasRecord);
   const accountDisplayName =
-    accountNameFromLogs(logEntries) || (hasAccount ? "Untitled account" : "");
+    (accountRecord?.fields.accountName ?? "").trim() ||
+    accountNameFromLogs(logEntries) ||
+    (hasAccount ? "Untitled account" : "");
+  const accountNotes = accountRecord?.notes ?? "";
   const oppTitle = opportunityTitleFromLogs(logEntries);
   const lastActivityLabel = hasOpportunity
     ? `Logged ${logEntries.length} stage${logEntries.length === 1 ? "" : "s"}`
@@ -481,18 +486,20 @@ export function CrmOverlay({
             accountLookupOptions={accountOptionsForLookup}
             contactLookupOptions={contactOptionsForLookup}
             opportunityTitle={hasOpportunity ? oppTitle : "New opportunity"}
-            primaryContactLabel={primaryContactFromLogs(logEntries)}
+            primaryContactLabel={
+              primaryContactFromLogs(logEntries) ||
+              (accountRecord?.fields.primaryContact ?? "").trim()
+            }
+            accountRecord={accountRecord}
           />
         ) : null}
 
         {view === "account-record" ? (
           <AccountRecordView
             attemptId={attemptId}
-            displayName={accountDisplayName}
             onBackToList={() => setView("accounts-list")}
-            onSaved={(notes, updatedAt) => {
-              setAccountNotes(notes);
-              setAccountUpdatedAt(updatedAt);
+            onSaved={(record) => {
+              setAccountRecord(record);
             }}
           />
         ) : null}
@@ -547,7 +554,10 @@ export function CrmOverlay({
                             Account
                           </th>
                           <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                            Notes
+                            Industry
+                          </th>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Region
                           </th>
                         </tr>
                       </thead>
@@ -568,7 +578,10 @@ export function CrmOverlay({
                             {accountDisplayName || "Untitled account"}
                           </td>
                           <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
-                            {previewText(accountNotes, 80) || "No strategy notes yet"}
+                            {(accountRecord?.fields.industry ?? "").trim() || "—"}
+                          </td>
+                          <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
+                            {(accountRecord?.fields.region ?? "").trim() || "—"}
                           </td>
                         </tr>
                       </tbody>

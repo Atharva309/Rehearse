@@ -1,20 +1,24 @@
 /**
  * AccountRecordView.tsx
- * Account record — student-filled identity + editable Account Strategy notes.
- * Starts empty; name comes from prospecting CRM log when available.
+ * Account create/edit form — name + profile fields + strategy notes.
+ * Students create the account here; Prospecting selects it from a dropdown.
  */
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import {
+  CRM_ACCOUNT_FIELD_SCHEMA,
+  canSaveAccountFields,
+  emptyAccountFields,
+  type CrmAccountRecord,
+} from "@/lib/tempo-crm-account";
 
 type AccountRecordViewProps = {
   attemptId: string;
-  /** Display name from prospecting log / prior saves; empty → "New account". */
-  displayName?: string;
   onBackToList: () => void;
-  onSaved?: (notes: string, updatedAt: string) => void;
+  onSaved?: (record: CrmAccountRecord) => void;
 };
 
 /**
@@ -38,17 +42,21 @@ function formatUpdatedAt(iso: string | null): string | null {
  */
 export function AccountRecordView({
   attemptId,
-  displayName = "",
   onBackToList,
   onSaved,
 }: AccountRecordViewProps): React.ReactElement {
+  const [fields, setFields] = useState<Record<string, string>>(emptyAccountFields);
   const [notes, setNotes] = useState("");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const title = displayName.trim() || "New account";
+  const title = (fields.accountName ?? "").trim() || "New account";
+  const canSave = useMemo(
+    () => canSaveAccountFields(fields) && !isSaving && !isLoading,
+    [fields, isSaving, isLoading]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -61,8 +69,13 @@ export function AccountRecordView({
         if (!res.ok) {
           return;
         }
-        const body = (await res.json()) as { notes?: string; updated_at?: string | null };
+        const body = (await res.json()) as {
+          notes?: string;
+          fields?: Record<string, string>;
+          updated_at?: string | null;
+        };
         if (!cancelled) {
+          setFields({ ...emptyAccountFields(), ...(body.fields ?? {}) });
           setNotes(body.notes ?? "");
           setUpdatedAt(body.updated_at ?? null);
         }
@@ -79,28 +92,40 @@ export function AccountRecordView({
   }, [attemptId]);
 
   /**
-   * Saves Account Strategy notes via POST.
+   * Saves account profile + strategy notes via POST.
    */
   const handleSave = async (): Promise<void> => {
+    if (!canSave) {
+      return;
+    }
     setIsSaving(true);
     setError(null);
     try {
       const res = await fetch("/api/student/crm-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attemptId, notes }),
+        body: JSON.stringify({ attemptId, notes, fields }),
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? "Could not save notes.");
+        setError(body?.error ?? "Could not save account.");
         return;
       }
-      const body = (await res.json()) as { notes: string; updated_at: string };
+      const body = (await res.json()) as {
+        notes: string;
+        fields: Record<string, string>;
+        updated_at: string;
+      };
+      setFields({ ...emptyAccountFields(), ...body.fields });
       setNotes(body.notes);
       setUpdatedAt(body.updated_at);
-      onSaved?.(body.notes, body.updated_at);
+      onSaved?.({
+        fields: body.fields,
+        notes: body.notes,
+        updated_at: body.updated_at,
+      });
     } catch {
-      setError("Could not save notes.");
+      setError("Could not save account.");
     } finally {
       setIsSaving(false);
     }
@@ -119,25 +144,64 @@ export function AccountRecordView({
           <span className="text-[#161d1b]">{title}</span>
         </nav>
 
-        <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm p-6">
-          <span className="text-[12px] font-medium tracking-widest uppercase text-[#404848]">
-            Account
-          </span>
-          <h2 className="text-[32px] leading-10 font-semibold tracking-tight text-[#003434] mt-1">
-            {title}
-          </h2>
-          <p className="text-sm text-[#707978] mt-2">
-            {displayName.trim()
-              ? "Name synced from your Prospecting CRM log."
-              : "Log Prospecting with an account name, or capture strategy notes below."}
-          </p>
+        <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-[#bfc8c8] bg-[#eef5f2]/20">
+            <h3 className="text-lg font-semibold text-[#003434]">Account Details</h3>
+            <p className="text-sm text-[#404848] mt-1">
+              Create the account here. You can select it from the Prospecting opportunity log
+              to autofill matching fields.
+            </p>
+          </div>
+          <div className="p-6">
+            {isLoading ? (
+              <p className="text-sm text-[#404848]">Loading account…</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {CRM_ACCOUNT_FIELD_SCHEMA.map((field) => {
+                  const value = fields[field.key] ?? "";
+                  return (
+                    <div
+                      key={field.key}
+                      className={`space-y-2 ${field.multiline ? "md:col-span-2" : ""}`}
+                    >
+                      <label className="text-[12px] font-medium tracking-wide text-[#404848] flex items-center gap-1">
+                        {field.label}
+                        {field.required ? <span className="text-[#ba1a1a]">*</span> : null}
+                      </label>
+                      {field.multiline ? (
+                        <textarea
+                          className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all placeholder:text-[#bfc8c8] resize-none"
+                          placeholder={field.placeholder}
+                          rows={3}
+                          value={value}
+                          onChange={(e) =>
+                            setFields((prev) => ({ ...prev, [field.key]: e.target.value }))
+                          }
+                        />
+                      ) : (
+                        <input
+                          className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all placeholder:text-[#bfc8c8]"
+                          placeholder={field.placeholder}
+                          type="text"
+                          value={value}
+                          onChange={(e) =>
+                            setFields((prev) => ({ ...prev, [field.key]: e.target.value }))
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm overflow-hidden">
           <div className="p-6 border-b border-[#bfc8c8] bg-[#eef5f2]/20">
             <h3 className="text-lg font-semibold text-[#003434]">Account Strategy</h3>
             <p className="text-sm text-[#404848] mt-1">
-              Freely editable notes — not tied to simulation stage progress.
+              Optional freeform notes — not copied into opportunity stage logs.
             </p>
           </div>
           <div className="p-6 space-y-3">
@@ -145,7 +209,7 @@ export function AccountRecordView({
               <p className="text-sm text-[#404848]">Loading notes…</p>
             ) : (
               <textarea
-                className="w-full min-h-[160px] bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-3 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all placeholder:text-[#bfc8c8] resize-y"
+                className="w-full min-h-[140px] bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-3 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all placeholder:text-[#bfc8c8] resize-y"
                 placeholder="Capture account strategy, buying committee dynamics, competitive landscape…"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -154,19 +218,19 @@ export function AccountRecordView({
             {updatedLabel ? (
               <p className="text-[12px] text-[#404848]">Last updated {updatedLabel}</p>
             ) : !isLoading ? (
-              <p className="text-[12px] text-[#707978]">No strategy notes yet.</p>
+              <p className="text-[12px] text-[#707978]">Not saved yet.</p>
             ) : null}
             {error ? <p className="text-sm text-[#ba1a1a]">{error}</p> : null}
           </div>
           <div className="p-6 bg-[#eef5f2] border-t border-[#bfc8c8] flex justify-end">
             <button
               type="button"
-              disabled={isLoading || isSaving}
+              disabled={!canSave}
               onClick={() => void handleSave()}
               className="px-6 py-2 bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide rounded-lg hover:bg-[#0f4c4c]/90 shadow-md flex items-center gap-2 transition-all active:scale-95 disabled:opacity-40"
             >
               <MaterialIcon name="save" className="text-[18px]" />
-              {isSaving ? "Saving…" : "Save Notes"}
+              {isSaving ? "Saving…" : "Save Account"}
             </button>
           </div>
         </div>
