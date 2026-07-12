@@ -183,7 +183,7 @@ export function CrmOverlay({
 }: CrmOverlayProps): React.ReactElement | null {
   const [closing, setClosing] = useState(false);
   const [view, setView] = useState<CrmView>("home");
-  const [contactKey, setContactKey] = useState<CrmContactKey>("contact_1");
+  const [contactKey, setContactKey] = useState<CrmContactKey>("dana_reyes");
   const [logEntries, setLogEntries] = useState<CrmLogEntry[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
   const [accountRecord, setAccountRecord] = useState<CrmAccountRecord | null>(null);
@@ -197,7 +197,7 @@ export function CrmOverlay({
       const link = asRecordStage(deepLinkStage);
       setActiveDeepLink(link);
       setView(link ? "record" : "home");
-      setContactKey("contact_1");
+      setContactKey("dana_reyes");
     }
   }, [isOpen, deepLinkStage]);
 
@@ -433,7 +433,7 @@ export function CrmOverlay({
       <main className="ml-[240px] flex-grow flex flex-col h-screen min-w-0">
         <header className="w-full px-6 py-4 bg-[#f4fbf7] border-b border-[#bfc8c8] shadow-sm sticky top-0 z-30">
           <h2 className="text-lg font-bold text-[#003434]">Rehearse CRM</h2>
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-start mt-2">
             <button
               type="button"
               onClick={handleBackToSimulation}

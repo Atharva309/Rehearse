@@ -3,10 +3,10 @@
  * Contact profile field schema + helpers for CRM Contacts.
  */
 
-export type CrmContactKey = "contact_1" | "contact_2";
+export type CrmContactKey = "dana_reyes" | "dr_kim";
 
-/** Fixed contact slots per attempt (student fills each via Add contact). */
-export const CRM_CONTACT_SLOTS: CrmContactKey[] = ["contact_1", "contact_2"];
+/** Opaque contact slots per attempt — not shown to students; they enter name in the form. */
+export const CRM_CONTACT_SLOTS: CrmContactKey[] = ["dana_reyes", "dr_kim"];
 
 export type CrmContactFieldDef = {
   key: string;
