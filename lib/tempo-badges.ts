@@ -169,6 +169,42 @@ export type ProspectingBadgeId = (typeof PROSPECTING_BADGES)[number]["id"];
 export type PresentationBadgeId = (typeof PRESENTATION_BADGES)[number]["id"];
 export type NegotiationBadgeId = (typeof NEGOTIATION_BADGES)[number]["id"];
 
+/** Material Symbols Outlined icon names keyed by Tempo badge id. */
+export const TEMPO_BADGE_ICONS: Record<string, string> = {
+  pros_guardrails: "fact_check",
+  pros_reusable_system: "autorenew",
+  pros_directed_agent: "smart_toy",
+  pros_real_trigger: "bolt",
+  pros_business_issue_led: "target",
+
+  disc_business_issue: "target",
+  disc_value_buyer: "payments",
+  disc_personal_value: "favorite",
+  disc_opc: "sync_alt",
+  disc_earned_right: "verified_user",
+  disc_held_line: "shield",
+
+  pres_tailored: "tune",
+  pres_value_led: "trending_up",
+  pres_roi_quantified: "calculate",
+  pres_proof_point: "verified",
+  pres_next_step: "arrow_forward",
+  pres_ai_copilot: "smart_toy",
+
+  obj_business_issue: "target",
+  obj_cost_value: "payments",
+  obj_differentiated: "star",
+  obj_real_concern: "search_check",
+  obj_acknowledged: "thumb_up",
+  obj_held_line: "shield",
+
+  neg_defended_value: "shield",
+  neg_traded: "swap_horiz",
+  neg_true_priority: "psychology",
+  neg_protected_value: "savings",
+  neg_closed_deal: "handshake",
+};
+
 export type TempoBadgeStage =
   | "discovery"
   | "objections"

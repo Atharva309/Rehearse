@@ -5,6 +5,7 @@
  */
 
 import Link from "next/link";
+import { AchievementProgress } from "@/components/tempo/AchievementProgress";
 import { TempoCompetencyBreakdown } from "@/components/tempo/TempoCompetencyBreakdown";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import { buildStudentLeaderboardRows } from "@/lib/leaderboard";
@@ -213,25 +214,7 @@ export function TempoSimulationResultsView({
 
           {/* Right column */}
           <div className="lg:col-span-4 space-y-6">
-            {/* Locked badges */}
-            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
-              <h4 className="text-headline-md font-bold text-on-surface mb-4">
-                Achievement Progress
-              </h4>
-              <div className="grid grid-cols-3 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="aspect-square border-2 border-dashed border-outline-variant rounded-lg flex items-center justify-center grayscale opacity-40"
-                  >
-                    <MaterialIcon name="lock" className="text-outline text-3xl" />
-                  </div>
-                ))}
-              </div>
-              <p className="text-label-sm text-on-surface-variant mt-4 text-center">
-                Badges coming soon — 12 available in this simulation
-              </p>
-            </div>
+            <AchievementProgress stageScores={stageScores} />
 
             {/* Leaderboard */}
             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
