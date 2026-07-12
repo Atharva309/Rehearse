@@ -4,8 +4,13 @@
  * Nothing is pre-seeded — empty until the student saves CRM content.
  */
 
-import type { CrmContactKey } from "@/components/crm/ContactRecordView";
-import { CRM_CONTACTS } from "@/components/crm/ContactRecordView";
+import {
+  contactDisplayName,
+  contactHasProfile,
+  availableContactSlots,
+  type CrmContactKey,
+  type CrmContactRecord,
+} from "@/lib/tempo-crm-contact";
 import type { CrmLogEntry } from "@/types";
 
 /**
@@ -46,32 +51,20 @@ export function previewText(text: string, max = 120): string {
   return `${trimmed.slice(0, max).trim()}…`;
 }
 
-export type ContactNotesSnapshot = {
-  key: CrmContactKey;
-  role: string;
-  notes: string;
-  updatedAt: string | null;
-};
+export type ContactNotesSnapshot = CrmContactRecord;
 
 /**
- * True when the student has saved contact CRM data for this key.
+ * True when the student has saved a contact profile for this slot.
  */
 export function contactHasRecord(snap: ContactNotesSnapshot): boolean {
-  return (
-    Boolean(snap.updatedAt) ||
-    snap.role.trim().length > 0 ||
-    snap.notes.trim().length > 0
-  );
+  return contactHasProfile(snap);
 }
 
 /**
- * Contact keys that exist as templates but have not been saved yet.
+ * Contact slots not yet filled for this attempt.
  */
-export function availableContactKeysToAdd(
-  snapshots: ContactNotesSnapshot[]
-): CrmContactKey[] {
-  const saved = new Set(
-    snapshots.filter(contactHasRecord).map((s) => s.key)
-  );
-  return (Object.keys(CRM_CONTACTS) as CrmContactKey[]).filter((k) => !saved.has(k));
+export function availableContactKeysToAdd(records: ContactNotesSnapshot[]): CrmContactKey[] {
+  return availableContactSlots(records);
 }
+
+export { contactDisplayName };

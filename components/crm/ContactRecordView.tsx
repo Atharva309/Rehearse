@@ -1,36 +1,22 @@
 /**
  * ContactRecordView.tsx
- * Dana Reyes / Dr. Kim contact records — role select + relationship notes.
+ * Contact create/edit form — name, position, buying role, and relationship notes.
  */
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import {
+  CRM_CONTACT_BUYING_ROLES,
+  CRM_CONTACT_FIELD_SCHEMA,
+  canSaveContactFields,
+  emptyContactFields,
+  type CrmContactKey,
+  type CrmContactRecord,
+} from "@/lib/tempo-crm-contact";
 
-export type CrmContactKey = "dana_reyes" | "dr_kim";
-
-export const CRM_CONTACTS: Record<
-  CrmContactKey,
-  { name: string; title: string }
-> = {
-  dana_reyes: {
-    name: "Dana Reyes",
-    title: "Director of Operations",
-  },
-  dr_kim: {
-    name: "Dr. Saul Kim",
-    title: "Founder & Owner",
-  },
-};
-
-const ROLE_OPTIONS = [
-  "",
-  "Economic Buyer",
-  "Champion",
-  "Influencer",
-  "Technical Evaluator",
-] as const;
+export type { CrmContactKey };
 
 type ContactRecordViewProps = {
   attemptId: string;
@@ -38,7 +24,7 @@ type ContactRecordViewProps = {
   /** Linked account label; empty shows an em dash. */
   accountLabel?: string;
   onBackToList: () => void;
-  onSaved?: (payload: { role: string; notes: string; updatedAt: string }) => void;
+  onSaved?: (record: CrmContactRecord) => void;
 };
 
 /**
@@ -67,13 +53,20 @@ export function ContactRecordView({
   onBackToList,
   onSaved,
 }: ContactRecordViewProps): React.ReactElement {
-  const profile = CRM_CONTACTS[contactKey];
+  const [fields, setFields] = useState<Record<string, string>>(emptyContactFields);
   const [role, setRole] = useState("");
   const [notes, setNotes] = useState("");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const title = (fields.name ?? "").trim() || "New contact";
+  const accountSuffix = accountLabel.trim() || "—";
+  const canSave = useMemo(
+    () => canSaveContactFields(fields) && !isSaving && !isLoading,
+    [fields, isSaving, isLoading]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -90,9 +83,11 @@ export function ContactRecordView({
         const body = (await res.json()) as {
           role?: string;
           notes?: string;
+          fields?: Record<string, string>;
           updated_at?: string | null;
         };
         if (!cancelled) {
+          setFields({ ...emptyContactFields(), ...(body.fields ?? {}) });
           setRole(body.role ?? "");
           setNotes(body.notes ?? "");
           setUpdatedAt(body.updated_at ?? null);
@@ -110,16 +105,19 @@ export function ContactRecordView({
   }, [attemptId, contactKey]);
 
   /**
-   * Saves role + relationship notes via POST.
+   * Saves contact profile + relationship notes via POST.
    */
   const handleSave = async (): Promise<void> => {
+    if (!canSave) {
+      return;
+    }
     setIsSaving(true);
     setError(null);
     try {
       const res = await fetch("/api/student/crm-contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attemptId, contactKey, role, notes }),
+        body: JSON.stringify({ attemptId, contactKey, role, notes, fields }),
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -129,12 +127,20 @@ export function ContactRecordView({
       const body = (await res.json()) as {
         role: string;
         notes: string;
+        fields: Record<string, string>;
         updated_at: string;
       };
+      setFields({ ...emptyContactFields(), ...body.fields });
       setRole(body.role);
       setNotes(body.notes);
       setUpdatedAt(body.updated_at);
-      onSaved?.({ role: body.role, notes: body.notes, updatedAt: body.updated_at });
+      onSaved?.({
+        contactKey,
+        fields: body.fields,
+        role: body.role,
+        notes: body.notes,
+        updated_at: body.updated_at,
+      });
     } catch {
       setError("Could not save contact.");
     } finally {
@@ -143,7 +149,6 @@ export function ContactRecordView({
   };
 
   const updatedLabel = formatUpdatedAt(updatedAt);
-  const accountSuffix = accountLabel.trim() || "—";
 
   return (
     <div className="p-6 flex-grow overflow-auto">
@@ -153,26 +158,51 @@ export function ContactRecordView({
             Contacts
           </button>
           <MaterialIcon name="chevron_right" className="text-[16px]" />
-          <span className="text-[#161d1b]">{profile.name}</span>
+          <span className="text-[#161d1b]">{title}</span>
         </nav>
 
-        <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm p-6">
-          <span className="text-[12px] font-medium tracking-widest uppercase text-[#404848]">
-            Contact
-          </span>
-          <h2 className="text-[32px] leading-10 font-semibold tracking-tight text-[#003434] mt-1">
-            {profile.name}
-          </h2>
-          <p className="text-sm text-[#404848] mt-1">
-            {profile.title} · {accountSuffix}
-          </p>
+        <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-[#bfc8c8] bg-[#eef5f2]/20">
+            <h3 className="text-lg font-semibold text-[#003434]">Contact Details</h3>
+            <p className="text-sm text-[#404848] mt-1">
+              Add who this person is and how they fit the deal. Account: {accountSuffix}
+            </p>
+          </div>
+          <div className="p-6">
+            {isLoading ? (
+              <p className="text-sm text-[#404848]">Loading contact…</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {CRM_CONTACT_FIELD_SCHEMA.map((field) => {
+                  const value = fields[field.key] ?? "";
+                  return (
+                    <div key={field.key} className="space-y-2">
+                      <label className="text-[12px] font-medium tracking-wide text-[#404848] flex items-center gap-1">
+                        {field.label}
+                        {field.required ? <span className="text-[#ba1a1a]">*</span> : null}
+                      </label>
+                      <input
+                        className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all placeholder:text-[#bfc8c8]"
+                        placeholder={field.placeholder}
+                        type="text"
+                        value={value}
+                        onChange={(e) =>
+                          setFields((prev) => ({ ...prev, [field.key]: e.target.value }))
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm overflow-hidden">
           <div className="p-6 border-b border-[#bfc8c8] bg-[#eef5f2]/20">
             <h3 className="text-lg font-semibold text-[#003434]">Relationship Profile</h3>
             <p className="text-sm text-[#404848] mt-1">
-              Assign a buying-role and capture notes anytime — not stage-gated.
+              Optional buying role and notes — not tied to opportunity stage logs.
             </p>
           </div>
           <div className="p-6 space-y-6">
@@ -187,7 +217,7 @@ export function ContactRecordView({
                 onChange={(e) => setRole(e.target.value)}
               >
                 <option value="">Select a role…</option>
-                {ROLE_OPTIONS.filter((opt) => opt !== "").map((opt) => (
+                {CRM_CONTACT_BUYING_ROLES.filter((opt) => opt !== "").map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
                   </option>
@@ -214,19 +244,19 @@ export function ContactRecordView({
             {updatedLabel ? (
               <p className="text-[12px] text-[#404848]">Last updated {updatedLabel}</p>
             ) : !isLoading ? (
-              <p className="text-[12px] text-[#707978]">No relationship notes yet.</p>
+              <p className="text-[12px] text-[#707978]">Not saved yet.</p>
             ) : null}
             {error ? <p className="text-sm text-[#ba1a1a]">{error}</p> : null}
           </div>
           <div className="p-6 bg-[#eef5f2] border-t border-[#bfc8c8] flex justify-end">
             <button
               type="button"
-              disabled={isLoading || isSaving}
+              disabled={!canSave}
               onClick={() => void handleSave()}
               className="px-6 py-2 bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide rounded-lg hover:bg-[#0f4c4c]/90 shadow-md flex items-center gap-2 transition-all active:scale-95 disabled:opacity-40"
             >
               <MaterialIcon name="save" className="text-[18px]" />
-              {isSaving ? "Saving…" : "Save Notes"}
+              {isSaving ? "Saving…" : "Save Contact"}
             </button>
           </div>
         </div>

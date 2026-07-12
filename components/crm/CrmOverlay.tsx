@@ -18,7 +18,7 @@ import {
   useState,
 } from "react";
 import { AccountRecordView } from "@/components/crm/AccountRecordView";
-import { ContactRecordView, CRM_CONTACTS, type CrmContactKey } from "@/components/crm/ContactRecordView";
+import { ContactRecordView } from "@/components/crm/ContactRecordView";
 import { CrmHomeView } from "@/components/crm/CrmHomeView";
 import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
 import { OpportunityRecordView } from "@/components/crm/OpportunityRecordView";
@@ -33,6 +33,12 @@ import {
   type ContactNotesSnapshot,
 } from "@/components/crm/crm-display";
 import { accountHasProfile, type CrmAccountRecord } from "@/lib/tempo-crm-account";
+import {
+  CRM_CONTACT_SLOTS,
+  contactDisplayName,
+  emptyContactFields,
+  type CrmContactKey,
+} from "@/lib/tempo-crm-contact";
 import { findStageNeedingCrmLog } from "@/lib/tempo-crm-fields";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
@@ -177,7 +183,7 @@ export function CrmOverlay({
 }: CrmOverlayProps): React.ReactElement | null {
   const [closing, setClosing] = useState(false);
   const [view, setView] = useState<CrmView>("home");
-  const [contactKey, setContactKey] = useState<CrmContactKey>("dana_reyes");
+  const [contactKey, setContactKey] = useState<CrmContactKey>("contact_1");
   const [logEntries, setLogEntries] = useState<CrmLogEntry[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
   const [accountRecord, setAccountRecord] = useState<CrmAccountRecord | null>(null);
@@ -191,7 +197,7 @@ export function CrmOverlay({
       const link = asRecordStage(deepLinkStage);
       setActiveDeepLink(link);
       setView(link ? "record" : "home");
-      setContactKey("dana_reyes");
+      setContactKey("contact_1");
     }
   }, [isOpen, deepLinkStage]);
 
@@ -223,10 +229,9 @@ export function CrmOverlay({
 
   const loadAccountAndContacts = useCallback(async (): Promise<void> => {
     try {
-      const contactKeys = Object.keys(CRM_CONTACTS) as CrmContactKey[];
       const [accountRes, ...contactResList] = await Promise.all([
         fetch(`/api/student/crm-account?attemptId=${encodeURIComponent(attemptId)}`),
-        ...contactKeys.map((key) =>
+        ...CRM_CONTACT_SLOTS.map((key) =>
           fetch(
             `/api/student/crm-contact?attemptId=${encodeURIComponent(attemptId)}&contactKey=${encodeURIComponent(key)}`
           )
@@ -247,23 +252,31 @@ export function CrmOverlay({
       }
 
       const snapshots: ContactNotesSnapshot[] = [];
-      for (let i = 0; i < contactKeys.length; i += 1) {
-        const key = contactKeys[i];
+      for (let i = 0; i < CRM_CONTACT_SLOTS.length; i += 1) {
+        const slotKey = CRM_CONTACT_SLOTS[i];
         const res = contactResList[i];
         if (!res?.ok) {
-          snapshots.push({ key, role: "", notes: "", updatedAt: null });
+          snapshots.push({
+            contactKey: slotKey,
+            fields: emptyContactFields(),
+            role: "",
+            notes: "",
+            updated_at: null,
+          });
           continue;
         }
         const body = (await res.json()) as {
           role?: string;
           notes?: string;
+          fields?: Record<string, string>;
           updated_at?: string | null;
         };
         snapshots.push({
-          key,
+          contactKey: slotKey,
+          fields: { ...emptyContactFields(), ...(body.fields ?? {}) },
           role: body.role ?? "",
           notes: body.notes ?? "",
-          updatedAt: body.updated_at ?? null,
+          updated_at: body.updated_at ?? null,
         });
       }
       setContactSnapshots(snapshots);
@@ -313,8 +326,8 @@ export function CrmOverlay({
     ? `Logged ${logEntries.length} stage${logEntries.length === 1 ? "" : "s"}`
     : "Not yet logged";
   const contactOptionsForLookup = savedContacts.map((c) => ({
-    value: c.key,
-    label: CRM_CONTACTS[c.key].name,
+    value: c.contactKey,
+    label: contactDisplayName(c.fields) || "Contact",
   }));
   const accountOptionsForLookup = hasAccount
     ? [{ value: "account", label: accountDisplayName || "Account" }]
@@ -438,9 +451,9 @@ export function CrmOverlay({
               notesPreview: previewText(accountNotes),
             }}
             contacts={savedContacts.map((c) => ({
-              key: c.key,
-              name: CRM_CONTACTS[c.key].name,
-              title: CRM_CONTACTS[c.key].title,
+              key: c.contactKey,
+              name: contactDisplayName(c.fields),
+              title: (c.fields.position ?? "").trim(),
               role: c.role,
             }))}
             opportunity={{
@@ -511,18 +524,10 @@ export function CrmOverlay({
             contactKey={contactKey}
             accountLabel={accountDisplayName || "—"}
             onBackToList={() => setView("contacts-list")}
-            onSaved={(payload) => {
+            onSaved={(record) => {
               setContactSnapshots((prev) => {
-                const without = prev.filter((row) => row.key !== contactKey);
-                return [
-                  ...without,
-                  {
-                    key: contactKey,
-                    role: payload.role,
-                    notes: payload.notes,
-                    updatedAt: payload.updatedAt,
-                  },
-                ];
+                const without = prev.filter((row) => row.contactKey !== contactKey);
+                return [...without, record];
               });
             }}
           />
@@ -645,16 +650,16 @@ export function CrmOverlay({
                       <tbody>
                         {savedContacts.map((c) => (
                           <tr
-                            key={c.key}
+                            key={c.contactKey}
                             className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
                             onClick={() => {
-                              setContactKey(c.key);
+                              setContactKey(c.contactKey);
                               setView("contact-record");
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
-                                setContactKey(c.key);
+                                setContactKey(c.contactKey);
                                 setView("contact-record");
                               }
                             }}
@@ -662,10 +667,10 @@ export function CrmOverlay({
                             role="link"
                           >
                             <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm font-medium">
-                              {CRM_CONTACTS[c.key].name}
+                              {contactDisplayName(c.fields)}
                             </td>
                             <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
-                              {c.role || CRM_CONTACTS[c.key].title}
+                              {c.role || (c.fields.position ?? "").trim() || "—"}
                             </td>
                             <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
                               {accountDisplayName || "—"}

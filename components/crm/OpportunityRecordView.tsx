@@ -9,7 +9,7 @@
 import { useMemo, useState } from "react";
 import { EntityLookupField } from "@/components/crm/EntityLookupField";
 import { CrmStageLogForm } from "@/components/crm/CrmStageLogForm";
-import type { CrmContactKey } from "@/components/crm/ContactRecordView";
+import type { CrmContactKey } from "@/lib/tempo-crm-contact";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmAccountRecord } from "@/lib/tempo-crm-account";
 import type { CrmLogEntry, SimulationStage } from "@/types";

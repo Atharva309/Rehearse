@@ -7,7 +7,7 @@
 "use client";
 
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
-import type { CrmContactKey } from "@/components/crm/ContactRecordView";
+import type { CrmContactKey } from "@/lib/tempo-crm-contact";
 
 export type CrmHomeAccountSummary = {
   hasRecord: boolean;
