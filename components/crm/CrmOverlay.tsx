@@ -1,18 +1,31 @@
 /**
  * CrmOverlay.tsx
- * In-place Rehearse CRM overlay — opportunities list and opportunity record views
- * share one sidebar/top bar. Exports CrmAccess for the server simulation page.
+ * In-place Rehearse CRM overlay — opportunities, accounts, and contacts.
+ * Exports CrmAccess which gates the floating CRM button until after mount
+ * (simulation page is a Server Component with no loading flag of its own).
  */
 
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AccountRecordView, SUMMIT_DENTAL_ACCOUNT } from "@/components/crm/AccountRecordView";
+import { ContactRecordView, CRM_CONTACTS, type CrmContactKey } from "@/components/crm/ContactRecordView";
 import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
 import { OpportunityRecordView } from "@/components/crm/OpportunityRecordView";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
 const SLIDE_OUT_MS = 250;
+
+type CrmView =
+  | "list"
+  | "record"
+  | "accounts-list"
+  | "account-record"
+  | "contacts-list"
+  | "contact-record";
+
+type SidebarNavId = "home" | "opportunities" | "accounts" | "contacts";
 
 type CrmOverlayProps = {
   isOpen: boolean;
@@ -30,6 +43,7 @@ type CrmAccessProps = {
   attemptId: string;
   currentStage: SimulationStage;
   displayName: string;
+  children: React.ReactNode;
 };
 
 const CRM_STAGE_LABELS: Partial<Record<SimulationStage, string>> = {
@@ -42,18 +56,34 @@ const CRM_STAGE_LABELS: Partial<Record<SimulationStage, string>> = {
   results: "Negotiation",
 };
 
-const SIDEBAR_NAV = [
-  { id: "home", label: "Home", icon: "home", active: true },
-  { id: "opportunities", label: "Opportunities", icon: "query_stats", active: false },
-  { id: "accounts", label: "Accounts", icon: "business", active: false },
-  { id: "contacts", label: "Contacts", icon: "group", active: false },
-] as const;
+const SIDEBAR_ITEMS: { id: SidebarNavId; label: string; icon: string }[] = [
+  { id: "home", label: "Home", icon: "home" },
+  { id: "opportunities", label: "Opportunities", icon: "query_stats" },
+  { id: "accounts", label: "Accounts", icon: "business" },
+  { id: "contacts", label: "Contacts", icon: "group" },
+];
 
 /**
  * Maps attempt.current_stage to the CRM opportunity stage badge label.
  */
 function crmStageLabel(stage: SimulationStage): string {
   return CRM_STAGE_LABELS[stage] ?? "Prospecting";
+}
+
+/**
+ * Resolves which sidebar item should appear active for the current view.
+ */
+function activeNavForView(view: CrmView): SidebarNavId {
+  if (view === "accounts-list" || view === "account-record") {
+    return "accounts";
+  }
+  if (view === "contacts-list" || view === "contact-record") {
+    return "contacts";
+  }
+  if (view === "list" || view === "record") {
+    return view === "list" ? "home" : "opportunities";
+  }
+  return "home";
 }
 
 /**
@@ -67,7 +97,8 @@ export function CrmOverlay({
   displayName,
 }: CrmOverlayProps): React.ReactElement | null {
   const [closing, setClosing] = useState(false);
-  const [view, setView] = useState<"list" | "record">("list");
+  const [view, setView] = useState<CrmView>("list");
+  const [contactKey, setContactKey] = useState<CrmContactKey>("dana_reyes");
   const [logEntries, setLogEntries] = useState<CrmLogEntry[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -76,6 +107,7 @@ export function CrmOverlay({
     if (isOpen) {
       setClosing(false);
       setView("list");
+      setContactKey("dana_reyes");
     }
   }, [isOpen]);
 
@@ -87,9 +119,6 @@ export function CrmOverlay({
     };
   }, []);
 
-  /**
-   * Loads CRM logs once per overlay open (or when entering record view if still empty).
-   */
   const loadLogs = useCallback(async (): Promise<void> => {
     try {
       const res = await fetch(
@@ -120,14 +149,12 @@ export function CrmOverlay({
   }
 
   const stageLabel = crmStageLabel(currentStage);
+  const activeNav = activeNavForView(view);
   const lastActivityLabel =
     logEntries.length > 0
       ? `Logged ${logEntries.length} stage${logEntries.length === 1 ? "" : "s"}`
       : "Not yet logged";
 
-  /**
-   * Plays slide-out, then signals the parent to unmount via onClose.
-   */
   const handleBackToSimulation = (): void => {
     if (closing) {
       return;
@@ -141,9 +168,6 @@ export function CrmOverlay({
     }, SLIDE_OUT_MS);
   };
 
-  /**
-   * Upserts a saved log into local state after a successful POST.
-   */
   const handleLogSaved = (entry: CrmLogEntry): void => {
     setLogEntries((prev) => {
       const without = prev.filter((row) => row.stage !== entry.stage);
@@ -151,14 +175,23 @@ export function CrmOverlay({
     });
   };
 
-  /**
-   * Opens the record view (prefetch logs if open race left them empty).
-   */
-  const openRecord = (): void => {
+  const openOpportunityRecord = (): void => {
     setView("record");
     if (!logsLoaded) {
       void loadLogs();
     }
+  };
+
+  const handleSidebarNav = (id: SidebarNavId): void => {
+    if (id === "home" || id === "opportunities") {
+      setView("list");
+      return;
+    }
+    if (id === "accounts") {
+      setView("accounts-list");
+      return;
+    }
+    setView("contacts-list");
   };
 
   return (
@@ -170,7 +203,6 @@ export function CrmOverlay({
       aria-modal="true"
       aria-label="Rehearse CRM"
     >
-      {/* Side nav — shared by list and record */}
       <aside className="fixed left-0 top-0 h-full z-40 flex flex-col pt-8 w-[240px] text-[#dde4e1] bg-[#2d3142]">
         <div className="px-4 mb-8">
           <h1 className="text-lg font-bold text-white leading-6">Rehearse CRM</h1>
@@ -179,29 +211,25 @@ export function CrmOverlay({
           </p>
         </div>
         <nav className="flex-grow">
-          {SIDEBAR_NAV.map((item) =>
-            item.active ? (
-              <div
-                key={item.id}
-                className="bg-[#0f4c4c] text-[#85bbbb] rounded-lg mx-2 my-1 px-4 py-2 flex items-center gap-4"
-                aria-current="page"
-              >
-                <MaterialIcon name={item.icon} className="text-[22px]" />
-                <span className="text-[12px] font-medium tracking-wide uppercase">{item.label}</span>
-              </div>
-            ) : (
+          {SIDEBAR_ITEMS.map((item) => {
+            const isActive = item.id === activeNav;
+            return (
               <button
                 key={item.id}
                 type="button"
-                disabled
-                className="text-[#606376] mx-2 my-1 px-4 py-2 flex items-center gap-4 rounded-lg w-[calc(100%-1rem)] opacity-70 cursor-not-allowed text-left"
-                title="Coming soon"
+                onClick={() => handleSidebarNav(item.id)}
+                className={`mx-2 my-1 px-4 py-2 flex items-center gap-4 rounded-lg w-[calc(100%-1rem)] text-left transition-colors ${
+                  isActive
+                    ? "bg-[#0f4c4c] text-[#85bbbb]"
+                    : "text-[#606376] hover:bg-white/5 hover:text-[#dde4e1]"
+                }`}
+                aria-current={isActive ? "page" : undefined}
               >
                 <MaterialIcon name={item.icon} className="text-[22px]" />
                 <span className="text-[12px] font-medium tracking-wide uppercase">{item.label}</span>
               </button>
-            )
-          )}
+            );
+          })}
         </nav>
         <div className="p-4 border-t border-[#171b2b]">
           <div className="flex items-center gap-4">
@@ -216,7 +244,6 @@ export function CrmOverlay({
         </div>
       </aside>
 
-      {/* Main canvas */}
       <main className="ml-[240px] flex-grow flex flex-col h-screen min-w-0">
         <header className="flex justify-between items-center w-full px-6 py-4 bg-[#f4fbf7] border-b border-[#bfc8c8] shadow-sm sticky top-0 z-30">
           <h2 className="text-lg font-bold text-[#003434]">Rehearse CRM</h2>
@@ -237,8 +264,148 @@ export function CrmOverlay({
             logEntries={logEntries}
             onLogSaved={handleLogSaved}
             onBackToList={() => setView("list")}
+            onOpenAccount={() => setView("account-record")}
+            onOpenContact={(key) => {
+              setContactKey(key);
+              setView("contact-record");
+            }}
           />
-        ) : (
+        ) : null}
+
+        {view === "account-record" ? (
+          <AccountRecordView
+            attemptId={attemptId}
+            onBackToList={() => setView("accounts-list")}
+          />
+        ) : null}
+
+        {view === "contact-record" ? (
+          <ContactRecordView
+            key={contactKey}
+            attemptId={attemptId}
+            contactKey={contactKey}
+            onBackToList={() => setView("contacts-list")}
+          />
+        ) : null}
+
+        {view === "accounts-list" ? (
+          <div className="p-6 flex-grow overflow-auto">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Accounts</h3>
+              <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-[#eef5f2]">
+                    <tr>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Account
+                      </th>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Industry
+                      </th>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Locations
+                      </th>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Region
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
+                      onClick={() => setView("account-record")}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setView("account-record");
+                        }
+                      }}
+                      tabIndex={0}
+                      role="link"
+                    >
+                      <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm font-medium">
+                        {SUMMIT_DENTAL_ACCOUNT.name}
+                      </td>
+                      <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
+                        {SUMMIT_DENTAL_ACCOUNT.industry}
+                      </td>
+                      <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
+                        {SUMMIT_DENTAL_ACCOUNT.locations}
+                      </td>
+                      <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
+                        {SUMMIT_DENTAL_ACCOUNT.region}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="px-6 py-4 border-t border-[#bfc8c8] text-[12px] text-[#404848]">
+                  1 of 1 account
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {view === "contacts-list" ? (
+          <div className="p-6 flex-grow overflow-auto">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Contacts</h3>
+              <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-[#eef5f2]">
+                    <tr>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Name
+                      </th>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Title
+                      </th>
+                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                        Account
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Object.keys(CRM_CONTACTS) as CrmContactKey[]).map((key) => (
+                      <tr
+                        key={key}
+                        className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
+                        onClick={() => {
+                          setContactKey(key);
+                          setView("contact-record");
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setContactKey(key);
+                            setView("contact-record");
+                          }
+                        }}
+                        tabIndex={0}
+                        role="link"
+                      >
+                        <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm font-medium">
+                          {CRM_CONTACTS[key].name}
+                        </td>
+                        <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
+                          {CRM_CONTACTS[key].title}
+                        </td>
+                        <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
+                          {SUMMIT_DENTAL_ACCOUNT.name}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="px-6 py-4 border-t border-[#bfc8c8] text-[12px] text-[#404848]">
+                  2 of 2 contacts
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {view === "list" ? (
           <div className="p-6 flex-grow overflow-auto">
             <div className="max-w-7xl mx-auto space-y-6">
               <header className="flex items-end justify-between">
@@ -268,11 +435,11 @@ export function CrmOverlay({
                   <tbody>
                     <tr
                       className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
-                      onClick={openRecord}
+                      onClick={openOpportunityRecord}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          openRecord();
+                          openOpportunityRecord();
                         }
                       }}
                       tabIndex={0}
@@ -335,15 +502,15 @@ export function CrmOverlay({
               </div>
             </div>
           </div>
-        )}
+        ) : null}
       </main>
     </div>
   );
 }
 
 /**
- * Client bridge for the server simulation page — owns CRM open state and renders
- * GoToCrmButton + CrmOverlay as siblings of the stage tree.
+ * Client bridge — wraps stage content and only shows Go to CRM after mount,
+ * so the floating button does not appear before the stage UI hydrates.
  */
 export function CrmAccess({
   simulationId,
@@ -351,21 +518,32 @@ export function CrmAccess({
   attemptId,
   currentStage,
   displayName,
+  children,
 }: CrmAccessProps): React.ReactElement {
+  const [isPageReady, setIsPageReady] = useState(false);
   const [isCrmOpen, setIsCrmOpen] = useState(false);
+
+  useEffect(() => {
+    setIsPageReady(true);
+  }, []);
 
   return (
     <>
-      <GoToCrmButton onClick={() => setIsCrmOpen(true)} />
-      <CrmOverlay
-        isOpen={isCrmOpen}
-        onClose={() => setIsCrmOpen(false)}
-        simulationId={simulationId}
-        classId={classId}
-        attemptId={attemptId}
-        currentStage={currentStage}
-        displayName={displayName}
-      />
+      {children}
+      {isPageReady ? (
+        <>
+          <GoToCrmButton onClick={() => setIsCrmOpen(true)} />
+          <CrmOverlay
+            isOpen={isCrmOpen}
+            onClose={() => setIsCrmOpen(false)}
+            simulationId={simulationId}
+            classId={classId}
+            attemptId={attemptId}
+            currentStage={currentStage}
+            displayName={displayName}
+          />
+        </>
+      ) : null}
     </>
   );
 }

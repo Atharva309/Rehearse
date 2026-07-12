@@ -244,18 +244,19 @@ export default async function StudentSimulationPage({
     );
   }
 
+  if (!isTempoDefault) {
+    return stageView;
+  }
+
   return (
-    <>
+    <CrmAccess
+      simulationId={simulation.id}
+      classId={classId}
+      attemptId={attempt.id}
+      currentStage={attempt.current_stage}
+      displayName={session.displayName}
+    >
       {stageView}
-      {isTempoDefault ? (
-        <CrmAccess
-          simulationId={simulation.id}
-          classId={classId}
-          attemptId={attempt.id}
-          currentStage={attempt.current_stage}
-          displayName={session.displayName}
-        />
-      ) : null}
-    </>
+    </CrmAccess>
   );
 }

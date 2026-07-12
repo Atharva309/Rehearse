@@ -7,7 +7,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { EntityLookupField } from "@/components/crm/EntityLookupField";
 import { CrmStageLogForm } from "@/components/crm/CrmStageLogForm";
+import type { CrmContactKey } from "@/components/crm/ContactRecordView";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
@@ -29,6 +31,8 @@ type OpportunityRecordViewProps = {
   logEntries: CrmLogEntry[];
   onLogSaved: (entry: CrmLogEntry) => void;
   onBackToList: () => void;
+  onOpenAccount: () => void;
+  onOpenContact: (contactKey: CrmContactKey) => void;
 };
 
 /**
@@ -98,6 +102,8 @@ export function OpportunityRecordView({
   logEntries,
   onLogSaved,
   onBackToList,
+  onOpenAccount,
+  onOpenContact,
 }: OpportunityRecordViewProps): React.ReactElement {
   const loggedStages = useMemo(
     () => new Set(logEntries.map((entry) => entry.stage)),
@@ -112,6 +118,8 @@ export function OpportunityRecordView({
     )?.id ?? "prospecting";
 
   const [selectedTab, setSelectedTab] = useState<CrmRecordStageId>(defaultTab);
+  const [accountLookup, setAccountLookup] = useState("summit-dental");
+  const [contactLookup, setContactLookup] = useState<CrmContactKey>("dana_reyes");
 
   const selectedStatus = tabStatusForStage(selectedTab, currentStage, loggedStages);
   const existingEntry =
@@ -176,6 +184,33 @@ export function OpportunityRecordView({
                   </span>
                 </div>
               </div>
+            </div>
+
+            <div className="flex flex-wrap gap-4 mt-5 pt-4 border-t border-[#bfc8c8]">
+              <EntityLookupField
+                label="Account"
+                options={[{ value: "summit-dental", label: "Summit Dental Group" }]}
+                selectedValue={accountLookup}
+                onSelect={(value) => {
+                  setAccountLookup(value);
+                  if (value === "summit-dental") {
+                    onOpenAccount();
+                  }
+                }}
+              />
+              <EntityLookupField
+                label="Contact"
+                options={[
+                  { value: "dana_reyes", label: "Dana Reyes" },
+                  { value: "dr_kim", label: "Dr. Saul Kim" },
+                ]}
+                selectedValue={contactLookup}
+                onSelect={(value) => {
+                  const key = value as CrmContactKey;
+                  setContactLookup(key);
+                  onOpenContact(key);
+                }}
+              />
             </div>
           </div>
         </div>
