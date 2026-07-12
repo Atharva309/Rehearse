@@ -506,6 +506,7 @@ export function CrmOverlay({
               (accountRecord?.fields.primaryContact ?? "").trim()
             }
             accountRecord={accountRecord}
+            contactRecords={savedContacts}
           />
         ) : null}
 

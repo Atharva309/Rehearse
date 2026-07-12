@@ -12,6 +12,7 @@ import { CrmStageLogForm } from "@/components/crm/CrmStageLogForm";
 import type { CrmContactKey } from "@/lib/tempo-crm-contact";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmAccountRecord } from "@/lib/tempo-crm-account";
+import type { CrmContactRecord } from "@/lib/tempo-crm-contact";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
 const CRM_RECORD_STAGES = [
@@ -41,6 +42,7 @@ type OpportunityRecordViewProps = {
   opportunityTitle?: string;
   primaryContactLabel?: string;
   accountRecord?: CrmAccountRecord | null;
+  contactRecords?: CrmContactRecord[];
 };
 
 /**
@@ -124,6 +126,7 @@ export function OpportunityRecordView({
   opportunityTitle = "New opportunity",
   primaryContactLabel = "",
   accountRecord = null,
+  contactRecords = [],
 }: OpportunityRecordViewProps): React.ReactElement {
   const loggedStages = useMemo(
     () => new Set(logEntries.map((entry) => entry.stage)),
@@ -310,6 +313,7 @@ export function OpportunityRecordView({
               existingEntry={existingEntry}
               onSaved={onLogSaved}
               accountRecord={accountRecord}
+              contactRecords={contactRecords}
             />
             <div className="mt-8 p-4 bg-[#eef5f2] border-l-4 border-[#bfc8c8] rounded flex items-start gap-3 opacity-60">
               <MaterialIcon name="info" className="text-[#707978]" />

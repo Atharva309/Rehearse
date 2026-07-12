@@ -83,6 +83,18 @@ export function contactDisplayName(fields: Record<string, string>): string {
 }
 
 /**
+ * Label for prospecting dropdown options (name + position when set).
+ */
+export function contactSelectLabel(fields: Record<string, string>): string {
+  const name = contactDisplayName(fields);
+  if (!name) {
+    return "";
+  }
+  const position = (fields.position ?? "").trim();
+  return position ? `${name}, ${position}` : name;
+}
+
+/**
  * Contact slots not yet saved for this attempt.
  */
 export function availableContactSlots(records: CrmContactRecord[]): CrmContactKey[] {
