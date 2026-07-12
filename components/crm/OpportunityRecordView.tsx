@@ -33,6 +33,8 @@ type OpportunityRecordViewProps = {
   onBackToList: () => void;
   onOpenAccount: () => void;
   onOpenContact: (contactKey: CrmContactKey) => void;
+  /** When set (handoff deep-link), open this stage tab instead of the default. */
+  initialTab?: CrmRecordStageId | null;
 };
 
 /**
@@ -104,6 +106,7 @@ export function OpportunityRecordView({
   onBackToList,
   onOpenAccount,
   onOpenContact,
+  initialTab = null,
 }: OpportunityRecordViewProps): React.ReactElement {
   const loggedStages = useMemo(
     () => new Set(logEntries.map((entry) => entry.stage)),
@@ -113,9 +116,15 @@ export function OpportunityRecordView({
   const normalizedCurrent = normalizeCrmStage(currentStage);
 
   const defaultTab =
+    (initialTab &&
+    CRM_RECORD_STAGES.some((s) => s.id === initialTab) &&
+    tabStatusForStage(initialTab, currentStage, loggedStages) !== "locked"
+      ? initialTab
+      : null) ??
     CRM_RECORD_STAGES.find(
       (s) => tabStatusForStage(s.id, currentStage, loggedStages) !== "locked"
-    )?.id ?? "prospecting";
+    )?.id ??
+    "prospecting";
 
   const [selectedTab, setSelectedTab] = useState<CrmRecordStageId>(defaultTab);
   const [accountLookup, setAccountLookup] = useState("summit-dental");

@@ -7,148 +7,15 @@
 
 import { useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import {
+  CRM_STAGE_FIELD_SCHEMA,
+  type CrmStageFieldDef,
+} from "@/lib/tempo-crm-fields";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
-type FieldDef = {
-  key: string;
-  label: string;
-  placeholder: string;
-  multiline?: boolean;
-  prefix?: string;
-};
-
-export const CRM_STAGE_FIELD_SCHEMA: Record<
-  "prospecting" | "discovery" | "presentation" | "objections" | "close",
-  FieldDef[]
-> = {
-  prospecting: [
-    {
-      key: "accountName",
-      label: "Account Name",
-      placeholder: "e.g. Summit Dental Group",
-    },
-    {
-      key: "primaryContact",
-      label: "Primary Contact",
-      placeholder: "e.g. Dana Reyes, Practice Manager",
-    },
-    {
-      key: "whyFit",
-      label: "Why This Account Is a Fit",
-      placeholder: "Why does Summit Dental match your ICP?",
-      multiline: true,
-    },
-    {
-      key: "trigger",
-      label: "Trigger Event",
-      placeholder: "e.g. Opening an 8th location next quarter",
-    },
-    {
-      key: "nextStep",
-      label: "Next Step",
-      placeholder: "e.g. Book discovery call with Dana",
-    },
-  ],
-  discovery: [
-    {
-      key: "businessIssue",
-      label: "Business Issue Identified",
-      placeholder: "e.g. Inefficient scheduling workflow",
-    },
-    {
-      key: "quantifiedValue",
-      label: "Quantified Value, if known",
-      placeholder: "0.00",
-      prefix: "$",
-    },
-    {
-      key: "painPoints",
-      label: "Key Pain Points",
-      placeholder:
-        "Describe the specific technical or operational hurdles the client is facing...",
-      multiline: true,
-    },
-    {
-      key: "stakeholders",
-      label: "Other Stakeholders Involved",
-      placeholder: "Comma separated names...",
-    },
-    {
-      key: "nextStep",
-      label: "Next Step",
-      placeholder: "Schedule follow-up demo",
-    },
-  ],
-  presentation: [
-    {
-      key: "whatProposed",
-      label: "What You Proposed",
-      placeholder: "Summarize the Tempo offer you presented...",
-      multiline: true,
-    },
-    {
-      key: "stakeholderReaction",
-      label: "Stakeholder Reaction",
-      placeholder: "How did Dana / the team respond?",
-      multiline: true,
-    },
-    {
-      key: "anticipatedObjections",
-      label: "Anticipated Objections",
-      placeholder: "What pushback do you expect next?",
-      multiline: true,
-    },
-    {
-      key: "nextStep",
-      label: "Next Step",
-      placeholder: "e.g. Objection-handling call with Dr. Kim",
-    },
-  ],
-  objections: [
-    {
-      key: "objectionsRaised",
-      label: "Objections Raised",
-      placeholder: "List the objections Dr. Kim raised...",
-      multiline: true,
-    },
-    {
-      key: "howResolved",
-      label: "How You Resolved Them",
-      placeholder: "Describe how you handled each concern...",
-      multiline: true,
-    },
-    {
-      key: "remainingConcerns",
-      label: "Remaining Concerns",
-      placeholder: "Anything still open?",
-      multiline: true,
-    },
-    {
-      key: "nextStep",
-      label: "Next Step",
-      placeholder: "e.g. Move to commercial negotiation",
-    },
-  ],
-  close: [
-    {
-      key: "termsDiscussed",
-      label: "Terms Discussed",
-      placeholder: "Pricing, seats, billing, onboarding...",
-      multiline: true,
-    },
-    {
-      key: "outcome",
-      label: "Outcome",
-      placeholder: "e.g. Deal agreed / Partial close / Walked",
-    },
-    {
-      key: "closeNotes",
-      label: "Close Notes",
-      placeholder: "Final notes on the negotiation...",
-      multiline: true,
-    },
-  ],
-};
+export type { CrmStageFieldDef };
+/** Re-export schema so existing imports keep working; source of truth is lib/tempo-crm-fields. */
+export { CRM_STAGE_FIELD_SCHEMA };
 
 type CrmLoggableStage = keyof typeof CRM_STAGE_FIELD_SCHEMA;
 

@@ -2,6 +2,8 @@
  * HandoffModal.tsx
  * Manager handoff modal for Tempo simulation stages.
  * Overlays the page with blur backdrop; student must click Begin Stage to proceed.
+ * Schema-driven CRM hard gate: when the just-completed stage requires a CRM log
+ * and none exists yet, Begin is disabled until the student logs in CRM.
  * Tempo / Rehearse Essentials only.
  */
 
@@ -9,6 +11,11 @@
 
 import { useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import { useTempoCrmGate } from "@/components/crm/CrmOverlay";
+import {
+  justCompletedStageForHandoff,
+  stageRequiresCrmLog,
+} from "@/lib/tempo-crm-fields";
 
 export type HandoffModalProps = {
   stageNumber: number;
@@ -18,10 +25,16 @@ export type HandoffModalProps = {
   hasAIRestriction: boolean;
   onBegin: () => void;
   onDismiss: () => void;
+  /** Override: stage that must be CRM-logged before Begin (defaults from stageNumber). */
+  justCompletedStage?: string | null;
+  /** Override: whether a CRM log already exists for that stage. */
+  crmLogExists?: boolean;
+  /** Override: open CRM deep-linked to the stage that needs logging. */
+  onOpenCrmForStage?: (stage: string) => void;
 };
 
 /**
- * Renders the manager handoff overlay with entry animation.
+ * Renders the manager handoff overlay with entry animation and optional CRM gate.
  */
 export function HandoffModal({
   stageNumber,
@@ -31,13 +44,51 @@ export function HandoffModal({
   hasAIRestriction,
   onBegin,
   onDismiss,
+  justCompletedStage: justCompletedProp,
+  crmLogExists: crmLogExistsProp,
+  onOpenCrmForStage: onOpenCrmProp,
 }: HandoffModalProps): React.ReactElement {
   const [entered, setEntered] = useState(false);
+  const gate = useTempoCrmGate();
+  const { noteCompletedStage, loggedStages, openCrmForStage } = gate;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setEntered(true), 100);
     return () => window.clearTimeout(timer);
   }, []);
+
+  const inferredCompleted = justCompletedStageForHandoff(stageNumber);
+  const justCompleted =
+    justCompletedProp !== undefined ? justCompletedProp : inferredCompleted;
+
+  const requiresLog =
+    typeof justCompleted === "string" && stageRequiresCrmLog(justCompleted);
+
+  const crmLogExists =
+    crmLogExistsProp !== undefined
+      ? crmLogExistsProp
+      : justCompleted
+        ? loggedStages.has(justCompleted)
+        : true;
+
+  const isGated = requiresLog && !crmLogExists;
+
+  useEffect(() => {
+    if (isGated && justCompleted) {
+      noteCompletedStage(justCompleted);
+    }
+  }, [isGated, justCompleted, noteCompletedStage]);
+
+  const handleOpenCrm = (): void => {
+    if (!justCompleted) {
+      return;
+    }
+    if (onOpenCrmProp) {
+      onOpenCrmProp(justCompleted);
+      return;
+    }
+    openCrmForStage(justCompleted);
+  };
 
   return (
     <div
@@ -107,15 +158,40 @@ export function HandoffModal({
             )}
           </div>
 
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={onBegin}
-              className="w-full h-12 rounded-lg font-headline-md flex items-center justify-center gap-2 bg-primary-container text-white font-bold hover:bg-primary transition-all active:scale-[0.98]"
-            >
-              Begin Stage {stageNumber}
-              <MaterialIcon name="arrow_forward" />
-            </button>
+          <div className="pt-2 space-y-3">
+            {isGated ? (
+              <>
+                <p className="text-body-md text-on-surface-variant text-center">
+                  Fill out your CRM log for this stage before continuing.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleOpenCrm}
+                  className="w-full h-12 rounded-lg font-headline-md flex items-center justify-center gap-2 bg-[#0f4c4c] text-white font-bold hover:brightness-110 transition-all active:scale-[0.98]"
+                >
+                  <MaterialIcon name="hub" />
+                  Log in CRM to Continue
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  className="w-full h-12 rounded-lg font-headline-md flex items-center justify-center gap-2 bg-outline-variant text-on-surface-variant font-bold opacity-50 cursor-not-allowed"
+                  aria-disabled="true"
+                >
+                  Begin Stage {stageNumber}
+                  <MaterialIcon name="arrow_forward" />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={onBegin}
+                className="w-full h-12 rounded-lg font-headline-md flex items-center justify-center gap-2 bg-primary-container text-white font-bold hover:bg-primary transition-all active:scale-[0.98]"
+              >
+                Begin Stage {stageNumber}
+                <MaterialIcon name="arrow_forward" />
+              </button>
+            )}
           </div>
         </div>
 

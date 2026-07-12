@@ -136,6 +136,15 @@ export default async function StudentSimulationPage({
     .eq("attempt_id", attempt.id);
 
   const scores = (stageScores ?? []) as StageScore[];
+
+  const { data: crmLogRows } = await supabase
+    .from("crm_log_entries")
+    .select("stage")
+    .eq("attempt_id", attempt.id);
+
+  const initialLoggedStages = (crmLogRows ?? []).map((row) => row.stage as string);
+  const completedStages = scores.map((s) => s.stage);
+
   const hasProspectingScore = scores.some((s) => s.stage === "prospecting");
   const isTempoDefault =
     classId === DEFAULT_CLASS_ID && isTempoDefaultSimulation(simulation.id, simulation.title);
@@ -255,6 +264,8 @@ export default async function StudentSimulationPage({
       attemptId={attempt.id}
       currentStage={attempt.current_stage}
       displayName={session.displayName}
+      completedStages={completedStages}
+      initialLoggedStages={initialLoggedStages}
     >
       {stageView}
     </CrmAccess>

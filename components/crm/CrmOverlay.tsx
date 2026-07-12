@@ -2,17 +2,27 @@
  * CrmOverlay.tsx
  * In-place Rehearse CRM overlay — opportunities, accounts, and contacts.
  * Exports CrmAccess which gates the floating CRM button until after mount
- * (simulation page is a Server Component with no loading flag of its own).
+ * (simulation page is a Server Component with no loading flag of its own),
+ * and TempoCrmGateProvider context for HandoffModal hard-gate wiring.
  */
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AccountRecordView, SUMMIT_DENTAL_ACCOUNT } from "@/components/crm/AccountRecordView";
 import { ContactRecordView, CRM_CONTACTS, type CrmContactKey } from "@/components/crm/ContactRecordView";
 import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
 import { OpportunityRecordView } from "@/components/crm/OpportunityRecordView";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import { findStageNeedingCrmLog } from "@/lib/tempo-crm-fields";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
 const SLIDE_OUT_MS = 250;
@@ -27,6 +37,13 @@ type CrmView =
 
 type SidebarNavId = "home" | "opportunities" | "accounts" | "contacts";
 
+type CrmRecordStageId =
+  | "prospecting"
+  | "discovery"
+  | "presentation"
+  | "objections"
+  | "close";
+
 type CrmOverlayProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -35,6 +52,10 @@ type CrmOverlayProps = {
   attemptId: string;
   currentStage: SimulationStage;
   displayName: string;
+  /** When set with isOpen, skip list and open Opportunity record on this stage tab. */
+  deepLinkStage?: SimulationStage | null;
+  /** Notifies parent when log entries change (for handoff gate / button blink). */
+  onLogEntriesChange?: (entries: CrmLogEntry[]) => void;
 };
 
 type CrmAccessProps = {
@@ -43,8 +64,36 @@ type CrmAccessProps = {
   attemptId: string;
   currentStage: SimulationStage;
   displayName: string;
+  /** Stages that already have a stage_scores row (completed Tempo work). */
+  completedStages: string[];
+  /** CRM stages already logged (from server), used until client refresh. */
+  initialLoggedStages?: string[];
   children: React.ReactNode;
 };
+
+type TempoCrmGateContextValue = {
+  loggedStages: ReadonlySet<string>;
+  needsLoggingStage: string | null;
+  openCrmForStage: (stage: string) => void;
+  refreshCrmLogs: () => Promise<void>;
+  /** Registers a stage as completed for gate/blink (e.g. right after submit, before page reload). */
+  noteCompletedStage: (stage: string) => void;
+};
+
+const TempoCrmGateContext = createContext<TempoCrmGateContextValue>({
+  loggedStages: new Set(),
+  needsLoggingStage: null,
+  openCrmForStage: () => undefined,
+  refreshCrmLogs: async () => undefined,
+  noteCompletedStage: () => undefined,
+});
+
+/**
+ * HandoffModal / consumers read CRM gate state without prop-drilling through stages.
+ */
+export function useTempoCrmGate(): TempoCrmGateContextValue {
+  return useContext(TempoCrmGateContext);
+}
 
 const CRM_STAGE_LABELS: Partial<Record<SimulationStage, string>> = {
   lead_gen: "Prospecting",
@@ -87,6 +136,22 @@ function activeNavForView(view: CrmView): SidebarNavId {
 }
 
 /**
+ * Narrows a SimulationStage to an opportunity record tab id when valid.
+ */
+function asRecordStage(stage: SimulationStage | null | undefined): CrmRecordStageId | null {
+  if (
+    stage === "prospecting" ||
+    stage === "discovery" ||
+    stage === "presentation" ||
+    stage === "objections" ||
+    stage === "close"
+  ) {
+    return stage;
+  }
+  return null;
+}
+
+/**
  * Full-viewport CRM overlay — covers the stage without unmounting it.
  */
 export function CrmOverlay({
@@ -95,21 +160,26 @@ export function CrmOverlay({
   attemptId,
   currentStage,
   displayName,
+  deepLinkStage = null,
+  onLogEntriesChange,
 }: CrmOverlayProps): React.ReactElement | null {
   const [closing, setClosing] = useState(false);
   const [view, setView] = useState<CrmView>("list");
   const [contactKey, setContactKey] = useState<CrmContactKey>("dana_reyes");
   const [logEntries, setLogEntries] = useState<CrmLogEntry[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
+  const [activeDeepLink, setActiveDeepLink] = useState<CrmRecordStageId | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setClosing(false);
-      setView("list");
+      const link = asRecordStage(deepLinkStage);
+      setActiveDeepLink(link);
+      setView(link ? "record" : "list");
       setContactKey("dana_reyes");
     }
-  }, [isOpen]);
+  }, [isOpen, deepLinkStage]);
 
   useEffect(() => {
     return () => {
@@ -128,12 +198,14 @@ export function CrmOverlay({
         return;
       }
       const body = (await res.json()) as { entries?: CrmLogEntry[] };
-      setLogEntries(body.entries ?? []);
+      const next = body.entries ?? [];
+      setLogEntries(next);
       setLogsLoaded(true);
+      onLogEntriesChange?.(next);
     } catch {
       /* keep prior entries */
     }
-  }, [attemptId]);
+  }, [attemptId, onLogEntriesChange]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -171,11 +243,14 @@ export function CrmOverlay({
   const handleLogSaved = (entry: CrmLogEntry): void => {
     setLogEntries((prev) => {
       const without = prev.filter((row) => row.stage !== entry.stage);
-      return [...without, entry];
+      const next = [...without, entry];
+      onLogEntriesChange?.(next);
+      return next;
     });
   };
 
   const openOpportunityRecord = (): void => {
+    setActiveDeepLink(null);
     setView("record");
     if (!logsLoaded) {
       void loadLogs();
@@ -184,6 +259,7 @@ export function CrmOverlay({
 
   const handleSidebarNav = (id: SidebarNavId): void => {
     if (id === "home" || id === "opportunities") {
+      setActiveDeepLink(null);
       setView("list");
       return;
     }
@@ -196,7 +272,7 @@ export function CrmOverlay({
 
   return (
     <div
-      className={`fixed inset-0 z-[70] flex min-h-screen text-[#161d1b] bg-[#f4fbf7] ${
+      className={`fixed inset-0 z-[110] flex min-h-screen text-[#161d1b] bg-[#f4fbf7] ${
         closing ? "animate-slide-out-right" : "animate-slide-in-right"
       }`}
       role="dialog"
@@ -259,16 +335,21 @@ export function CrmOverlay({
 
         {view === "record" ? (
           <OpportunityRecordView
+            key={activeDeepLink ? `deep-${activeDeepLink}` : "record-default"}
             attemptId={attemptId}
             currentStage={currentStage}
             logEntries={logEntries}
             onLogSaved={handleLogSaved}
-            onBackToList={() => setView("list")}
+            onBackToList={() => {
+              setActiveDeepLink(null);
+              setView("list");
+            }}
             onOpenAccount={() => setView("account-record")}
             onOpenContact={(key) => {
               setContactKey(key);
               setView("contact-record");
             }}
+            initialTab={activeDeepLink}
           />
         ) : null}
 
@@ -511,6 +592,7 @@ export function CrmOverlay({
 /**
  * Client bridge — wraps stage content and only shows Go to CRM after mount,
  * so the floating button does not appear before the stage UI hydrates.
+ * Owns CRM open/deep-link state and provides gate context to HandoffModal.
  */
 export function CrmAccess({
   simulationId,
@@ -518,32 +600,112 @@ export function CrmAccess({
   attemptId,
   currentStage,
   displayName,
+  completedStages,
+  initialLoggedStages = [],
   children,
 }: CrmAccessProps): React.ReactElement {
   const [isPageReady, setIsPageReady] = useState(false);
   const [isCrmOpen, setIsCrmOpen] = useState(false);
+  const [deepLinkStage, setDeepLinkStage] = useState<SimulationStage | null>(null);
+  const [loggedStageIds, setLoggedStageIds] = useState<string[]>(initialLoggedStages);
+  const [liveCompleted, setLiveCompleted] = useState<string[]>(completedStages);
 
   useEffect(() => {
     setIsPageReady(true);
   }, []);
 
+  useEffect(() => {
+    setLiveCompleted(completedStages);
+  }, [completedStages]);
+
+  useEffect(() => {
+    setLoggedStageIds(initialLoggedStages);
+  }, [initialLoggedStages]);
+
+  const refreshCrmLogs = useCallback(async (): Promise<void> => {
+    try {
+      const res = await fetch(
+        `/api/student/crm-log?attemptId=${encodeURIComponent(attemptId)}`
+      );
+      if (!res.ok) {
+        return;
+      }
+      const body = (await res.json()) as { entries?: CrmLogEntry[] };
+      setLoggedStageIds((body.entries ?? []).map((e) => e.stage));
+    } catch {
+      /* keep prior */
+    }
+  }, [attemptId]);
+
+  useEffect(() => {
+    if (!isPageReady) {
+      return;
+    }
+    void refreshCrmLogs();
+  }, [isPageReady, refreshCrmLogs]);
+
+  const loggedStages = useMemo(() => new Set(loggedStageIds), [loggedStageIds]);
+
+  const needsLoggingStage = useMemo(
+    () => findStageNeedingCrmLog(liveCompleted, loggedStages),
+    [liveCompleted, loggedStages]
+  );
+
+  const openCrmForStage = useCallback((stage: string): void => {
+    setDeepLinkStage(stage as SimulationStage);
+    setIsCrmOpen(true);
+  }, []);
+
+  const noteCompletedStage = useCallback((stage: string): void => {
+    setLiveCompleted((prev) => (prev.includes(stage) ? prev : [...prev, stage]));
+  }, []);
+
+  const handleCloseCrm = useCallback((): void => {
+    setIsCrmOpen(false);
+    setDeepLinkStage(null);
+    void refreshCrmLogs();
+  }, [refreshCrmLogs]);
+
+  const handleLogEntriesChange = useCallback((entries: CrmLogEntry[]): void => {
+    setLoggedStageIds(entries.map((e) => e.stage));
+  }, []);
+
+  const gateValue = useMemo<TempoCrmGateContextValue>(
+    () => ({
+      loggedStages,
+      needsLoggingStage,
+      openCrmForStage,
+      refreshCrmLogs,
+      noteCompletedStage,
+    }),
+    [loggedStages, needsLoggingStage, openCrmForStage, refreshCrmLogs, noteCompletedStage]
+  );
+
   return (
-    <>
+    <TempoCrmGateContext.Provider value={gateValue}>
       {children}
       {isPageReady ? (
         <>
-          <GoToCrmButton onClick={() => setIsCrmOpen(true)} />
+          <GoToCrmButton
+            needsLogging={needsLoggingStage !== null}
+            onClick={() => {
+              setDeepLinkStage(null);
+              setIsCrmOpen(true);
+            }}
+          />
           <CrmOverlay
             isOpen={isCrmOpen}
-            onClose={() => setIsCrmOpen(false)}
+            onClose={handleCloseCrm}
             simulationId={simulationId}
             classId={classId}
             attemptId={attemptId}
             currentStage={currentStage}
             displayName={displayName}
+            deepLinkStage={deepLinkStage}
+            onLogEntriesChange={handleLogEntriesChange}
           />
         </>
       ) : null}
-    </>
+    </TempoCrmGateContext.Provider>
   );
 }
