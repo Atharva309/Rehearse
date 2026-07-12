@@ -17,17 +17,28 @@ import {
   useRef,
   useState,
 } from "react";
-import { AccountRecordView, SUMMIT_DENTAL_ACCOUNT } from "@/components/crm/AccountRecordView";
+import { AccountRecordView } from "@/components/crm/AccountRecordView";
 import { ContactRecordView, CRM_CONTACTS, type CrmContactKey } from "@/components/crm/ContactRecordView";
+import { CrmHomeView } from "@/components/crm/CrmHomeView";
 import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
 import { OpportunityRecordView } from "@/components/crm/OpportunityRecordView";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import {
+  accountNameFromLogs,
+  availableContactKeysToAdd,
+  contactHasRecord,
+  opportunityTitleFromLogs,
+  previewText,
+  primaryContactFromLogs,
+  type ContactNotesSnapshot,
+} from "@/components/crm/crm-display";
 import { findStageNeedingCrmLog } from "@/lib/tempo-crm-fields";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
 const SLIDE_OUT_MS = 250;
 
 type CrmView =
+  | "home"
   | "list"
   | "record"
   | "accounts-list"
@@ -130,7 +141,7 @@ function activeNavForView(view: CrmView): SidebarNavId {
     return "contacts";
   }
   if (view === "list" || view === "record") {
-    return view === "list" ? "home" : "opportunities";
+    return "opportunities";
   }
   return "home";
 }
@@ -164,10 +175,13 @@ export function CrmOverlay({
   onLogEntriesChange,
 }: CrmOverlayProps): React.ReactElement | null {
   const [closing, setClosing] = useState(false);
-  const [view, setView] = useState<CrmView>("list");
+  const [view, setView] = useState<CrmView>("home");
   const [contactKey, setContactKey] = useState<CrmContactKey>("dana_reyes");
   const [logEntries, setLogEntries] = useState<CrmLogEntry[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
+  const [accountNotes, setAccountNotes] = useState("");
+  const [accountUpdatedAt, setAccountUpdatedAt] = useState<string | null>(null);
+  const [contactSnapshots, setContactSnapshots] = useState<ContactNotesSnapshot[]>([]);
   const [activeDeepLink, setActiveDeepLink] = useState<CrmRecordStageId | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -176,7 +190,7 @@ export function CrmOverlay({
       setClosing(false);
       const link = asRecordStage(deepLinkStage);
       setActiveDeepLink(link);
-      setView(link ? "record" : "list");
+      setView(link ? "record" : "home");
       setContactKey("dana_reyes");
     }
   }, [isOpen, deepLinkStage]);
@@ -207,14 +221,75 @@ export function CrmOverlay({
     }
   }, [attemptId, onLogEntriesChange]);
 
+  const loadAccountAndContacts = useCallback(async (): Promise<void> => {
+    try {
+      const contactKeys = Object.keys(CRM_CONTACTS) as CrmContactKey[];
+      const [accountRes, ...contactResList] = await Promise.all([
+        fetch(`/api/student/crm-account?attemptId=${encodeURIComponent(attemptId)}`),
+        ...contactKeys.map((key) =>
+          fetch(
+            `/api/student/crm-contact?attemptId=${encodeURIComponent(attemptId)}&contactKey=${encodeURIComponent(key)}`
+          )
+        ),
+      ]);
+
+      if (accountRes.ok) {
+        const body = (await accountRes.json()) as {
+          notes?: string;
+          updated_at?: string | null;
+        };
+        setAccountNotes(body.notes ?? "");
+        setAccountUpdatedAt(body.updated_at ?? null);
+      }
+
+      const snapshots: ContactNotesSnapshot[] = [];
+      for (let i = 0; i < contactKeys.length; i += 1) {
+        const key = contactKeys[i];
+        const res = contactResList[i];
+        if (!res?.ok) {
+          snapshots.push({ key, role: "", notes: "", updatedAt: null });
+          continue;
+        }
+        const body = (await res.json()) as {
+          role?: string;
+          notes?: string;
+          updated_at?: string | null;
+        };
+        snapshots.push({
+          key,
+          role: body.role ?? "",
+          notes: body.notes ?? "",
+          updatedAt: body.updated_at ?? null,
+        });
+      }
+      setContactSnapshots(snapshots);
+    } catch {
+      /* keep prior */
+    }
+  }, [attemptId]);
+
   useEffect(() => {
     if (!isOpen) {
       setLogsLoaded(false);
       setLogEntries([]);
+      setAccountNotes("");
+      setAccountUpdatedAt(null);
+      setContactSnapshots([]);
       return;
     }
     void loadLogs();
-  }, [isOpen, loadLogs]);
+    void loadAccountAndContacts();
+  }, [isOpen, loadLogs, loadAccountAndContacts]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    if (view === "home" || view === "list" || view === "accounts-list" || view === "contacts-list") {
+      void loadAccountAndContacts();
+      void loadLogs();
+    }
+  }, [view, isOpen, loadAccountAndContacts, loadLogs]);
 
   if (!isOpen) {
     return null;
@@ -222,10 +297,23 @@ export function CrmOverlay({
 
   const stageLabel = crmStageLabel(currentStage);
   const activeNav = activeNavForView(view);
-  const lastActivityLabel =
-    logEntries.length > 0
-      ? `Logged ${logEntries.length} stage${logEntries.length === 1 ? "" : "s"}`
-      : "Not yet logged";
+  const hasOpportunity = logEntries.length > 0;
+  const hasAccount =
+    Boolean(accountUpdatedAt) || accountNotes.trim().length > 0 || accountNameFromLogs(logEntries).length > 0;
+  const savedContacts = contactSnapshots.filter(contactHasRecord);
+  const accountDisplayName =
+    accountNameFromLogs(logEntries) || (hasAccount ? "Untitled account" : "");
+  const oppTitle = opportunityTitleFromLogs(logEntries);
+  const lastActivityLabel = hasOpportunity
+    ? `Logged ${logEntries.length} stage${logEntries.length === 1 ? "" : "s"}`
+    : "Not yet logged";
+  const contactOptionsForLookup = savedContacts.map((c) => ({
+    value: c.key,
+    label: CRM_CONTACTS[c.key].name,
+  }));
+  const accountOptionsForLookup = hasAccount
+    ? [{ value: "account", label: accountDisplayName || "Account" }]
+    : [];
 
   const handleBackToSimulation = (): void => {
     if (closing) {
@@ -258,8 +346,12 @@ export function CrmOverlay({
   };
 
   const handleSidebarNav = (id: SidebarNavId): void => {
-    if (id === "home" || id === "opportunities") {
-      setActiveDeepLink(null);
+    setActiveDeepLink(null);
+    if (id === "home") {
+      setView("home");
+      return;
+    }
+    if (id === "opportunities") {
       setView("list");
       return;
     }
@@ -333,6 +425,42 @@ export function CrmOverlay({
           </button>
         </header>
 
+        {view === "home" ? (
+          <CrmHomeView
+            account={{
+              hasRecord: hasAccount,
+              name: accountDisplayName || "Account",
+              notesPreview: previewText(accountNotes),
+            }}
+            contacts={savedContacts.map((c) => ({
+              key: c.key,
+              name: CRM_CONTACTS[c.key].name,
+              title: CRM_CONTACTS[c.key].title,
+              role: c.role,
+            }))}
+            opportunity={{
+              hasRecord: hasOpportunity,
+              title: oppTitle,
+              stageLabel,
+              activityLabel: lastActivityLabel,
+            }}
+            availableContactKeys={availableContactKeysToAdd(contactSnapshots)}
+            onOpenAccount={() => setView("account-record")}
+            onOpenContact={(key) => {
+              setContactKey(key);
+              setView("contact-record");
+            }}
+            onAddContact={(key) => {
+              setContactKey(key);
+              setView("contact-record");
+            }}
+            onOpenOpportunity={openOpportunityRecord}
+            onBrowseAccounts={() => setView("accounts-list")}
+            onBrowseContacts={() => setView("contacts-list")}
+            onBrowseOpportunities={() => setView("list")}
+          />
+        ) : null}
+
         {view === "record" ? (
           <OpportunityRecordView
             key={activeDeepLink ? `deep-${activeDeepLink}` : "record-default"}
@@ -350,13 +478,22 @@ export function CrmOverlay({
               setView("contact-record");
             }}
             initialTab={activeDeepLink}
+            accountLookupOptions={accountOptionsForLookup}
+            contactLookupOptions={contactOptionsForLookup}
+            opportunityTitle={hasOpportunity ? oppTitle : "New opportunity"}
+            primaryContactLabel={primaryContactFromLogs(logEntries)}
           />
         ) : null}
 
         {view === "account-record" ? (
           <AccountRecordView
             attemptId={attemptId}
+            displayName={accountDisplayName}
             onBackToList={() => setView("accounts-list")}
+            onSaved={(notes, updatedAt) => {
+              setAccountNotes(notes);
+              setAccountUpdatedAt(updatedAt);
+            }}
           />
         ) : null}
 
@@ -365,63 +502,88 @@ export function CrmOverlay({
             key={contactKey}
             attemptId={attemptId}
             contactKey={contactKey}
+            accountLabel={accountDisplayName || "—"}
             onBackToList={() => setView("contacts-list")}
+            onSaved={(payload) => {
+              setContactSnapshots((prev) => {
+                const without = prev.filter((row) => row.key !== contactKey);
+                return [
+                  ...without,
+                  {
+                    key: contactKey,
+                    role: payload.role,
+                    notes: payload.notes,
+                    updatedAt: payload.updatedAt,
+                  },
+                ];
+              });
+            }}
           />
         ) : null}
 
         {view === "accounts-list" ? (
           <div className="p-6 flex-grow overflow-auto">
             <div className="max-w-7xl mx-auto space-y-6">
-              <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Accounts</h3>
+              <div className="flex items-end justify-between gap-4">
+                <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Accounts</h3>
+                {!hasAccount ? (
+                  <button
+                    type="button"
+                    onClick={() => setView("account-record")}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                  >
+                    <MaterialIcon name="add" className="text-[16px]" />
+                    Add account
+                  </button>
+                ) : null}
+              </div>
               <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-[#eef5f2]">
-                    <tr>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Account
-                      </th>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Industry
-                      </th>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Locations
-                      </th>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Region
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
-                      onClick={() => setView("account-record")}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setView("account-record");
-                        }
-                      }}
-                      tabIndex={0}
-                      role="link"
-                    >
-                      <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm font-medium">
-                        {SUMMIT_DENTAL_ACCOUNT.name}
-                      </td>
-                      <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
-                        {SUMMIT_DENTAL_ACCOUNT.industry}
-                      </td>
-                      <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
-                        {SUMMIT_DENTAL_ACCOUNT.locations}
-                      </td>
-                      <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
-                        {SUMMIT_DENTAL_ACCOUNT.region}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div className="px-6 py-4 border-t border-[#bfc8c8] text-[12px] text-[#404848]">
-                  1 of 1 account
-                </div>
+                {hasAccount ? (
+                  <>
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-[#eef5f2]">
+                        <tr>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Account
+                          </th>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Notes
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
+                          onClick={() => setView("account-record")}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setView("account-record");
+                            }
+                          }}
+                          tabIndex={0}
+                          role="link"
+                        >
+                          <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm font-medium">
+                            {accountDisplayName || "Untitled account"}
+                          </td>
+                          <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
+                            {previewText(accountNotes, 80) || "No strategy notes yet"}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div className="px-6 py-4 border-t border-[#bfc8c8] text-[12px] text-[#404848]">
+                      1 of 1 account
+                    </div>
+                  </>
+                ) : (
+                  <div className="px-6 py-12 text-center">
+                    <p className="text-sm text-[#707978]">
+                      No accounts yet. Add an account to start capturing strategy notes.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -430,57 +592,88 @@ export function CrmOverlay({
         {view === "contacts-list" ? (
           <div className="p-6 flex-grow overflow-auto">
             <div className="max-w-7xl mx-auto space-y-6">
-              <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Contacts</h3>
-              <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-[#eef5f2]">
-                    <tr>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Name
-                      </th>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Title
-                      </th>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Account
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(Object.keys(CRM_CONTACTS) as CrmContactKey[]).map((key) => (
-                      <tr
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Contacts</h3>
+                {availableContactKeysToAdd(contactSnapshots).length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {availableContactKeysToAdd(contactSnapshots).map((key) => (
+                      <button
                         key={key}
-                        className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
+                        type="button"
                         onClick={() => {
                           setContactKey(key);
                           setView("contact-record");
                         }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setContactKey(key);
-                            setView("contact-record");
-                          }
-                        }}
-                        tabIndex={0}
-                        role="link"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#0f4c4c] text-[#0f4c4c] text-[12px] font-medium hover:bg-[#eef5f2]"
                       >
-                        <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm font-medium">
-                          {CRM_CONTACTS[key].name}
-                        </td>
-                        <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
-                          {CRM_CONTACTS[key].title}
-                        </td>
-                        <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
-                          {SUMMIT_DENTAL_ACCOUNT.name}
-                        </td>
-                      </tr>
+                        <MaterialIcon name="person_add" className="text-[16px]" />
+                        Add {CRM_CONTACTS[key].name}
+                      </button>
                     ))}
-                  </tbody>
-                </table>
-                <div className="px-6 py-4 border-t border-[#bfc8c8] text-[12px] text-[#404848]">
-                  2 of 2 contacts
-                </div>
+                  </div>
+                ) : null}
+              </div>
+              <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+                {savedContacts.length > 0 ? (
+                  <>
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-[#eef5f2]">
+                        <tr>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Name
+                          </th>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Role
+                          </th>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Account
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {savedContacts.map((c) => (
+                          <tr
+                            key={c.key}
+                            className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
+                            onClick={() => {
+                              setContactKey(c.key);
+                              setView("contact-record");
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setContactKey(c.key);
+                                setView("contact-record");
+                              }
+                            }}
+                            tabIndex={0}
+                            role="link"
+                          >
+                            <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm font-medium">
+                              {CRM_CONTACTS[c.key].name}
+                            </td>
+                            <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
+                              {c.role || CRM_CONTACTS[c.key].title}
+                            </td>
+                            <td className="px-6 py-6 border-b border-[#bfc8c8] text-sm text-[#404848]">
+                              {accountDisplayName || "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="px-6 py-4 border-t border-[#bfc8c8] text-[12px] text-[#404848]">
+                      {savedContacts.length} of {savedContacts.length} contact
+                      {savedContacts.length === 1 ? "" : "s"}
+                    </div>
+                  </>
+                ) : (
+                  <div className="px-6 py-12 text-center">
+                    <p className="text-sm text-[#707978]">
+                      No contacts yet. Add someone from the buying committee to get started.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -489,97 +682,81 @@ export function CrmOverlay({
         {view === "list" ? (
           <div className="p-6 flex-grow overflow-auto">
             <div className="max-w-7xl mx-auto space-y-6">
-              <header className="flex items-end justify-between">
+              <header className="flex flex-wrap items-end justify-between gap-4">
                 <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">
                   My Opportunities
                 </h3>
+                {!hasOpportunity ? (
+                  <button
+                    type="button"
+                    onClick={openOpportunityRecord}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                  >
+                    <MaterialIcon name="add" className="text-[16px]" />
+                    Create opportunity
+                  </button>
+                ) : null}
               </header>
 
               <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-[#eef5f2]">
-                    <tr>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Account
-                      </th>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Stage
-                      </th>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Value
-                      </th>
-                      <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
-                        Last Activity
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
-                      onClick={openOpportunityRecord}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          openOpportunityRecord();
-                        }
-                      }}
-                      tabIndex={0}
-                      role="link"
-                      aria-label="Open Summit Dental Group opportunity"
-                    >
-                      <td className="px-6 py-6 border-b border-[#bfc8c8]">
-                        <span className="text-sm text-[#161d1b] font-medium">
-                          Summit Dental Group — Tempo Pro
-                        </span>
-                      </td>
-                      <td className="px-6 py-6 border-b border-[#bfc8c8]">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#0f4c4c] text-white text-[10px] font-bold uppercase tracking-widest">
-                          {stageLabel}
-                        </span>
-                      </td>
-                      <td className="px-6 py-6 border-b border-[#bfc8c8]">
-                        <span className="font-code-md text-[13px] text-[#161d1b]">$14,600/yr</span>
-                      </td>
-                      <td className="px-6 py-6 border-b border-[#bfc8c8]">
-                        <div className="flex items-center gap-1 text-[#404848] opacity-60">
-                          <MaterialIcon name="history" className="text-[18px]" />
-                          <span className="text-sm">{lastActivityLabel}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div className="px-6 py-4 bg-white border-t border-[#bfc8c8] flex justify-between items-center">
-                  <span className="text-[12px] font-medium text-[#404848]">1 of 1 opportunity</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      disabled
-                      className="w-8 h-8 flex items-center justify-center rounded border border-[#bfc8c8] text-[#707978] opacity-40 cursor-not-allowed"
-                      aria-label="Previous page"
-                    >
-                      <MaterialIcon name="chevron_left" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      className="w-8 h-8 flex items-center justify-center rounded border border-[#bfc8c8] text-[#707978] opacity-40 cursor-not-allowed"
-                      aria-label="Next page"
-                    >
-                      <MaterialIcon name="chevron_right" />
-                    </button>
+                {hasOpportunity ? (
+                  <>
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-[#eef5f2]">
+                        <tr>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Opportunity
+                          </th>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Stage
+                          </th>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Last Activity
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          className="group hover:bg-[#eef5f2] transition-colors duration-150 cursor-pointer"
+                          onClick={openOpportunityRecord}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              openOpportunityRecord();
+                            }
+                          }}
+                          tabIndex={0}
+                          role="link"
+                          aria-label={`Open ${oppTitle}`}
+                        >
+                          <td className="px-6 py-6 border-b border-[#bfc8c8]">
+                            <span className="text-sm text-[#161d1b] font-medium">{oppTitle}</span>
+                          </td>
+                          <td className="px-6 py-6 border-b border-[#bfc8c8]">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#0f4c4c] text-white text-[10px] font-bold uppercase tracking-widest">
+                              {stageLabel}
+                            </span>
+                          </td>
+                          <td className="px-6 py-6 border-b border-[#bfc8c8]">
+                            <div className="flex items-center gap-1 text-[#404848] opacity-60">
+                              <MaterialIcon name="history" className="text-[18px]" />
+                              <span className="text-sm">{lastActivityLabel}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div className="px-6 py-4 bg-white border-t border-[#bfc8c8] text-[12px] text-[#404848]">
+                      1 of 1 opportunity
+                    </div>
+                  </>
+                ) : (
+                  <div className="px-6 py-12 text-center">
+                    <p className="text-sm text-[#707978]">
+                      No opportunities yet. Create one when you are ready to log a stage.
+                    </p>
                   </div>
-                </div>
-              </div>
-
-              <div className="relative rounded-xl overflow-hidden h-48 border border-[#bfc8c8] shadow-[0_1px_3px_rgba(0,0,0,0.05)] opacity-60">
-                <div className="absolute inset-0 flex flex-col justify-center items-center p-8 text-center bg-[#f4fbf7]/40 backdrop-blur-sm">
-                  <p className="text-base text-[#003434] max-w-md">
-                    No further opportunities pending review. Your current pipeline is clean and
-                    updated.
-                  </p>
-                </div>
+                )}
               </div>
             </div>
           </div>

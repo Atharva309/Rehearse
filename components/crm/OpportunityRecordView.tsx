@@ -35,6 +35,10 @@ type OpportunityRecordViewProps = {
   onOpenContact: (contactKey: CrmContactKey) => void;
   /** When set (handoff deep-link), open this stage tab instead of the default. */
   initialTab?: CrmRecordStageId | null;
+  accountLookupOptions?: { value: string; label: string }[];
+  contactLookupOptions?: { value: string; label: string }[];
+  opportunityTitle?: string;
+  primaryContactLabel?: string;
 };
 
 /**
@@ -69,11 +73,17 @@ function crmStageIndex(stage: CrmRecordStageId): number {
 /**
  * Contact shown in the record header for the selected tab.
  */
-function contactForStage(stage: CrmRecordStageId): string {
-  if (stage === "objections" || stage === "close") {
-    return "Dr. Saul Kim";
+function contactForStage(
+  stage: CrmRecordStageId,
+  primaryContactLabel: string
+): string {
+  if (primaryContactLabel) {
+    return primaryContactLabel;
   }
-  return "Dana Reyes";
+  if (stage === "objections" || stage === "close") {
+    return "—";
+  }
+  return "—";
 }
 
 /**
@@ -107,6 +117,10 @@ export function OpportunityRecordView({
   onOpenAccount,
   onOpenContact,
   initialTab = null,
+  accountLookupOptions = [],
+  contactLookupOptions = [],
+  opportunityTitle = "New opportunity",
+  primaryContactLabel = "",
 }: OpportunityRecordViewProps): React.ReactElement {
   const loggedStages = useMemo(
     () => new Set(logEntries.map((entry) => entry.stage)),
@@ -127,8 +141,12 @@ export function OpportunityRecordView({
     "prospecting";
 
   const [selectedTab, setSelectedTab] = useState<CrmRecordStageId>(defaultTab);
-  const [accountLookup, setAccountLookup] = useState("summit-dental");
-  const [contactLookup, setContactLookup] = useState<CrmContactKey>("dana_reyes");
+  const [accountLookup, setAccountLookup] = useState(
+    accountLookupOptions[0]?.value ?? ""
+  );
+  const [contactLookup, setContactLookup] = useState(
+    contactLookupOptions[0]?.value ?? ""
+  );
 
   const selectedStatus = tabStatusForStage(selectedTab, currentStage, loggedStages);
   const existingEntry =
@@ -149,7 +167,7 @@ export function OpportunityRecordView({
             Opportunities
           </button>
           <MaterialIcon name="chevron_right" className="text-[16px]" />
-          <span className="text-[#161d1b]">Summit Dental Group</span>
+          <span className="text-[#161d1b]">{opportunityTitle}</span>
         </nav>
 
         {/* Record header */}
@@ -159,7 +177,7 @@ export function OpportunityRecordView({
               Opportunity
             </span>
             <h2 className="text-[32px] leading-10 font-semibold tracking-tight text-[#003434]">
-              Summit Dental Group — Tempo Pro
+              {opportunityTitle}
             </h2>
             <div className="flex flex-wrap gap-x-8 gap-y-2 mt-4">
               <div className="flex items-center gap-2">
@@ -169,17 +187,8 @@ export function OpportunityRecordView({
                     CONTACT
                   </span>
                   <span className="text-sm font-medium text-[#161d1b]">
-                    {contactForStage(selectedTab)}
+                    {contactForStage(selectedTab, primaryContactLabel)}
                   </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <MaterialIcon name="payments" className="text-[#404848] text-[18px]" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-medium tracking-wide text-[#404848]">
-                    VALUE
-                  </span>
-                  <span className="text-sm font-medium text-[#0f4c4c]">$14,600/yr</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -198,26 +207,32 @@ export function OpportunityRecordView({
             <div className="flex flex-wrap gap-4 mt-5 pt-4 border-t border-[#bfc8c8]">
               <EntityLookupField
                 label="Account"
-                options={[{ value: "summit-dental", label: "Summit Dental Group" }]}
+                options={
+                  accountLookupOptions.length > 0
+                    ? accountLookupOptions
+                    : [{ value: "", label: "No account linked yet" }]
+                }
                 selectedValue={accountLookup}
                 onSelect={(value) => {
                   setAccountLookup(value);
-                  if (value === "summit-dental") {
+                  if (value) {
                     onOpenAccount();
                   }
                 }}
               />
               <EntityLookupField
                 label="Contact"
-                options={[
-                  { value: "dana_reyes", label: "Dana Reyes" },
-                  { value: "dr_kim", label: "Dr. Saul Kim" },
-                ]}
+                options={
+                  contactLookupOptions.length > 0
+                    ? contactLookupOptions
+                    : [{ value: "", label: "No contacts yet" }]
+                }
                 selectedValue={contactLookup}
                 onSelect={(value) => {
-                  const key = value as CrmContactKey;
-                  setContactLookup(key);
-                  onOpenContact(key);
+                  setContactLookup(value);
+                  if (value) {
+                    onOpenContact(value as CrmContactKey);
+                  }
                 }}
               />
             </div>

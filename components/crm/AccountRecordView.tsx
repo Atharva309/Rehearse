@@ -1,6 +1,7 @@
 /**
  * AccountRecordView.tsx
- * Summit Dental account record — static firmographics + editable Account Strategy notes.
+ * Account record — student-filled identity + editable Account Strategy notes.
+ * Starts empty; name comes from prospecting CRM log when available.
  */
 
 "use client";
@@ -8,17 +9,12 @@
 import { useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 
-/** Facts already established in Tempo entry / prospecting copy (single CRM source). */
-export const SUMMIT_DENTAL_ACCOUNT = {
-  name: "Summit Dental Group",
-  industry: "Healthcare / Dentistry",
-  locations: "8",
-  region: "Denver, CO / Mountain West",
-} as const;
-
 type AccountRecordViewProps = {
   attemptId: string;
+  /** Display name from prospecting log / prior saves; empty → "New account". */
+  displayName?: string;
   onBackToList: () => void;
+  onSaved?: (notes: string, updatedAt: string) => void;
 };
 
 /**
@@ -42,13 +38,17 @@ function formatUpdatedAt(iso: string | null): string | null {
  */
 export function AccountRecordView({
   attemptId,
+  displayName = "",
   onBackToList,
+  onSaved,
 }: AccountRecordViewProps): React.ReactElement {
   const [notes, setNotes] = useState("");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const title = displayName.trim() || "New account";
 
   useEffect(() => {
     let cancelled = false;
@@ -98,6 +98,7 @@ export function AccountRecordView({
       const body = (await res.json()) as { notes: string; updated_at: string };
       setNotes(body.notes);
       setUpdatedAt(body.updated_at);
+      onSaved?.(body.notes, body.updated_at);
     } catch {
       setError("Could not save notes.");
     } finally {
@@ -115,7 +116,7 @@ export function AccountRecordView({
             Accounts
           </button>
           <MaterialIcon name="chevron_right" className="text-[16px]" />
-          <span className="text-[#161d1b]">{SUMMIT_DENTAL_ACCOUNT.name}</span>
+          <span className="text-[#161d1b]">{title}</span>
         </nav>
 
         <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm p-6">
@@ -123,22 +124,13 @@ export function AccountRecordView({
             Account
           </span>
           <h2 className="text-[32px] leading-10 font-semibold tracking-tight text-[#003434] mt-1">
-            {SUMMIT_DENTAL_ACCOUNT.name}
+            {title}
           </h2>
-          <div className="flex flex-wrap gap-x-8 gap-y-3 mt-4">
-            <div>
-              <p className="text-[10px] font-medium tracking-wide text-[#404848]">INDUSTRY</p>
-              <p className="text-sm font-medium text-[#161d1b]">{SUMMIT_DENTAL_ACCOUNT.industry}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium tracking-wide text-[#404848]">LOCATIONS</p>
-              <p className="text-sm font-medium text-[#161d1b]">{SUMMIT_DENTAL_ACCOUNT.locations}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium tracking-wide text-[#404848]">REGION</p>
-              <p className="text-sm font-medium text-[#161d1b]">{SUMMIT_DENTAL_ACCOUNT.region}</p>
-            </div>
-          </div>
+          <p className="text-sm text-[#707978] mt-2">
+            {displayName.trim()
+              ? "Name synced from your Prospecting CRM log."
+              : "Log Prospecting with an account name, or capture strategy notes below."}
+          </p>
         </div>
 
         <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm overflow-hidden">

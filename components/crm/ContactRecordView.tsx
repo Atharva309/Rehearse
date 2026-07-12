@@ -35,7 +35,10 @@ const ROLE_OPTIONS = [
 type ContactRecordViewProps = {
   attemptId: string;
   contactKey: CrmContactKey;
+  /** Linked account label; empty shows an em dash. */
+  accountLabel?: string;
   onBackToList: () => void;
+  onSaved?: (payload: { role: string; notes: string; updatedAt: string }) => void;
 };
 
 /**
@@ -60,7 +63,9 @@ function formatUpdatedAt(iso: string | null): string | null {
 export function ContactRecordView({
   attemptId,
   contactKey,
+  accountLabel = "",
   onBackToList,
+  onSaved,
 }: ContactRecordViewProps): React.ReactElement {
   const profile = CRM_CONTACTS[contactKey];
   const [role, setRole] = useState("");
@@ -129,6 +134,7 @@ export function ContactRecordView({
       setRole(body.role);
       setNotes(body.notes);
       setUpdatedAt(body.updated_at);
+      onSaved?.({ role: body.role, notes: body.notes, updatedAt: body.updated_at });
     } catch {
       setError("Could not save contact.");
     } finally {
@@ -137,6 +143,7 @@ export function ContactRecordView({
   };
 
   const updatedLabel = formatUpdatedAt(updatedAt);
+  const accountSuffix = accountLabel.trim() || "—";
 
   return (
     <div className="p-6 flex-grow overflow-auto">
@@ -156,7 +163,9 @@ export function ContactRecordView({
           <h2 className="text-[32px] leading-10 font-semibold tracking-tight text-[#003434] mt-1">
             {profile.name}
           </h2>
-          <p className="text-sm text-[#404848] mt-1">{profile.title} · Summit Dental Group</p>
+          <p className="text-sm text-[#404848] mt-1">
+            {profile.title} · {accountSuffix}
+          </p>
         </div>
 
         <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm overflow-hidden">
