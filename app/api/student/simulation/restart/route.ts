@@ -1,7 +1,8 @@
 /**
  * restart/route.ts
- * Resets the current in-progress attempt — clears stage scores and
- * returns the student to lead_gen. Called when a student clicks "Restart Simulation".
+ * Resets the current in-progress attempt — clears stage scores and CRM rows
+ * (crm_log_entries, crm_account_notes, crm_contact_notes), then returns the
+ * student to lead_gen. Called when a student clicks "Restart Simulation".
  * Requires a valid student session cookie.
  *
  * POST body: { attemptId, simulationId, classId }
@@ -80,6 +81,45 @@ export async function POST(request: Request): Promise<NextResponse> {
       console.error("[simulation/restart] delete scores", deleteScoresError);
       return NextResponse.json(
         { error: deleteScoresError.message || "Could not clear stage progress." },
+        { status: 500 }
+      );
+    }
+
+    const { error: deleteCrmLogsError } = await supabase
+      .from("crm_log_entries")
+      .delete()
+      .eq("attempt_id", attemptId);
+
+    if (deleteCrmLogsError) {
+      console.error("[simulation/restart] delete crm logs", deleteCrmLogsError);
+      return NextResponse.json(
+        { error: deleteCrmLogsError.message || "Could not clear CRM logs." },
+        { status: 500 }
+      );
+    }
+
+    const { error: deleteCrmAccountNotesError } = await supabase
+      .from("crm_account_notes")
+      .delete()
+      .eq("attempt_id", attemptId);
+
+    if (deleteCrmAccountNotesError) {
+      console.error("[simulation/restart] delete crm account notes", deleteCrmAccountNotesError);
+      return NextResponse.json(
+        { error: deleteCrmAccountNotesError.message || "Could not clear CRM account notes." },
+        { status: 500 }
+      );
+    }
+
+    const { error: deleteCrmContactNotesError } = await supabase
+      .from("crm_contact_notes")
+      .delete()
+      .eq("attempt_id", attemptId);
+
+    if (deleteCrmContactNotesError) {
+      console.error("[simulation/restart] delete crm contact notes", deleteCrmContactNotesError);
+      return NextResponse.json(
+        { error: deleteCrmContactNotesError.message || "Could not clear CRM contact notes." },
         { status: 500 }
       );
     }
