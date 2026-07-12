@@ -4,7 +4,7 @@
  */
 
 import { redirect } from "next/navigation";
-import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
+import { CrmAccess } from "@/components/crm/CrmOverlay";
 import { DiscoveryStage } from "@/components/tempo/stages/DiscoveryStage";
 import { NegotiationStage } from "@/components/tempo/stages/NegotiationStage";
 import { ObjectionHandlingStage } from "@/components/tempo/stages/ObjectionHandlingStage";
@@ -248,10 +248,11 @@ export default async function StudentSimulationPage({
     <>
       {stageView}
       {isTempoDefault ? (
-        <GoToCrmButton
+        <CrmAccess
           simulationId={simulation.id}
           classId={classId}
-          attemptId={attempt.id}
+          currentStage={attempt.current_stage}
+          displayName={session.displayName}
         />
       ) : null}
     </>

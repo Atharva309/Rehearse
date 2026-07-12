@@ -1,22 +1,33 @@
 /**
- * CrmOpportunitiesTable.tsx
- * Rehearse CRM opportunities list — Stitch visual reference for Tempo/Summit Dental.
- * Client component for slide-out “Back to Simulation” navigation.
+ * CrmOverlay.tsx
+ * In-place Rehearse CRM overlay (Stitch opportunities UI). Slides over the live Tempo stage
+ * without unmounting it — open/close is parent-controlled; this file also exports CrmAccess
+ * because the simulation page is a Server Component and cannot hold useState itself.
  */
 
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { SimulationStage } from "@/types";
 
-type CrmOpportunitiesTableProps = {
+const SLIDE_OUT_MS = 250;
+
+type CrmOverlayProps = {
+  isOpen: boolean;
+  onClose: () => void;
   simulationId: string;
   classId: string;
-  attemptId: string;
-  displayName: string;
   currentStage: SimulationStage;
+  displayName: string;
+};
+
+type CrmAccessProps = {
+  simulationId: string;
+  classId: string;
+  currentStage: SimulationStage;
+  displayName: string;
 };
 
 const CRM_STAGE_LABELS: Partial<Record<SimulationStage, string>> = {
@@ -44,38 +55,61 @@ function crmStageLabel(stage: SimulationStage): string {
 }
 
 /**
- * Full-screen CRM shell with a single Summit Dental opportunity row.
+ * Full-viewport CRM overlay — covers the stage without unmounting it.
  */
-export function CrmOpportunitiesTable({
-  simulationId,
-  classId,
-  attemptId,
-  displayName,
+export function CrmOverlay({
+  isOpen,
+  onClose,
   currentStage,
-}: CrmOpportunitiesTableProps): React.ReactElement {
-  const router = useRouter();
-  const [isClosing, setIsClosing] = useState(false);
+  displayName,
+}: CrmOverlayProps): React.ReactElement | null {
+  const [closing, setClosing] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setClosing(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  if (!isOpen) {
+    return null;
+  }
+
   const stageLabel = crmStageLabel(currentStage);
-  const backHref = `/student/simulation/${simulationId}?classId=${encodeURIComponent(classId)}&attempt=${encodeURIComponent(attemptId)}`;
 
   /**
-   * Plays slide-out, then returns to the Tempo stage runner for this attempt.
+   * Plays slide-out, then signals the parent to unmount via onClose.
    */
   const handleBackToSimulation = (): void => {
-    if (isClosing) {
+    if (closing) {
       return;
     }
-    setIsClosing(true);
-    window.setTimeout(() => {
-      router.push(backHref);
-    }, 250);
+    setClosing(true);
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+    }
+    closeTimerRef.current = setTimeout(() => {
+      onClose();
+    }, SLIDE_OUT_MS);
   };
 
   return (
     <div
-      className={`fixed inset-0 z-[50] flex min-h-screen text-[#161d1b] bg-[#f4fbf7] ${
-        isClosing ? "animate-slide-out-right" : "animate-slide-in-right"
+      className={`fixed inset-0 z-[70] flex min-h-screen text-[#161d1b] bg-[#f4fbf7] ${
+        closing ? "animate-slide-out-right" : "animate-slide-in-right"
       }`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Rehearse CRM"
     >
       {/* Side nav */}
       <aside className="fixed left-0 top-0 h-full z-40 flex flex-col pt-8 w-[240px] text-[#dde4e1] bg-[#2d3142]">
@@ -130,7 +164,7 @@ export function CrmOpportunitiesTable({
           <button
             type="button"
             onClick={handleBackToSimulation}
-            disabled={isClosing}
+            disabled={closing}
             className="px-4 py-2 border border-[#003434] text-[#003434] text-[12px] font-medium rounded-lg hover:bg-[#eef5f2] transition-colors duration-200 uppercase tracking-wide disabled:opacity-60"
           >
             Back to Simulation
@@ -221,5 +255,32 @@ export function CrmOpportunitiesTable({
         </div>
       </main>
     </div>
+  );
+}
+
+/**
+ * Client bridge for the server simulation page — owns CRM open state and renders
+ * GoToCrmButton + CrmOverlay as siblings of the stage tree.
+ */
+export function CrmAccess({
+  simulationId,
+  classId,
+  currentStage,
+  displayName,
+}: CrmAccessProps): React.ReactElement {
+  const [isCrmOpen, setIsCrmOpen] = useState(false);
+
+  return (
+    <>
+      <GoToCrmButton onClick={() => setIsCrmOpen(true)} />
+      <CrmOverlay
+        isOpen={isCrmOpen}
+        onClose={() => setIsCrmOpen(false)}
+        simulationId={simulationId}
+        classId={classId}
+        currentStage={currentStage}
+        displayName={displayName}
+      />
+    </>
   );
 }
