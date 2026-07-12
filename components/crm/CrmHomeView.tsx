@@ -143,37 +143,55 @@ export function CrmHomeView({
               View all
             </button>
           </div>
-          <div className="px-5 py-4 space-y-3">
+          <div className="px-5 py-4">
             {contacts.length === 0 ? (
-              <EmptyHint message="No contacts yet. Add buying-committee members as you meet them." />
+              availableContactKeys.length > 0 ? (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <EmptyHint message="No contacts yet. Add buying-committee members as you meet them." />
+                  <button
+                    type="button"
+                    onClick={() => onAddContact(availableContactKeys[0])}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                  >
+                    <MaterialIcon name="add" className="text-[16px]" />
+                    Add contact
+                  </button>
+                </div>
+              ) : (
+                <EmptyHint message="No contacts yet. Add buying-committee members as you meet them." />
+              )
             ) : (
-              <ul className="divide-y divide-[#bfc8c8]/60">
-                {contacts.map((c) => (
-                  <li key={c.key}>
+              <div className="space-y-3">
+                <ul className="divide-y divide-[#bfc8c8]/60">
+                  {contacts.map((c) => (
+                    <li key={c.key}>
+                      <button
+                        type="button"
+                        onClick={() => onOpenContact(c.key)}
+                        className="w-full text-left py-2.5 hover:bg-[#eef5f2] rounded-md px-2 -mx-2 transition-colors"
+                      >
+                        <p className="text-sm font-medium text-[#161d1b]">{c.name}</p>
+                        <p className="text-xs text-[#404848]">
+                          {c.role || c.title || "Role not set"}
+                        </p>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {availableContactKeys.length > 0 ? (
+                  <div className="flex justify-end">
                     <button
                       type="button"
-                      onClick={() => onOpenContact(c.key)}
-                      className="w-full text-left py-2.5 hover:bg-[#eef5f2] rounded-md px-2 -mx-2 transition-colors"
+                      onClick={() => onAddContact(availableContactKeys[0])}
+                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
                     >
-                      <p className="text-sm font-medium text-[#161d1b]">{c.name}</p>
-                      <p className="text-xs text-[#404848]">
-                        {c.role || c.title || "Role not set"}
-                      </p>
+                      <MaterialIcon name="add" className="text-[16px]" />
+                      Add contact
                     </button>
-                  </li>
-                ))}
-              </ul>
+                  </div>
+                ) : null}
+              </div>
             )}
-            {availableContactKeys.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => onAddContact(availableContactKeys[0])}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#0f4c4c] text-[#0f4c4c] text-[12px] font-medium hover:bg-[#eef5f2]"
-              >
-                <MaterialIcon name="person_add" className="text-[16px]" />
-                Add contact
-              </button>
-            ) : null}
           </div>
         </section>
 
