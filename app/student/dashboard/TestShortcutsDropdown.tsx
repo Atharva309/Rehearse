@@ -1,6 +1,6 @@
 /**
  * TestShortcutsDropdown.tsx
- * Dev menu — jump to any Tempo stage or prefilled results preview.
+ * Dev menu — jump to any Tempo stage, prefilled results, or all-badges preview.
  */
 
 "use client";
@@ -54,6 +54,10 @@ export function TestShortcutsDropdown({
           router.push(
             `/student/simulation/${simulationId}/complete?classId=${classId}&testresults=${outcome}`
           );
+        } else if (value === "badges:all") {
+          router.push(
+            `/student/simulation/${simulationId}/complete?classId=${classId}&testbadges=all`
+          );
         }
 
         e.target.value = "";
@@ -76,6 +80,7 @@ export function TestShortcutsDropdown({
             Results — {item.shortLabel}
           </option>
         ))}
+        <option value="badges:all">Test → Badges — All Earned</option>
       </optgroup>
     </select>
   );

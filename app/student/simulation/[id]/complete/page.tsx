@@ -40,7 +40,12 @@ export const metadata: Metadata = {
 
 type PageProps = {
   params: { id: string };
-  searchParams: { attempt?: string; classId?: string; testresults?: string };
+  searchParams: {
+    attempt?: string;
+    classId?: string;
+    testresults?: string;
+    testbadges?: string;
+  };
 };
 
 const TEST_OUTCOMES = new Set<TempoTestResultsOutcome>([
@@ -62,9 +67,12 @@ export default async function SimulationCompletePage({
   }
 
   const testOutcomeRaw = searchParams.testresults?.trim();
-  const testOutcome = TEST_OUTCOMES.has(testOutcomeRaw as TempoTestResultsOutcome)
+  const testOutcomeFromParam = TEST_OUTCOMES.has(testOutcomeRaw as TempoTestResultsOutcome)
     ? (testOutcomeRaw as TempoTestResultsOutcome)
     : null;
+  const testBadgesAll = searchParams.testbadges?.trim() === "all";
+  const testOutcome: TempoTestResultsOutcome | null =
+    testOutcomeFromParam ?? (testBadgesAll ? "deal_agreed" : null);
 
   if (
     testOutcome &&
@@ -83,7 +91,9 @@ export default async function SimulationCompletePage({
       redirect("/student/dashboard");
     }
 
-    const mock = buildTempoTestResultsMock(testOutcome);
+    const mock = buildTempoTestResultsMock(testOutcome, {
+      includeAllBadges: testBadgesAll,
+    });
     const leaderboard = buildTempoTestLeaderboard(
       session.displayName,
       session.studentId,

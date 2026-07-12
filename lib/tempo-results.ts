@@ -1,9 +1,17 @@
 /**
  * tempo-results.ts
- * Helpers for Tempo simulation results — grades, stage config, deal outcome parsing.
+ * Helpers for Tempo simulation results — grades, stage config, deal outcome parsing,
+ * and dashboard test mocks (?testresults=, ?testbadges=all).
  * Used on the student complete page (default class only).
  */
 
+import {
+  DISCOVERY_BADGES,
+  NEGOTIATION_BADGES,
+  OBJECTION_BADGES,
+  PRESENTATION_BADGES,
+  PROSPECTING_BADGES,
+} from "@/lib/tempo-badges";
 import type { LeaderboardEntry, SimulationStage, StageScore } from "@/types";
 
 export const TEMPO_RESULTS_MAX_SCORE = 500;
@@ -231,7 +239,8 @@ function mockStageScore(
   stage: SimulationStage,
   score: number,
   feedback: string,
-  transcript?: string
+  transcript?: string,
+  badgesEarned: string[] = []
 ): StageScore {
   return {
     id: `test-${stage}`,
@@ -240,7 +249,25 @@ function mockStageScore(
     score,
     feedback,
     transcript: transcript ?? null,
+    badges_earned: badgesEarned,
     completed_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * All Tempo badge IDs grouped by stage — for ?testbadges=all QA preview.
+ * IDs come from lib/tempo-badges.ts definitions (not re-hardcoded).
+ */
+export function buildTempoTestBadgesMock(): Record<
+  "prospecting" | "discovery" | "presentation" | "objections" | "close",
+  string[]
+> {
+  return {
+    prospecting: PROSPECTING_BADGES.map((badge) => badge.id),
+    discovery: DISCOVERY_BADGES.map((badge) => badge.id),
+    presentation: PRESENTATION_BADGES.map((badge) => badge.id),
+    objections: OBJECTION_BADGES.map((badge) => badge.id),
+    close: NEGOTIATION_BADGES.map((badge) => badge.id),
   };
 }
 
@@ -254,13 +281,22 @@ export type TempoTestResultsMock = {
   completedAt: string;
 };
 
+export type BuildTempoTestResultsMockOptions = {
+  /** When true, fill every stage's badges_earned with all defined badge IDs. */
+  includeAllBadges?: boolean;
+};
+
 /**
  * Prefilled Tempo results data for dashboard test preview links.
  */
-export function buildTempoTestResultsMock(outcome: TempoTestResultsOutcome): TempoTestResultsMock {
+export function buildTempoTestResultsMock(
+  outcome: TempoTestResultsOutcome,
+  options?: BuildTempoTestResultsMockOptions
+): TempoTestResultsMock {
   const attemptId = "test-results-preview";
   const completedAt = new Date().toISOString();
   const startedAt = new Date(Date.now() - 2 * 60 * 60 * 1000 - 45 * 60 * 1000).toISOString();
+  const allBadges = options?.includeAllBadges === true ? buildTempoTestBadgesMock() : null;
 
   const profiles: Record<
     TempoTestResultsOutcome,
@@ -300,15 +336,20 @@ export function buildTempoTestResultsMock(outcome: TempoTestResultsOutcome): Tem
 
   const profile = profiles[outcome];
   const stages = TEMPO_RESULTS_STAGE_CONFIG.map((s) => s.id);
-  const stageScores = stages.map((stage, i) =>
-    mockStageScore(
+  const stageScores = stages.map((stage, i) => {
+    const badgesForStage =
+      allBadges && stage in allBadges
+        ? allBadges[stage as keyof typeof allBadges]
+        : [];
+    return mockStageScore(
       attemptId,
       stage,
       profile.scores[i],
       profile.feedback[i],
-      stage === "close" ? buildCloseTranscript(outcome) : undefined
-    )
-  );
+      stage === "close" ? buildCloseTranscript(outcome) : undefined,
+      badgesForStage
+    );
+  });
 
   const totalScore = tempoResultsTotalScore(stageScores);
   const grade = tempoResultsGradeFromPercent(

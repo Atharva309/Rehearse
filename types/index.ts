@@ -67,6 +67,8 @@ export type StageScore = {
   score: number;
   feedback: string | null;
   transcript: string | null;
+  /** Badge IDs earned for this stage (Tempo); default [] in DB. */
+  badges_earned?: string[] | null;
   completed_at: string;
 };
 
