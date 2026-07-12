@@ -7,9 +7,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { EntityLookupField } from "@/components/crm/EntityLookupField";
 import { CrmStageLogForm } from "@/components/crm/CrmStageLogForm";
-import type { CrmContactKey } from "@/lib/tempo-crm-contact";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmAccountRecord } from "@/lib/tempo-crm-account";
 import type { CrmContactRecord } from "@/lib/tempo-crm-contact";
@@ -33,12 +31,8 @@ type OpportunityRecordViewProps = {
   logEntries: CrmLogEntry[];
   onLogSaved: (entry: CrmLogEntry) => void;
   onBackToList: () => void;
-  onOpenAccount: () => void;
-  onOpenContact: (contactKey: CrmContactKey) => void;
   /** When set (handoff deep-link), open this stage tab instead of the default. */
   initialTab?: CrmRecordStageId | null;
-  accountLookupOptions?: { value: string; label: string }[];
-  contactLookupOptions?: { value: string; label: string }[];
   opportunityTitle?: string;
   primaryContactLabel?: string;
   accountRecord?: CrmAccountRecord | null;
@@ -118,11 +112,7 @@ export function OpportunityRecordView({
   logEntries,
   onLogSaved,
   onBackToList,
-  onOpenAccount,
-  onOpenContact,
   initialTab = null,
-  accountLookupOptions = [],
-  contactLookupOptions = [],
   opportunityTitle = "New opportunity",
   primaryContactLabel = "",
   accountRecord = null,
@@ -147,12 +137,6 @@ export function OpportunityRecordView({
     "prospecting";
 
   const [selectedTab, setSelectedTab] = useState<CrmRecordStageId>(defaultTab);
-  const [accountLookup, setAccountLookup] = useState(
-    accountLookupOptions[0]?.value ?? ""
-  );
-  const [contactLookup, setContactLookup] = useState(
-    contactLookupOptions[0]?.value ?? ""
-  );
 
   const selectedStatus = tabStatusForStage(selectedTab, currentStage, loggedStages);
   const existingEntry =
@@ -208,39 +192,6 @@ export function OpportunityRecordView({
                   </span>
                 </div>
               </div>
-            </div>
-
-            <div className="flex flex-wrap gap-4 mt-5 pt-4 border-t border-[#bfc8c8]">
-              <EntityLookupField
-                label="Account"
-                options={
-                  accountLookupOptions.length > 0
-                    ? accountLookupOptions
-                    : [{ value: "", label: "No account linked yet" }]
-                }
-                selectedValue={accountLookup}
-                onSelect={(value) => {
-                  setAccountLookup(value);
-                  if (value) {
-                    onOpenAccount();
-                  }
-                }}
-              />
-              <EntityLookupField
-                label="Contact"
-                options={
-                  contactLookupOptions.length > 0
-                    ? contactLookupOptions
-                    : [{ value: "", label: "No contacts yet" }]
-                }
-                selectedValue={contactLookup}
-                onSelect={(value) => {
-                  setContactLookup(value);
-                  if (value) {
-                    onOpenContact(value as CrmContactKey);
-                  }
-                }}
-              />
             </div>
           </div>
         </div>

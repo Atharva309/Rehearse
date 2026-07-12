@@ -325,13 +325,6 @@ export function CrmOverlay({
   const lastActivityLabel = hasOpportunity
     ? `Logged ${logEntries.length} stage${logEntries.length === 1 ? "" : "s"}`
     : "Not yet logged";
-  const contactOptionsForLookup = savedContacts.map((c) => ({
-    value: c.contactKey,
-    label: contactDisplayName(c.fields) || "Contact",
-  }));
-  const accountOptionsForLookup = hasAccount
-    ? [{ value: "account", label: accountDisplayName || "Account" }]
-    : [];
 
   const handleBackToSimulation = (): void => {
     if (closing) {
@@ -432,17 +425,14 @@ export function CrmOverlay({
 
       <main className="ml-[240px] flex-grow flex flex-col h-screen min-w-0">
         <header className="w-full px-6 py-4 bg-[#f4fbf7] border-b border-[#bfc8c8] shadow-sm sticky top-0 z-30">
-          <h2 className="text-lg font-bold text-[#003434]">Rehearse CRM</h2>
-          <div className="flex justify-start mt-2">
-            <button
-              type="button"
-              onClick={handleBackToSimulation}
-              disabled={closing}
-              className="px-4 py-2 border border-[#003434] text-[#003434] text-[12px] font-medium rounded-lg hover:bg-[#eef5f2] transition-colors duration-200 uppercase tracking-wide disabled:opacity-60"
-            >
-              Back to Simulation
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleBackToSimulation}
+            disabled={closing}
+            className="px-4 py-2 border border-[#003434] text-[#003434] text-[12px] font-medium rounded-lg hover:bg-[#eef5f2] transition-colors duration-200 uppercase tracking-wide disabled:opacity-60"
+          >
+            Back to Simulation
+          </button>
         </header>
 
         {view === "home" ? (
@@ -492,14 +482,7 @@ export function CrmOverlay({
               setActiveDeepLink(null);
               setView("list");
             }}
-            onOpenAccount={() => setView("account-record")}
-            onOpenContact={(key) => {
-              setContactKey(key);
-              setView("contact-record");
-            }}
             initialTab={activeDeepLink}
-            accountLookupOptions={accountOptionsForLookup}
-            contactLookupOptions={contactOptionsForLookup}
             opportunityTitle={hasOpportunity ? oppTitle : "New opportunity"}
             primaryContactLabel={
               primaryContactFromLogs(logEntries) ||
