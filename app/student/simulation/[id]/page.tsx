@@ -4,6 +4,7 @@
  */
 
 import { redirect } from "next/navigation";
+import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
 import { DiscoveryStage } from "@/components/tempo/stages/DiscoveryStage";
 import { NegotiationStage } from "@/components/tempo/stages/NegotiationStage";
 import { ObjectionHandlingStage } from "@/components/tempo/stages/ObjectionHandlingStage";
@@ -177,8 +178,10 @@ export default async function StudentSimulationPage({
   const objectionScore = scores.find((s) => s.stage === "objections");
   const objectionSummary = parseObjectionSummaryFromTranscript(objectionScore?.transcript);
 
+  let stageView: React.ReactElement;
+
   if (showTempoProspectingWizard) {
-    return (
+    stageView = (
       <ProspectingWizard
         attemptId={attempt.id}
         simulationId={simulation.id}
@@ -186,10 +189,8 @@ export default async function StudentSimulationPage({
         simulationTitle={simulation.title}
       />
     );
-  }
-
-  if (showTempoDiscovery) {
-    return (
+  } else if (showTempoDiscovery) {
+    stageView = (
       <DiscoveryStage
         attemptId={attempt.id}
         simulationId={simulation.id}
@@ -198,10 +199,8 @@ export default async function StudentSimulationPage({
         simliFaceId={simulation.simli_face_id}
       />
     );
-  }
-
-  if (showTempoPresentation) {
-    return (
+  } else if (showTempoPresentation) {
+    stageView = (
       <PresentationStage
         attemptId={attempt.id}
         simulationId={simulation.id}
@@ -210,10 +209,8 @@ export default async function StudentSimulationPage({
         discoverySummary={discoverySummary}
       />
     );
-  }
-
-  if (showTempoObjections) {
-    return (
+  } else if (showTempoObjections) {
+    stageView = (
       <ObjectionHandlingStage
         attemptId={attempt.id}
         simulationId={simulation.id}
@@ -223,10 +220,8 @@ export default async function StudentSimulationPage({
         simliFaceId={simulation.simli_face_id}
       />
     );
-  }
-
-  if (showTempoNegotiation) {
-    return (
+  } else if (showTempoNegotiation) {
+    stageView = (
       <NegotiationStage
         attemptId={attempt.id}
         simulationId={simulation.id}
@@ -237,15 +232,28 @@ export default async function StudentSimulationPage({
         objectionSummary={objectionSummary}
       />
     );
+  } else {
+    stageView = (
+      <SimulationRunner
+        simulation={simulation}
+        attempt={attempt}
+        stageScores={scores}
+        classId={classId}
+        className={classRow?.name}
+      />
+    );
   }
 
   return (
-    <SimulationRunner
-      simulation={simulation}
-      attempt={attempt}
-      stageScores={scores}
-      classId={classId}
-      className={classRow?.name}
-    />
+    <>
+      {stageView}
+      {isTempoDefault ? (
+        <GoToCrmButton
+          simulationId={simulation.id}
+          classId={classId}
+          attemptId={attempt.id}
+        />
+      ) : null}
+    </>
   );
 }
