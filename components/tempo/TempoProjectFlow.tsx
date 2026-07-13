@@ -34,7 +34,7 @@ function statusForIndex(index: number, currentIndex: number): FlowStatus {
 }
 
 /**
- * Theme colors — soft charcoal for done, mid neutral for current, white for upcoming.
+ * Theme colors — soft Rehearse gold for done/current (matches simulation tertiary).
  */
 function colorsForStatus(status: FlowStatus): {
   fill: string;
@@ -42,10 +42,10 @@ function colorsForStatus(status: FlowStatus): {
   text: string;
 } {
   if (status === "completed") {
-    return { fill: "#52525B", stroke: "#52525B", text: "#FFFFFF" };
+    return { fill: "#C9A84C", stroke: "#C9A84C", text: "#584400" };
   }
   if (status === "current") {
-    return { fill: "#A1A1AA", stroke: "#71717A", text: "#27272A" };
+    return { fill: "#FFE08F", stroke: "#C9A84C", text: "#584400" };
   }
   return { fill: "#FFFFFF", stroke: "#D4D4D8", text: "#71717A" };
 }
