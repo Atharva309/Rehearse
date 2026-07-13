@@ -15,7 +15,7 @@ type TempoBackToDashboardProps = {
 };
 
 /**
- * Compact back control styled for the dark primary left column.
+ * Compact back control — gold fill so it stands out on the dark left column.
  */
 export function TempoBackToDashboard({
   href = "/student/dashboard",
@@ -27,7 +27,7 @@ export function TempoBackToDashboard({
     <button
       type="button"
       onClick={() => router.push(href)}
-      className={`inline-flex items-center gap-1.5 w-fit px-2.5 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide uppercase text-white/90 border border-white/20 hover:bg-white/10 hover:text-white transition-colors ${className}`}
+      className={`inline-flex items-center gap-1.5 w-fit px-3 py-2 rounded-lg text-[11px] font-bold tracking-wide uppercase bg-tertiary-fixed text-on-tertiary-fixed border border-tertiary-container/40 shadow-sm hover:brightness-95 active:scale-[0.98] transition-all ${className}`}
     >
       <MaterialIcon name="arrow_back" className="text-[16px]" />
       Back to Dashboard

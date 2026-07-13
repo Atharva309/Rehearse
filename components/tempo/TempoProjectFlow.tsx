@@ -34,7 +34,7 @@ function statusForIndex(index: number, currentIndex: number): FlowStatus {
 }
 
 /**
- * Theme colors — original Tempo pill palette (primary-container navy) from before the chevron redesign.
+ * Theme colors — left-column blue for done, light gold for current, white for upcoming.
  */
 function colorsForStatus(status: FlowStatus): {
   fill: string;
@@ -45,7 +45,7 @@ function colorsForStatus(status: FlowStatus): {
     return { fill: "#1A1A2E", stroke: "#1A1A2E", text: "#FFFFFF" };
   }
   if (status === "current") {
-    return { fill: "#E8E8EF", stroke: "#1A1A2E", text: "#1A1A2E" };
+    return { fill: "#FFE08F", stroke: "#C9A84C", text: "#584400" };
   }
   return { fill: "#FFFFFF", stroke: "#C8C5CD", text: "#47464C" };
 }
