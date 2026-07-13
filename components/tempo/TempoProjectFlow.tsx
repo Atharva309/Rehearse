@@ -34,7 +34,7 @@ function statusForIndex(index: number, currentIndex: number): FlowStatus {
 }
 
 /**
- * Theme colors — black for completed, darker blue-grey for current/upcoming.
+ * Theme colors — done black, current blue-grey, upcoming white.
  */
 function colorsForStatus(status: FlowStatus): {
   fill: string;
@@ -47,7 +47,7 @@ function colorsForStatus(status: FlowStatus): {
   if (status === "current") {
     return { fill: "#B4BECB", stroke: "#1E293B", text: "#1E293B" };
   }
-  return { fill: "#CBD3DE", stroke: "#7B8798", text: "#475569" };
+  return { fill: "#FFFFFF", stroke: "#D0D5DD", text: "#6B7280" };
 }
 
 /**
