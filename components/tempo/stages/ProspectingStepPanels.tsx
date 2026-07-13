@@ -4,6 +4,9 @@
  * Steps: AI Research → Opening Message (CRM-duplicate fields live in CRM).
  */
 
+"use client";
+
+import { useEffect, useRef } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import {
   AUTO_RESEARCH_CARDS,
@@ -42,9 +45,91 @@ export function ProspectingStepPanels({
   onFieldChange,
   onSelfCheckChange,
 }: StepPanelsProps): React.ReactElement {
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (currentStep !== 0) {
+      return;
+    }
+    const el = chatScrollRef.current;
+    if (!el) {
+      return;
+    }
+    el.scrollTop = el.scrollHeight;
+  }, [currentStep, state.chatMessages, isAILoading]);
+
   if (currentStep === 0) {
     return (
       <div>
+        <section className="mb-xl">
+          <div className="flex items-center gap-sm mb-md">
+            <MaterialIcon name="forum" className="text-secondary" />
+            <h3 className="font-headline-md text-headline-md">Dig Deeper</h3>
+          </div>
+          <div className="bg-surface-container-high rounded-xl p-md border border-outline-variant flex flex-col">
+            <div
+              ref={chatScrollRef}
+              className="h-[280px] overflow-y-auto space-y-md pr-1 custom-scrollbar"
+            >
+              {state.chatMessages.map((msg: ChatMessage, i: number) => (
+                <div key={`${msg.role}-${i}`} className="flex flex-col gap-xs">
+                  {msg.role === "user" ? (
+                    <div className="bg-[#acc7ff] text-on-secondary-fixed max-w-[85%] self-end p-sm rounded-lg rounded-tr-none text-body-md shadow-sm">
+                      {msg.content}
+                    </div>
+                  ) : (
+                    <div className="bg-surface-container-lowest text-on-surface max-w-[90%] self-start p-sm rounded-lg rounded-tl-none border border-outline-variant text-body-md shadow-sm flex gap-sm items-start">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/pitchlab-logo-new.png"
+                        alt="Rehearse AI"
+                        className="h-7 w-auto shrink-0 mt-0.5"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-wide mb-1">
+                          Rehearse AI
+                        </p>
+                        <p className="whitespace-pre-wrap leading-relaxed">
+                          {sanitizeAiResearchReply(msg.content)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {isAILoading && (
+                <div className="flex items-center gap-sm text-on-surface-variant">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/pitchlab-logo-new.png" alt="" className="h-5 w-auto opacity-70" />
+                  <div className="w-4 h-4 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-label-sm">Rehearse AI is thinking...</span>
+                </div>
+              )}
+            </div>
+            <div className="relative pt-md mt-md border-t border-outline-variant/60">
+              <input
+                className="w-full h-12 bg-surface-container-lowest border border-outline-variant rounded-lg pl-md pr-12 text-body-md focus:ring-2 focus:ring-secondary-container outline-none"
+                placeholder="Ask Rehearse AI anything about the prospect..."
+                value={chatInput}
+                onChange={(e) => onChatInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onSendMessage();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={onSendMessage}
+                className="absolute right-2 top-[calc(0.75rem+1px)] w-10 h-10 flex items-center justify-center text-secondary hover:text-secondary/80 transition-colors"
+              >
+                <MaterialIcon name="send" />
+              </button>
+            </div>
+          </div>
+        </section>
+
         <div className="flex items-center justify-between mb-lg">
           <div>
             <h2 className="font-headline-lg text-headline-lg text-primary">Research Analysis</h2>
@@ -78,70 +163,6 @@ export function ProspectingStepPanels({
                 <p className="text-label-sm text-on-surface-variant line-clamp-3">{card.content}</p>
               </div>
             ))}
-          </div>
-        </section>
-
-        <section className="mb-xl">
-          <div className="flex items-center gap-sm mb-md">
-            <MaterialIcon name="forum" className="text-secondary" />
-            <h3 className="font-headline-md text-headline-md">Dig Deeper</h3>
-          </div>
-          <div className="bg-surface-container-high rounded-xl p-md space-y-md border border-outline-variant">
-            <div className="min-h-[200px] space-y-md">
-              {state.chatMessages.map((msg: ChatMessage, i: number) => (
-                <div key={`${msg.role}-${i}`} className="flex flex-col gap-xs">
-                  {msg.role === "user" ? (
-                    <div className="bg-[#acc7ff] text-on-secondary-fixed max-w-[85%] self-end p-sm rounded-lg rounded-tr-none text-body-md shadow-sm">
-                      {msg.content}
-                    </div>
-                  ) : (
-                    <div className="bg-surface-container-lowest text-on-surface max-w-[90%] self-start p-sm rounded-lg rounded-tl-none border border-outline-variant text-body-md shadow-sm flex gap-sm items-start">
-                      <img
-                        src="/pitchlab-logo-new.png"
-                        alt="Rehearse AI"
-                        className="h-7 w-auto shrink-0 mt-0.5"
-                      />
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-primary uppercase tracking-wide mb-1">
-                          Rehearse AI
-                        </p>
-                        <p className="whitespace-pre-wrap leading-relaxed">
-                          {sanitizeAiResearchReply(msg.content)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {isAILoading && (
-                <div className="flex items-center gap-sm text-on-surface-variant">
-                  <img src="/pitchlab-logo-new.png" alt="" className="h-5 w-auto opacity-70" />
-                  <div className="w-4 h-4 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-label-sm">Rehearse AI is thinking...</span>
-                </div>
-              )}
-            </div>
-            <div className="relative pt-sm">
-              <input
-                className="w-full h-12 bg-surface-container-lowest border border-outline-variant rounded-lg pl-md pr-12 text-body-md focus:ring-2 focus:ring-secondary-container outline-none"
-                placeholder="Ask Rehearse AI anything about the prospect..."
-                value={chatInput}
-                onChange={(e) => onChatInputChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    onSendMessage();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={onSendMessage}
-                className="absolute right-2 top-3 w-10 h-10 flex items-center justify-center text-secondary hover:text-secondary/80 transition-colors"
-              >
-                <MaterialIcon name="send" />
-              </button>
-            </div>
           </div>
         </section>
       </div>
