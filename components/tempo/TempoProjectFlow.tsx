@@ -34,7 +34,7 @@ function statusForIndex(index: number, currentIndex: number): FlowStatus {
 }
 
 /**
- * Theme colors for each chevron state (matches Rehearse primary teal).
+ * Theme colors for each chevron state — black / grey (not teal).
  */
 function colorsForStatus(status: FlowStatus): {
   fill: string;
@@ -42,12 +42,12 @@ function colorsForStatus(status: FlowStatus): {
   text: string;
 } {
   if (status === "completed") {
-    return { fill: "#0F4C4C", stroke: "#0F4C4C", text: "#FFFFFF" };
+    return { fill: "#1A1A1A", stroke: "#1A1A1A", text: "#FFFFFF" };
   }
   if (status === "current") {
-    return { fill: "#E6F4F3", stroke: "#0F4C4C", text: "#0F4C4C" };
+    return { fill: "#F0F0F0", stroke: "#1A1A1A", text: "#1A1A1A" };
   }
-  return { fill: "#F2F5F4", stroke: "#D4DEDB", text: "#55625E" };
+  return { fill: "#F5F5F5", stroke: "#D0D0D0", text: "#6B6B6B" };
 }
 
 /**
