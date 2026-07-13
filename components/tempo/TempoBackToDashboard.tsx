@@ -27,7 +27,7 @@ export function TempoBackToDashboard({
     <button
       type="button"
       onClick={() => router.push(href)}
-      className={`inline-flex items-center gap-1.5 w-fit px-3 py-2 rounded-lg text-[11px] font-bold tracking-wide uppercase bg-tertiary-fixed text-on-tertiary-fixed border border-tertiary-container/40 shadow-sm hover:brightness-95 active:scale-[0.98] transition-all ${className}`}
+      className={`inline-flex items-center gap-1.5 w-fit px-3 py-2 rounded-lg text-[11px] font-bold tracking-wide uppercase bg-tertiary-container text-on-tertiary-fixed border border-tertiary-container shadow-sm hover:brightness-95 active:scale-[0.98] transition-all ${className}`}
     >
       <MaterialIcon name="arrow_back" className="text-[16px]" />
       Back to Dashboard

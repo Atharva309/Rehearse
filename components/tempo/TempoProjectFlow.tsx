@@ -45,7 +45,7 @@ function colorsForStatus(status: FlowStatus): {
     return { fill: "#1A1A2E", stroke: "#1A1A2E", text: "#FFFFFF" };
   }
   if (status === "current") {
-    return { fill: "#FFE08F", stroke: "#C9A84C", text: "#584400" };
+    return { fill: "#C9A84C", stroke: "#C9A84C", text: "#241A00" };
   }
   return { fill: "#FFFFFF", stroke: "#C8C5CD", text: "#47464C" };
 }
