@@ -34,7 +34,7 @@ function statusForIndex(index: number, currentIndex: number): FlowStatus {
 }
 
 /**
- * Theme colors — soft Rehearse gold for done/current (matches simulation tertiary).
+ * Theme colors — original Tempo pill palette (primary-container navy) from before the chevron redesign.
  */
 function colorsForStatus(status: FlowStatus): {
   fill: string;
@@ -42,12 +42,12 @@ function colorsForStatus(status: FlowStatus): {
   text: string;
 } {
   if (status === "completed") {
-    return { fill: "#C9A84C", stroke: "#C9A84C", text: "#584400" };
+    return { fill: "#1A1A2E", stroke: "#1A1A2E", text: "#FFFFFF" };
   }
   if (status === "current") {
-    return { fill: "#FFE08F", stroke: "#C9A84C", text: "#584400" };
+    return { fill: "#E8E8EF", stroke: "#1A1A2E", text: "#1A1A2E" };
   }
-  return { fill: "#FFFFFF", stroke: "#D4D4D8", text: "#71717A" };
+  return { fill: "#FFFFFF", stroke: "#C8C5CD", text: "#47464C" };
 }
 
 /**
