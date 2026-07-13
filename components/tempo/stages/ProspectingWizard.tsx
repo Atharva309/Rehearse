@@ -9,6 +9,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { HandoffModal } from "@/components/tempo/HandoffModal";
+import { TempoBackToDashboard } from "@/components/tempo/TempoBackToDashboard";
 import { TempoWizardTopBar } from "@/components/tempo/TempoWizardTopBar";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import { ProspectingStepPanels } from "@/components/tempo/stages/ProspectingStepPanels";
@@ -87,18 +88,16 @@ export function ProspectingWizard({
         simulationTitle={simulationTitle}
         currentStep={currentStep}
         onOpenHandoff={() => setForceHandoffOpen(true)}
-        onBack={() => {
-          if (currentStep > 0) {
-            wizard.setCurrentStep(currentStep - 1);
-          } else {
-            router.push("/student/dashboard");
-          }
-        }}
+        onBackToDashboard={() => router.push("/student/dashboard")}
+        onPreviousStep={() => wizard.setCurrentStep(currentStep - 1)}
       />
 
       <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
         <div className="flex flex-1 min-h-0 overflow-hidden">
         <aside className="w-60 bg-primary-container text-on-primary-container flex flex-col h-full shrink-0 hidden lg:flex">
+          <div className="px-lg pt-md pb-sm">
+            <TempoBackToDashboard />
+          </div>
           <div className="p-lg border-b border-white/10">
             <div className="flex items-center gap-2 mb-sm flex-nowrap">
               <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#c6c4df] whitespace-nowrap shrink-0">

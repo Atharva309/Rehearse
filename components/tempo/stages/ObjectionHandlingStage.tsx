@@ -155,7 +155,7 @@ export function ObjectionHandlingStage({
         classId={classId}
         simulationTitle={simulationTitle}
         onOpenHandoff={() => setShowHandoff(true)}
-        onBack={() => router.push("/student/dashboard")}
+        onBackToDashboard={() => router.push("/student/dashboard")}
       />
 
       <ErrorBoundary stageName="objections">

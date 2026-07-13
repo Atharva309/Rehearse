@@ -6,6 +6,7 @@
  */
 
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import { TempoBackToDashboard } from "@/components/tempo/TempoBackToDashboard";
 import type { PresentationForm } from "@/lib/tempo-presentation";
 import {
   OBJECTION_TIPS,
@@ -51,6 +52,7 @@ export function ObjectionHandlingStageLayout({
       <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* ── Left panel (matches Stage 2 Discovery mission briefing) ─── */}
         <aside className="w-60 xl:w-72 bg-primary-container text-on-primary p-lg flex flex-col gap-lg border-r border-white/5 shrink-0 hidden lg:flex overflow-y-auto">
+          <TempoBackToDashboard />
           <section>
             <h2 className="font-label-sm text-label-sm uppercase tracking-widest text-on-primary-container mb-4">
               Mission Briefing

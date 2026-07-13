@@ -131,7 +131,7 @@ export function DiscoveryStage({
         classId={classId}
         simulationTitle={simulationTitle}
         onOpenHandoff={() => setShowHandoff(true)}
-        onBack={() => router.push("/student/dashboard")}
+        onBackToDashboard={() => router.push("/student/dashboard")}
       />
 
       <ErrorBoundary stageName="discovery">
