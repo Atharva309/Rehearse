@@ -34,7 +34,7 @@ function statusForIndex(index: number, currentIndex: number): FlowStatus {
 }
 
 /**
- * Theme colors for each chevron state — black / grey (not teal).
+ * Theme colors — black for completed, darker blue-grey for current/upcoming.
  */
 function colorsForStatus(status: FlowStatus): {
   fill: string;
@@ -45,9 +45,9 @@ function colorsForStatus(status: FlowStatus): {
     return { fill: "#1A1A1A", stroke: "#1A1A1A", text: "#FFFFFF" };
   }
   if (status === "current") {
-    return { fill: "#F0F0F0", stroke: "#1A1A1A", text: "#1A1A1A" };
+    return { fill: "#B4BECB", stroke: "#1E293B", text: "#1E293B" };
   }
-  return { fill: "#F5F5F5", stroke: "#D0D0D0", text: "#6B6B6B" };
+  return { fill: "#CBD3DE", stroke: "#7B8798", text: "#475569" };
 }
 
 /**
@@ -65,11 +65,12 @@ function chevronPath(position: "first" | "middle" | "last"): string {
 
 /**
  * Horizontal chevron project-flow strip used in every Tempo stage top bar.
+ * Fills its parent width so the top bar can align it with the middle column.
  */
 export function TempoProjectFlow({ currentIndex }: TempoProjectFlowProps): React.ReactElement {
   return (
     <div
-      className="flex items-stretch min-w-0 flex-1 overflow-x-auto scrollbar-none"
+      className="flex items-stretch w-full min-w-0 overflow-x-auto scrollbar-none"
       role="list"
       aria-label="Project flow"
     >
@@ -84,8 +85,8 @@ export function TempoProjectFlow({ currentIndex }: TempoProjectFlowProps): React
             key={stage.id}
             role="listitem"
             aria-current={status === "current" ? "step" : undefined}
-            className={`relative h-9 sm:h-10 shrink-0 ${
-              index === 0 ? "min-w-[5.5rem] sm:min-w-[6.5rem] flex-[1.05]" : "min-w-[5.5rem] sm:min-w-[6.5rem] flex-1 -ml-2 sm:-ml-2.5"
+            className={`relative h-9 sm:h-10 min-w-0 flex-1 ${
+              index === 0 ? "" : "-ml-2 sm:-ml-2.5"
             }`}
           >
             <svg
@@ -102,7 +103,7 @@ export function TempoProjectFlow({ currentIndex }: TempoProjectFlowProps): React
               />
             </svg>
             <span
-              className="relative z-10 flex h-full items-center justify-center px-3 sm:px-4 text-[8px] sm:text-[10px] font-semibold tracking-wide whitespace-nowrap"
+              className="relative z-10 flex h-full items-center justify-center px-1 sm:px-2 text-[7px] sm:text-[10px] font-semibold tracking-wide whitespace-nowrap"
               style={{ color: colors.text }}
             >
               {stage.label}

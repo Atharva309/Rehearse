@@ -1,8 +1,8 @@
 /**
  * TempoStageTopBar.tsx
- * Shared fixed header for all Tempo stages — Rehearse logo, optional step back,
- * chevron project flow, handoff note, and restart. Dashboard exit lives on the
- * left column (with a mobile-only fallback here).
+ * Shared fixed header for all Tempo stages — three zones align with the stage
+ * body (left column / middle content / right panel). Project flow fills the
+ * middle zone only.
  */
 
 import Link from "next/link";
@@ -44,47 +44,64 @@ export function TempoStageTopBar({
 }: TempoStageTopBarProps): React.ReactElement {
   return (
     <header className="fixed top-0 left-0 right-0 z-[50] h-16 border-b border-border bg-page shrink-0">
-      <div className="h-full flex items-center gap-3 sm:gap-4 px-3 sm:px-4 lg:px-6 min-w-0">
-        <Link
-          href="/student/dashboard"
-          className="flex items-center gap-2 shrink-0 text-xl font-bold text-primary tracking-tight"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/pitchlab-logo-new.png"
-            alt="Rehearse logo"
-            className="h-[1.5em] w-auto shrink-0"
-          />
-          <span className="hidden sm:inline">Rehearse</span>
-        </Link>
+      <div className="h-full flex items-stretch min-w-0">
+        {/* Left zone — matches stage blue column width */}
+        <div className="hidden lg:flex w-60 xl:w-[280px] shrink-0 items-center gap-3 px-4 lg:px-6 border-r border-transparent">
+          <Link
+            href="/student/dashboard"
+            className="flex items-center gap-2 shrink-0 text-xl font-bold text-primary tracking-tight"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/pitchlab-logo-new.png"
+              alt="Rehearse logo"
+              className="h-[1.5em] w-auto shrink-0"
+            />
+            <span className="hidden xl:inline">Rehearse</span>
+          </Link>
+        </div>
 
-        <div className="hidden sm:block w-px h-6 bg-outline-variant shrink-0" />
-
-        {/* Dashboard exit when the left column is hidden */}
-        <button
-          type="button"
-          onClick={onBackToDashboard}
-          className={`${BAR_BUTTON} lg:hidden text-on-surface-variant border border-outline-variant hover:bg-surface-container`}
-        >
-          <MaterialIcon name="arrow_back" className="text-[16px]" />
-          <span>Back</span>
-        </button>
-
-        {previousStepLabel && onPreviousStep ? (
+        {/* Mobile logo + back */}
+        <div className="flex lg:hidden items-center gap-2 px-3 shrink-0">
+          <Link
+            href="/student/dashboard"
+            className="flex items-center gap-2 shrink-0 text-xl font-bold text-primary tracking-tight"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/pitchlab-logo-new.png"
+              alt="Rehearse logo"
+              className="h-[1.5em] w-auto shrink-0"
+            />
+          </Link>
           <button
             type="button"
-            onClick={onPreviousStep}
+            onClick={onBackToDashboard}
             className={`${BAR_BUTTON} text-on-surface-variant border border-outline-variant hover:bg-surface-container`}
           >
             <MaterialIcon name="arrow_back" className="text-[16px]" />
-            <span className="hidden md:inline">Back to {previousStepLabel}</span>
-            <span className="md:hidden">Back</span>
+            <span>Back</span>
           </button>
-        ) : null}
+        </div>
 
-        <TempoProjectFlow currentIndex={flowIndex} />
+        {/* Middle zone — same flex space as the stage center column */}
+        <div className="flex-1 min-w-0 flex items-center gap-2 px-3 sm:px-4">
+          {previousStepLabel && onPreviousStep ? (
+            <button
+              type="button"
+              onClick={onPreviousStep}
+              className={`${BAR_BUTTON} text-on-surface-variant border border-outline-variant hover:bg-surface-container`}
+            >
+              <MaterialIcon name="arrow_back" className="text-[16px]" />
+              <span className="hidden md:inline">Back to {previousStepLabel}</span>
+              <span className="md:hidden">Back</span>
+            </button>
+          ) : null}
+          <TempoProjectFlow currentIndex={flowIndex} />
+        </div>
 
-        <div className="flex items-center gap-3 shrink-0 ml-1">
+        {/* Right zone — matches stage right panel width */}
+        <div className="shrink-0 flex items-center justify-end gap-2 sm:gap-3 px-3 sm:px-4 lg:px-6 w-auto lg:w-80">
           <button
             type="button"
             onClick={onOpenHandoff}
