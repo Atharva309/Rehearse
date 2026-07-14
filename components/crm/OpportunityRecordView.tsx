@@ -7,6 +7,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CrmOpportunityCompletionGauge } from "@/components/crm/CrmOpportunityCompletionGauge";
 import { CrmStageLogForm } from "@/components/crm/CrmStageLogForm";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmAccountRecord } from "@/lib/tempo-crm-account";
@@ -37,6 +38,8 @@ type OpportunityRecordViewProps = {
   primaryContactLabel?: string;
   accountRecord?: CrmAccountRecord | null;
   contactRecords?: CrmContactRecord[];
+  /** Logged CRM stages as 0–100 completion. */
+  completionPercent?: number;
 };
 
 /**
@@ -117,6 +120,7 @@ export function OpportunityRecordView({
   primaryContactLabel = "",
   accountRecord = null,
   contactRecords = [],
+  completionPercent = 0,
 }: OpportunityRecordViewProps): React.ReactElement {
   const loggedStages = useMemo(
     () => new Set(logEntries.map((entry) => entry.stage)),
@@ -162,36 +166,44 @@ export function OpportunityRecordView({
 
         {/* Record header */}
         <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm p-6 mb-6">
-          <div className="space-y-1">
-            <span className="text-[12px] font-medium tracking-widest uppercase text-[#404848]">
-              Opportunity
-            </span>
-            <h2 className="text-[32px] leading-10 font-semibold tracking-tight text-[#003434]">
-              {opportunityTitle}
-            </h2>
-            <div className="flex flex-wrap gap-x-8 gap-y-2 mt-4">
-              <div className="flex items-center gap-2">
-                <MaterialIcon name="person" className="text-[#404848] text-[18px]" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-medium tracking-wide text-[#404848]">
-                    CONTACT
-                  </span>
-                  <span className="text-sm font-medium text-[#161d1b]">
-                    {contactForStage(selectedTab, primaryContactLabel)}
-                  </span>
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="space-y-1 min-w-0">
+              <span className="text-[12px] font-medium tracking-widest uppercase text-[#404848]">
+                Opportunity
+              </span>
+              <h2 className="text-[32px] leading-10 font-semibold tracking-tight text-[#003434]">
+                {opportunityTitle}
+              </h2>
+              <div className="flex flex-wrap gap-x-8 gap-y-2 mt-4">
+                <div className="flex items-center gap-2">
+                  <MaterialIcon name="person" className="text-[#404848] text-[18px]" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-medium tracking-wide text-[#404848]">
+                      CONTACT
+                    </span>
+                    <span className="text-sm font-medium text-[#161d1b]">
+                      {contactForStage(selectedTab, primaryContactLabel)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MaterialIcon name="account_tree" className="text-[#404848] text-[18px]" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-medium tracking-wide text-[#404848]">
+                      STAGE
+                    </span>
+                    <span className="text-sm font-medium px-2 py-0.5 bg-[#ffdcc1] rounded text-[#6c3a00] w-fit">
+                      {stageBadgeLabel}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <MaterialIcon name="account_tree" className="text-[#404848] text-[18px]" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-medium tracking-wide text-[#404848]">
-                    STAGE
-                  </span>
-                  <span className="text-sm font-medium px-2 py-0.5 bg-[#ffdcc1] rounded text-[#6c3a00] w-fit">
-                    {stageBadgeLabel}
-                  </span>
-                </div>
-              </div>
+            </div>
+            <div className="shrink-0 flex flex-col items-center">
+              <span className="text-[10px] font-medium tracking-wide text-[#404848] uppercase mb-1">
+                Completion
+              </span>
+              <CrmOpportunityCompletionGauge percent={completionPercent} size="md" />
             </div>
           </div>
         </div>

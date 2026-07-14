@@ -6,6 +6,7 @@
 
 "use client";
 
+import { CrmOpportunityCompletionGauge } from "@/components/crm/CrmOpportunityCompletionGauge";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmContactKey } from "@/lib/tempo-crm-contact";
 
@@ -27,6 +28,7 @@ export type CrmHomeOpportunitySummary = {
   title: string;
   stageLabel: string;
   activityLabel: string;
+  completionPercent: number;
 };
 
 type CrmHomeViewProps = {
@@ -217,12 +219,19 @@ export function CrmHomeView({
               <button
                 type="button"
                 onClick={onOpenOpportunity}
-                className="w-full text-left rounded-md hover:bg-[#eef5f2] transition-colors p-2 -mx-2"
+                className="w-full text-left rounded-md hover:bg-[#eef5f2] transition-colors p-2 -mx-2 flex items-center gap-4"
               >
-                <p className="text-sm font-medium text-[#161d1b]">{opportunity.title}</p>
-                <p className="text-xs text-[#404848] mt-1">
-                  {opportunity.stageLabel} · {opportunity.activityLabel}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-[#161d1b]">{opportunity.title}</p>
+                  <p className="text-xs text-[#404848] mt-1">
+                    {opportunity.stageLabel} · {opportunity.activityLabel}
+                  </p>
+                </div>
+                <CrmOpportunityCompletionGauge
+                  percent={opportunity.completionPercent}
+                  size="sm"
+                  className="shrink-0"
+                />
               </button>
             ) : (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

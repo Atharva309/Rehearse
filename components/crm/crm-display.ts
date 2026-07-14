@@ -37,6 +37,26 @@ export function opportunityTitleFromLogs(entries: CrmLogEntry[]): string {
   return name.length > 0 ? name : "Untitled opportunity";
 }
 
+const OPPORTUNITY_COMPLETION_STAGES = [
+  "prospecting",
+  "discovery",
+  "presentation",
+  "objections",
+  "close",
+] as const;
+
+/**
+ * CRM opportunity completion percent from logged stage rows (0–100, steps of 20).
+ */
+export function opportunityCompletionPercent(entries: CrmLogEntry[]): number {
+  if (entries.length === 0) {
+    return 0;
+  }
+  const logged = new Set(entries.map((e) => e.stage));
+  const count = OPPORTUNITY_COMPLETION_STAGES.filter((stage) => logged.has(stage)).length;
+  return Math.round((count / OPPORTUNITY_COMPLETION_STAGES.length) * 100);
+}
+
 /**
  * Short notes preview for home cards.
  */

@@ -23,10 +23,12 @@ import { CrmHomeView } from "@/components/crm/CrmHomeView";
 import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
 import { OpportunityRecordView } from "@/components/crm/OpportunityRecordView";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import { CrmOpportunityCompletionGauge } from "@/components/crm/CrmOpportunityCompletionGauge";
 import {
   accountNameFromLogs,
   availableContactKeysToAdd,
   contactHasRecord,
+  opportunityCompletionPercent,
   opportunityTitleFromLogs,
   previewText,
   primaryContactFromLogs,
@@ -322,6 +324,7 @@ export function CrmOverlay({
     (hasAccount ? "Untitled account" : "");
   const accountNotes = accountRecord?.notes ?? "";
   const oppTitle = opportunityTitleFromLogs(logEntries);
+  const opportunityPercent = opportunityCompletionPercent(logEntries);
   const lastActivityLabel = hasOpportunity
     ? `Logged ${logEntries.length} stage${logEntries.length === 1 ? "" : "s"}`
     : "Not yet logged";
@@ -453,6 +456,7 @@ export function CrmOverlay({
               title: oppTitle,
               stageLabel,
               activityLabel: lastActivityLabel,
+              completionPercent: opportunityPercent,
             }}
             availableContactKeys={availableContactKeysToAdd(contactSnapshots)}
             onOpenAccount={() => setView("account-record")}
@@ -490,6 +494,7 @@ export function CrmOverlay({
             }
             accountRecord={accountRecord}
             contactRecords={savedContacts}
+            completionPercent={opportunityPercent}
           />
         ) : null}
 
@@ -711,6 +716,9 @@ export function CrmOverlay({
                             Opportunity
                           </th>
                           <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
+                            Completion
+                          </th>
+                          <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
                             Stage
                           </th>
                           <th className="px-6 py-4 text-[12px] font-medium tracking-wide text-[#404848] border-b border-[#bfc8c8]">
@@ -734,6 +742,12 @@ export function CrmOverlay({
                         >
                           <td className="px-6 py-6 border-b border-[#bfc8c8]">
                             <span className="text-sm text-[#161d1b] font-medium">{oppTitle}</span>
+                          </td>
+                          <td className="px-6 py-4 border-b border-[#bfc8c8]">
+                            <CrmOpportunityCompletionGauge
+                              percent={opportunityPercent}
+                              size="sm"
+                            />
                           </td>
                           <td className="px-6 py-6 border-b border-[#bfc8c8]">
                             <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#0f4c4c] text-white text-[10px] font-bold uppercase tracking-widest">
