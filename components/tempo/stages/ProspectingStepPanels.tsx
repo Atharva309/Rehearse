@@ -10,7 +10,7 @@ import { useEffect, useRef } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import {
   AUTO_RESEARCH_CARDS,
-  SELF_CHECK_ITEMS,
+  OPENING_MESSAGE_TIPS,
   sanitizeAiResearchReply,
   type ProspectingWizardState,
 } from "@/lib/tempo-prospecting";
@@ -28,7 +28,6 @@ type StepPanelsProps = {
     key: K,
     value: ProspectingWizardState[K]
   ) => void;
-  onSelfCheckChange: (id: string, checked: boolean) => void;
 };
 
 /**
@@ -43,7 +42,6 @@ export function ProspectingStepPanels({
   onChatInputChange,
   onSendMessage,
   onFieldChange,
-  onSelfCheckChange,
 }: StepPanelsProps): React.ReactElement {
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -169,10 +167,8 @@ export function ProspectingStepPanels({
     );
   }
 
-  const checkedCount = SELF_CHECK_ITEMS.filter((item) => state.selfCheck[item.id]).length;
-
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <div className="flex flex-wrap gap-md mb-lg">
         {[
           {
@@ -214,8 +210,8 @@ export function ProspectingStepPanels({
             </p>
           </div>
         </div>
-        <div className="p-lg space-y-lg">
-          <div className="relative">
+        <div className="p-lg grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_240px] gap-lg items-start">
+          <div className="relative min-w-0">
             <textarea
               className="w-full h-64 p-lg rounded-lg border border-outline focus:ring-2 focus:ring-secondary-container focus:border-secondary font-body-md text-body-lg resize-none leading-relaxed"
               placeholder="Write your opening message here..."
@@ -241,31 +237,20 @@ export function ProspectingStepPanels({
             </div>
           </div>
 
-          <div className="bg-surface-container-low p-md rounded-lg border border-outline-variant">
+          <aside className="bg-surface-container-low p-md rounded-lg border border-outline-variant">
             <h4 className="text-label-md font-bold text-on-surface mb-md flex items-center gap-sm">
-              <MaterialIcon name="task_alt" className="text-secondary" />
-              Self-Check ({checkedCount}/{SELF_CHECK_ITEMS.length})
+              <MaterialIcon name="lightbulb" className="text-tertiary-container" />
+              Tips
             </h4>
             <ul className="space-y-sm">
-              {SELF_CHECK_ITEMS.map((item) => (
-                <li key={item.id} className="flex items-center gap-md">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-outline text-secondary-container focus:ring-secondary"
-                    checked={Boolean(state.selfCheck[item.id])}
-                    onChange={(e) => onSelfCheckChange(item.id, e.target.checked)}
-                  />
-                  <span
-                    className={`text-body-md ${
-                      state.selfCheck[item.id] ? "text-on-surface" : "text-on-surface-variant"
-                    }`}
-                  >
-                    {item.label}
-                  </span>
+              {OPENING_MESSAGE_TIPS.map((tip) => (
+                <li key={tip} className="flex items-start gap-sm text-body-md text-on-surface-variant">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-tertiary-container shrink-0" />
+                  <span>{tip}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </aside>
         </div>
       </div>
     </div>

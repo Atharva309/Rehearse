@@ -241,7 +241,6 @@ export function ProspectingWizard({
               onChatInputChange={wizard.setChatInput}
               onSendMessage={() => void wizard.handleSendMessage()}
               onFieldChange={wizard.updateField}
-              onSelfCheckChange={wizard.toggleSelfCheck}
             />
           </div>
         </section>

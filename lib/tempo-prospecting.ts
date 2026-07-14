@@ -118,6 +118,9 @@ export const SELF_CHECK_ITEMS = [
   { id: "professional", label: "Professional and specific tone" },
 ] as const;
 
+/** Opening Message tips shown beside the draft (non-interactive). */
+export const OPENING_MESSAGE_TIPS = SELF_CHECK_ITEMS.map((item) => item.label);
+
 export type ProspectingWizardState = {
   currentStep: number;
   chatMessages: ChatMessage[];
@@ -289,9 +292,5 @@ export function canAdvanceProspectingStep(
  */
 export function canSubmitProspectingBrief(state: ProspectingWizardState): boolean {
   const words = countWords(state.openingMessage);
-  if (words < 20 || words > 120) {
-    return false;
-  }
-  const requiredChecks = SELF_CHECK_ITEMS.filter((item) => item.id !== "wordCount");
-  return requiredChecks.every((item) => state.selfCheck[item.id]);
+  return words >= 20 && words <= 120;
 }
