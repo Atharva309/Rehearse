@@ -85,8 +85,8 @@ export function TempoProjectFlow({ currentIndex }: TempoProjectFlowProps): React
             key={stage.id}
             role="listitem"
             aria-current={status === "current" ? "step" : undefined}
-            className={`relative h-9 sm:h-10 min-w-0 flex-1 ${
-              index === 0 ? "" : "-ml-2 sm:-ml-2.5"
+            className={`relative h-[23px] sm:h-[26px] min-w-0 flex-1 ${
+              index === 0 ? "" : "-ml-1.5 sm:-ml-2"
             }`}
           >
             <svg
@@ -103,7 +103,7 @@ export function TempoProjectFlow({ currentIndex }: TempoProjectFlowProps): React
               />
             </svg>
             <span
-              className="relative z-10 flex h-full items-center justify-center px-1 sm:px-2 text-[7px] sm:text-[10px] font-semibold tracking-wide whitespace-nowrap"
+              className="relative z-10 flex h-full items-center justify-center px-1 sm:px-2 text-[6px] sm:text-[9px] font-semibold tracking-wide whitespace-nowrap"
               style={{ color: colors.text }}
             >
               {stage.label}
