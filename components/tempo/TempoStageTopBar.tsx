@@ -23,9 +23,6 @@ type TempoStageTopBarProps = {
   onOpenHandoff: () => void;
   /** Mobile-only dashboard exit (desktop uses left-column control). */
   onBackToDashboard: () => void;
-  /** Prospecting wizard only — go to previous wizard step. */
-  previousStepLabel?: string | null;
-  onPreviousStep?: () => void;
 };
 
 /**
@@ -39,8 +36,6 @@ export function TempoStageTopBar({
   flowIndex,
   onOpenHandoff,
   onBackToDashboard,
-  previousStepLabel = null,
-  onPreviousStep,
 }: TempoStageTopBarProps): React.ReactElement {
   return (
     <header className="fixed top-0 left-0 right-0 z-[50] h-16 border-b border-border bg-page shrink-0">
@@ -85,18 +80,7 @@ export function TempoStageTopBar({
         </div>
 
         {/* Middle zone — same flex space as the stage center column */}
-        <div className="flex-1 min-w-0 flex items-center gap-2 px-3 sm:px-4">
-          {previousStepLabel && onPreviousStep ? (
-            <button
-              type="button"
-              onClick={onPreviousStep}
-              className={`${BAR_BUTTON} text-on-surface-variant border border-outline-variant hover:bg-surface-container`}
-            >
-              <MaterialIcon name="arrow_back" className="text-[16px]" />
-              <span className="hidden md:inline">Back to {previousStepLabel}</span>
-              <span className="md:hidden">Back</span>
-            </button>
-          ) : null}
+        <div className="flex-1 min-w-0 flex items-center px-3 sm:px-4">
           <TempoProjectFlow currentIndex={flowIndex} />
         </div>
 
