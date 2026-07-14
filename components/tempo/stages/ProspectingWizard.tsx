@@ -169,22 +169,22 @@ export function ProspectingWizard({
         <section className="flex-1 bg-surface-container-lowest flex flex-col min-w-0">
           <div className="h-12 bg-surface-container-low border-b border-outline-variant shrink-0 flex items-center justify-between px-4 lg:px-xl gap-4">
             <div className="flex items-center gap-md text-on-surface-variant min-w-0">
+              {currentStep > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => wizard.setCurrentStep(currentStep - 1)}
+                  className="inline-flex items-center gap-1 text-label-sm text-on-surface-variant hover:text-primary transition-colors shrink-0"
+                >
+                  <MaterialIcon name="arrow_back" className="text-[16px]" />
+                  Back to {PROSPECTING_STEPS[currentStep - 1]?.label ?? "previous step"}
+                </button>
+              ) : null}
               <div className="flex items-center gap-sm shrink-0">
                 <MaterialIcon name="cloud_done" className="text-green-500" />
                 <span className="text-label-sm">
                   {wizard.isSaving ? "Saving..." : "Auto-saved"}
                 </span>
               </div>
-              {currentStep > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => wizard.setCurrentStep(currentStep - 1)}
-                  className="inline-flex items-center gap-1 text-label-sm text-on-surface-variant hover:text-primary transition-colors"
-                >
-                  <MaterialIcon name="arrow_back" className="text-[16px]" />
-                  Back to {PROSPECTING_STEPS[currentStep - 1]?.label ?? "previous step"}
-                </button>
-              ) : null}
             </div>
 
             <div className="flex items-center gap-md shrink-0">
