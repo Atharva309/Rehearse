@@ -148,41 +148,48 @@ export default async function StudentSimulationPage({
   const hasProspectingScore = scores.some((s) => s.stage === "prospecting");
   const isTempoDefault =
     classId === DEFAULT_CLASS_ID && isTempoDefaultSimulation(simulation.id, simulation.title);
-  // Dev shortcuts for testing individual Tempo stages.
-  const testStageProspecting = searchParams.teststage?.trim() === "prospecting";
-  const testStageDiscovery = searchParams.teststage?.trim() === "discovery";
-  const testStagePresentation = searchParams.teststage?.trim() === "presentation";
-  const testStageObjections = searchParams.teststage?.trim() === "objections";
-  const testStageNegotiation =
-    searchParams.teststage?.trim() === "negotiation" ||
-    searchParams.teststage?.trim() === "close";
+  // Dev shortcuts for testing individual Tempo stages — exclusive when set.
+  const rawTestStage = searchParams.teststage?.trim() ?? "";
+  const testStageProspecting = rawTestStage === "prospecting";
+  const testStageDiscovery = rawTestStage === "discovery";
+  const testStagePresentation = rawTestStage === "presentation";
+  const testStageObjections = rawTestStage === "objections";
+  const testStageNegotiation = rawTestStage === "negotiation" || rawTestStage === "close";
+  const hasTestStageJump =
+    testStageProspecting ||
+    testStageDiscovery ||
+    testStagePresentation ||
+    testStageObjections ||
+    testStageNegotiation;
+
   const showTempoProspectingWizard =
     isTempoDefault &&
     (testStageProspecting ||
-      (!testStageDiscovery &&
-        !testStagePresentation &&
-        !testStageObjections &&
-        !testStageNegotiation &&
+      (!hasTestStageJump &&
         !hasProspectingScore &&
         (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting")));
 
   const showTempoDiscovery =
-    isTempoDefault && (attempt.current_stage === "discovery" || testStageDiscovery);
+    isTempoDefault &&
+    (testStageDiscovery || (!hasTestStageJump && attempt.current_stage === "discovery"));
 
   const discoveryScore = scores.find((s) => s.stage === "discovery");
   const discoverySummary = parseDiscoverySummaryFromTranscript(discoveryScore?.transcript);
 
   const showTempoPresentation =
-    isTempoDefault && (attempt.current_stage === "presentation" || testStagePresentation);
+    isTempoDefault &&
+    (testStagePresentation || (!hasTestStageJump && attempt.current_stage === "presentation"));
 
   const presentationScore = scores.find((s) => s.stage === "presentation");
   const presentationSummary = parsePresentationFormFromTranscript(presentationScore?.transcript);
 
   const showTempoObjections =
-    isTempoDefault && (attempt.current_stage === "objections" || testStageObjections);
+    isTempoDefault &&
+    (testStageObjections || (!hasTestStageJump && attempt.current_stage === "objections"));
 
   const showTempoNegotiation =
-    isTempoDefault && (attempt.current_stage === "close" || testStageNegotiation);
+    isTempoDefault &&
+    (testStageNegotiation || (!hasTestStageJump && attempt.current_stage === "close"));
 
   const objectionScore = scores.find((s) => s.stage === "objections");
   const objectionSummary = parseObjectionSummaryFromTranscript(objectionScore?.transcript);
