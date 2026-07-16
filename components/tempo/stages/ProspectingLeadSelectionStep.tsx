@@ -7,7 +7,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ConvertFailureModal, type ConvertFailureReason } from "@/components/crm/ConvertFailureModal";
+import { ConvertFailureModal } from "@/components/crm/ConvertFailureModal";
 import { useTempoCrmGate } from "@/components/crm/CrmOverlay";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmLead } from "@/types";
@@ -17,16 +17,6 @@ type ProspectingLeadSelectionStepProps = {
   selectedLeadId: string | null;
   onSelected: (leadId: string) => Promise<void>;
 };
-
-/**
- * Narrows API reason strings to ConvertFailureModal reasons.
- */
-function asFailureReason(reason: string | undefined): ConvertFailureReason | null {
-  if (reason === "wrong_company" || reason === "wrong_contact") {
-    return reason;
-  }
-  return null;
-}
 
 /**
  * Selectable Lead list with CRM deep-link when none exist yet.
@@ -42,7 +32,7 @@ export function ProspectingLeadSelectionStep({
   const [pickedId, setPickedId] = useState<string | null>(selectedLeadId);
   const [isSelecting, setIsSelecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [failureReason, setFailureReason] = useState<ConvertFailureReason | null>(null);
+  const [managerNote, setManagerNote] = useState<string | null>(null);
 
   const loadLeads = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -81,7 +71,7 @@ export function ProspectingLeadSelectionStep({
     }
     setIsSelecting(true);
     setError(null);
-    setFailureReason(null);
+    setManagerNote(null);
     try {
       const res = await fetch(
         `/api/student/crm-leads/${encodeURIComponent(pickedId)}/select`,
@@ -89,14 +79,13 @@ export function ProspectingLeadSelectionStep({
       );
       const body = (await res.json().catch(() => null)) as {
         success?: boolean;
-        reason?: string;
+        managerNote?: string;
         error?: string;
       } | null;
 
       if (!res.ok || !body?.success) {
-        const reason = asFailureReason(body?.reason);
-        if (reason) {
-          setFailureReason(reason);
+        if (typeof body?.managerNote === "string" && body.managerNote.trim()) {
+          setManagerNote(body.managerNote);
           return;
         }
         setError(body?.error ?? "Could not select this lead.");
@@ -113,10 +102,10 @@ export function ProspectingLeadSelectionStep({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {failureReason ? (
+      {managerNote ? (
         <ConvertFailureModal
-          reason={failureReason}
-          onDismiss={() => setFailureReason(null)}
+          managerNote={managerNote}
+          onDismiss={() => setManagerNote(null)}
         />
       ) : null}
 

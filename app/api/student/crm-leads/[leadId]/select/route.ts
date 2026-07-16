@@ -1,7 +1,7 @@
 /**
  * crm-leads/[leadId]/select/route.ts
- * POST — validate Lead identity and mark it as the attempt's selected target.
- * Does not create Account/Contact yet (auto-converted when Prospecting completes).
+ * POST — fuzzy-validate Lead identity and mark it as the selected target.
+ * Failure messages escalate after repeated wrong attempts on the attempt row.
  */
 
 import { NextResponse } from "next/server";
@@ -12,6 +12,12 @@ import { validateLeadIdentity } from "@/lib/tempo-lead-conversion";
 type RouteContext = {
   params: { leadId: string };
 };
+
+const FIRST_WRONG_NOTE =
+  "This company isn't available to contact — check your leads and try a different one.";
+
+const REPEATED_WRONG_NOTE =
+  "Summit Dental Group, with Dana Reyes as your contact, is the account to pursue. Update your lead selection to match this exactly.";
 
 /**
  * POST /api/student/crm-leads/:leadId/select
@@ -50,7 +56,7 @@ export async function POST(
     const attemptId = lead.attempt_id as string;
     const { data: attempt } = await supabase
       .from("attempts")
-      .select("id")
+      .select("id, lead_selection_attempts")
       .eq("id", attemptId)
       .eq("student_id", auth.session.studentId)
       .maybeSingle();
@@ -70,8 +76,26 @@ export async function POST(
       String(lead.company_name ?? ""),
       String(lead.contact_name ?? "")
     );
+
     if (!validation.success) {
-      return NextResponse.json(validation);
+      const previous =
+        typeof attempt.lead_selection_attempts === "number"
+          ? attempt.lead_selection_attempts
+          : 0;
+      const nextCount = previous + 1;
+
+      const { error: counterError } = await supabase
+        .from("attempts")
+        .update({ lead_selection_attempts: nextCount })
+        .eq("id", attemptId);
+
+      if (counterError) {
+        console.error("[crm-leads/select] counter update failed:", counterError);
+        return NextResponse.json({ error: "Could not select lead." }, { status: 500 });
+      }
+
+      const managerNote = nextCount === 1 ? FIRST_WRONG_NOTE : REPEATED_WRONG_NOTE;
+      return NextResponse.json({ success: false, managerNote });
     }
 
     const updatedAt = new Date().toISOString();

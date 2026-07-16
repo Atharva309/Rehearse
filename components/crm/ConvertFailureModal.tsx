@@ -1,6 +1,6 @@
 /**
  * ConvertFailureModal.tsx
- * Manager-feedback dialog when Lead Convert fails (wrong company or contact).
+ * Manager-feedback dialog when Lead selection fails.
  * Matches HandoffModal visual language — dimmed backdrop + centered card.
  */
 
@@ -8,31 +8,16 @@
 
 import { useEffect, useState } from "react";
 
-export type ConvertFailureReason = "wrong_company" | "wrong_contact";
-
 type ConvertFailureModalProps = {
-  reason: ConvertFailureReason;
+  managerNote: string;
   onDismiss: () => void;
 };
 
-const WRONG_COMPANY_NOTE =
-  "This doesn't look like the account we're prioritizing — Summit Dental Group is showing stronger signals right now (recent 8th-location expansion, visible no-show pain, a confirmed contact who took your call). Revisit your Lead list and reconsider.";
-
-const WRONG_CONTACT_NOTE =
-  "Dana Reyes is our confirmed point of contact at Summit Dental — she's the one who responded and has visibility into daily operations. The contact you selected doesn't have that same access. Update your Lead's contact and try again.";
-
 /**
- * Returns the exact manager note copy for a convert failure reason.
- */
-function noteForReason(reason: ConvertFailureReason): string {
-  return reason === "wrong_company" ? WRONG_COMPANY_NOTE : WRONG_CONTACT_NOTE;
-}
-
-/**
- * Centered manager-note modal for failed Lead conversion.
+ * Centered manager-note modal for failed Lead selection.
  */
 export function ConvertFailureModal({
-  reason,
+  managerNote,
   onDismiss,
 }: ConvertFailureModalProps): React.ReactElement {
   const [entered, setEntered] = useState(false);
@@ -80,9 +65,7 @@ export function ConvertFailureModal({
             <p className="text-[11px] font-bold uppercase tracking-widest text-[#6c3a00] mb-2">
               A note from your manager
             </p>
-            <p className="font-body-lg text-on-surface leading-relaxed italic">
-              {noteForReason(reason)}
-            </p>
+            <p className="font-body-lg text-on-surface leading-relaxed italic">{managerNote}</p>
           </div>
 
           <button

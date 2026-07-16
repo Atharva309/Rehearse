@@ -155,6 +155,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       status: ATTEMPT_STATUS.IN_PROGRESS,
       completed_at: null,
       stage_data: null,
+      lead_selection_attempts: 0,
     };
 
     if (!attempt.class_id) {

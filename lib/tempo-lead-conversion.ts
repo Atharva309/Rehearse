@@ -1,60 +1,34 @@
 /**
  * tempo-lead-conversion.ts
  * Shared Lead identity validation + Account/Contact conversion for Tempo CRM.
- * Used by select (Prospecting) and auto-convert on Prospecting stage completion.
+ * Uses typo-tolerant fuzzy matching for company/contact names.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isCloseMatch } from "@/lib/string-similarity";
 
-const CORRECT_COMPANY = "Summit Dental Group";
-const CORRECT_CONTACT = "Dana Reyes";
+export const CORRECT_COMPANY = "Summit Dental Group";
+export const CORRECT_CONTACT = "Dana Reyes";
 
-export const WRONG_COMPANY_NOTE =
-  "This doesn't look like the account we're prioritizing — Summit Dental Group is showing stronger signals right now (recent 8th-location expansion, visible no-show pain, a confirmed contact who took your call). Revisit your Lead list and reconsider.";
+/** Failure shape kept loose so callers that only check success stay compatible. */
+export type LeadValidationResult =
+  | { success: true }
+  | { success: false; reason?: string; managerNote?: string };
 
-export const WRONG_CONTACT_NOTE =
-  "Dana Reyes is our confirmed point of contact at Summit Dental — she's the one who responded and has visibility into daily operations. The contact you selected doesn't have that same access. Update your Lead's contact and try again.";
-
-export type LeadValidationFailure = {
-  success: false;
-  reason: "wrong_company" | "wrong_contact";
-  managerNote: string;
-};
-
-export type LeadValidationResult = { success: true } | LeadValidationFailure;
-
-export type ConvertLeadResult = { success: true } | LeadValidationFailure;
+export type ConvertLeadResult = LeadValidationResult;
 
 /**
- * Case-insensitive trimmed compare for Lead correctness checks.
- */
-export function namesMatch(actual: string, expected: string): boolean {
-  return (
-    actual.trim().toLowerCase().replace(/\s+/g, " ") ===
-    expected.trim().toLowerCase().replace(/\s+/g, " ")
-  );
-}
-
-/**
- * Validates company + contact against the known correct Tempo path.
+ * Validates company + contact against the known correct Tempo path (fuzzy).
  */
 export function validateLeadIdentity(
   companyName: string,
   contactName: string
 ): LeadValidationResult {
-  if (!namesMatch(companyName, CORRECT_COMPANY)) {
-    return {
-      success: false,
-      reason: "wrong_company",
-      managerNote: WRONG_COMPANY_NOTE,
-    };
+  if (!isCloseMatch(companyName, CORRECT_COMPANY)) {
+    return { success: false };
   }
-  if (!namesMatch(contactName, CORRECT_CONTACT)) {
-    return {
-      success: false,
-      reason: "wrong_contact",
-      managerNote: WRONG_CONTACT_NOTE,
-    };
+  if (!isCloseMatch(contactName, CORRECT_CONTACT)) {
+    return { success: false };
   }
   return { success: true };
 }
