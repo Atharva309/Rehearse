@@ -10,6 +10,8 @@ import { CrmOpportunityCompletionGauge } from "@/components/crm/CrmOpportunityCo
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmContactKey } from "@/lib/tempo-crm-contact";
 
+const HOME_PREVIEW_LIMIT = 3;
+
 export type CrmHomeAccountSummary = {
   hasRecord: boolean;
   name: string;
@@ -60,8 +62,30 @@ type CrmHomeViewProps = {
  * Compact empty-state row used inside Home sections.
  */
 function EmptyHint({ message }: { message: string }): React.ReactElement {
+  return <p className="text-sm text-[#707978] py-3">{message}</p>;
+}
+
+/**
+ * Primary action button used in section headers.
+ */
+function SectionActionButton({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+}): React.ReactElement {
   return (
-    <p className="text-sm text-[#707978] py-3">{message}</p>
+    <button
+      type="button"
+      onClick={onClick}
+      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+    >
+      <MaterialIcon name={icon} className="text-[16px]" />
+      {label}
+    </button>
   );
 }
 
@@ -85,9 +109,12 @@ export function CrmHomeView({
   onBrowseContacts,
   onBrowseOpportunities,
 }: CrmHomeViewProps): React.ReactElement {
+  const previewLeads = leads.slice(0, HOME_PREVIEW_LIMIT);
+  const previewContacts = contacts.slice(0, HOME_PREVIEW_LIMIT);
+
   return (
     <div className="p-6 flex-grow overflow-auto">
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         <header>
           <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Home</h3>
           <p className="text-sm text-[#404848] mt-1">
@@ -99,81 +126,62 @@ export function CrmHomeView({
         {/* Leads */}
         <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
           <div className="px-5 py-3 border-b border-[#bfc8c8] bg-[#eef5f2]/40 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <MaterialIcon name="person_search" className="text-[#0f4c4c] text-[20px]" />
               <h4 className="text-sm font-semibold tracking-wide uppercase text-[#003434]">
                 Leads
               </h4>
             </div>
-            <button
-              type="button"
-              onClick={onBrowseLeads}
-              className="text-[11px] font-medium uppercase tracking-wide text-[#0f4c4c] hover:underline"
-            >
-              View all
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              <SectionActionButton icon="add" label="Add Lead" onClick={onAddLead} />
+              <button
+                type="button"
+                onClick={onBrowseLeads}
+                className="text-[11px] font-medium uppercase tracking-wide text-[#0f4c4c] hover:underline"
+              >
+                View all
+              </button>
+            </div>
           </div>
           <div className="px-5 py-4">
-            {leads.length === 0 ? (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <EmptyHint message="No leads yet. Add a Lead for the company you're researching." />
-                <button
-                  type="button"
-                  onClick={onAddLead}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
-                >
-                  <MaterialIcon name="add" className="text-[16px]" />
-                  Add Lead
-                </button>
-              </div>
+            {previewLeads.length === 0 ? (
+              <EmptyHint message="No leads yet. Add a Lead for the company you're researching." />
             ) : (
-              <div className="space-y-3">
-                <ul className="divide-y divide-[#bfc8c8]/60">
-                  {leads.slice(0, 3).map((lead) => (
-                    <li key={lead.id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenLead(lead.id)}
-                        className="w-full text-left py-2.5 hover:bg-[#eef5f2] rounded-md px-2 -mx-2 transition-colors flex items-center justify-between gap-3"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-[#161d1b] truncate">
-                            {lead.companyName.trim() || "Untitled lead"}
-                          </p>
-                          <p className="text-xs text-[#404848] truncate">
-                            {lead.contactName.trim() || "No contact yet"}
-                          </p>
-                        </div>
-                        <span
-                          className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                            lead.status === "converted"
-                              ? "bg-[#0f4c4c] text-white"
-                              : lead.status === "selected"
-                                ? "bg-[#acc7ff] text-[#00315f]"
-                                : "bg-[#e3eae6] text-[#404848]"
-                          }`}
-                        >
-                          {lead.status === "converted"
-                            ? "Converted"
+              <ul className="divide-y divide-[#bfc8c8]/60">
+                {previewLeads.map((lead) => (
+                  <li key={lead.id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenLead(lead.id)}
+                      className="w-full text-left py-2.5 hover:bg-[#eef5f2] rounded-md px-2 -mx-2 transition-colors flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[#161d1b] truncate">
+                          {lead.companyName.trim() || "Untitled lead"}
+                        </p>
+                        <p className="text-xs text-[#404848] truncate">
+                          {lead.contactName.trim() || "No contact yet"}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                          lead.status === "converted"
+                            ? "bg-[#0f4c4c] text-white"
                             : lead.status === "selected"
-                              ? "Selected"
-                              : "New"}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={onAddLead}
-                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
-                  >
-                    <MaterialIcon name="add" className="text-[16px]" />
-                    Add Lead
-                  </button>
-                </div>
-              </div>
+                              ? "bg-[#acc7ff] text-[#00315f]"
+                              : "bg-[#e3eae6] text-[#404848]"
+                        }`}
+                      >
+                        {lead.status === "converted"
+                          ? "Converted"
+                          : lead.status === "selected"
+                            ? "Selected"
+                            : "New"}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </section>
@@ -181,19 +189,28 @@ export function CrmHomeView({
         {/* Account */}
         <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
           <div className="px-5 py-3 border-b border-[#bfc8c8] bg-[#eef5f2]/40 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <MaterialIcon name="business" className="text-[#0f4c4c] text-[20px]" />
               <h4 className="text-sm font-semibold tracking-wide uppercase text-[#003434]">
                 Account
               </h4>
             </div>
-            <button
-              type="button"
-              onClick={onBrowseAccounts}
-              className="text-[11px] font-medium uppercase tracking-wide text-[#0f4c4c] hover:underline"
-            >
-              View all
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              {!account.hasRecord ? (
+                <SectionActionButton
+                  icon="person_search"
+                  label="Go to Leads"
+                  onClick={onBrowseLeads}
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={onBrowseAccounts}
+                className="text-[11px] font-medium uppercase tracking-wide text-[#0f4c4c] hover:underline"
+              >
+                View all
+              </button>
+            </div>
           </div>
           <div className="px-5 py-4">
             {account.hasRecord ? (
@@ -210,17 +227,7 @@ export function CrmHomeView({
                 )}
               </button>
             ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <EmptyHint message="No account yet. Convert a Lead when you're ready to open the deal." />
-                <button
-                  type="button"
-                  onClick={onBrowseLeads}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
-                >
-                  <MaterialIcon name="person_search" className="text-[16px]" />
-                  Go to Leads
-                </button>
-              </div>
+              <EmptyHint message="No account yet. Convert a Lead when you're ready to open the deal." />
             )}
           </div>
         </section>
@@ -228,68 +235,49 @@ export function CrmHomeView({
         {/* Contacts */}
         <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
           <div className="px-5 py-3 border-b border-[#bfc8c8] bg-[#eef5f2]/40 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <MaterialIcon name="group" className="text-[#0f4c4c] text-[20px]" />
               <h4 className="text-sm font-semibold tracking-wide uppercase text-[#003434]">
                 Contacts
               </h4>
             </div>
-            <button
-              type="button"
-              onClick={onBrowseContacts}
-              className="text-[11px] font-medium uppercase tracking-wide text-[#0f4c4c] hover:underline"
-            >
-              View all
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              {availableContactKeys.length > 0 ? (
+                <SectionActionButton
+                  icon="add"
+                  label="Add contact"
+                  onClick={() => onAddContact(availableContactKeys[0])}
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={onBrowseContacts}
+                className="text-[11px] font-medium uppercase tracking-wide text-[#0f4c4c] hover:underline"
+              >
+                View all
+              </button>
+            </div>
           </div>
           <div className="px-5 py-4">
-            {contacts.length === 0 ? (
-              availableContactKeys.length > 0 ? (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <EmptyHint message="No contacts yet. Add buying-committee members as you meet them." />
-                  <button
-                    type="button"
-                    onClick={() => onAddContact(availableContactKeys[0])}
-                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
-                  >
-                    <MaterialIcon name="add" className="text-[16px]" />
-                    Add contact
-                  </button>
-                </div>
-              ) : (
-                <EmptyHint message="No contacts yet. Add buying-committee members as you meet them." />
-              )
+            {previewContacts.length === 0 ? (
+              <EmptyHint message="No contacts yet. Add buying-committee members as you meet them." />
             ) : (
-              <div className="space-y-3">
-                <ul className="divide-y divide-[#bfc8c8]/60">
-                  {contacts.map((c) => (
-                    <li key={c.key}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenContact(c.key)}
-                        className="w-full text-left py-2.5 hover:bg-[#eef5f2] rounded-md px-2 -mx-2 transition-colors"
-                      >
-                        <p className="text-sm font-medium text-[#161d1b]">{c.name}</p>
-                        <p className="text-xs text-[#404848]">
-                          {c.role || c.title || "Role not set"}
-                        </p>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                {availableContactKeys.length > 0 ? (
-                  <div className="flex justify-end">
+              <ul className="divide-y divide-[#bfc8c8]/60">
+                {previewContacts.map((c) => (
+                  <li key={c.key}>
                     <button
                       type="button"
-                      onClick={() => onAddContact(availableContactKeys[0])}
-                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                      onClick={() => onOpenContact(c.key)}
+                      className="w-full text-left py-2.5 hover:bg-[#eef5f2] rounded-md px-2 -mx-2 transition-colors"
                     >
-                      <MaterialIcon name="add" className="text-[16px]" />
-                      Add contact
+                      <p className="text-sm font-medium text-[#161d1b]">{c.name}</p>
+                      <p className="text-xs text-[#404848]">
+                        {c.role || c.title || "Role not set"}
+                      </p>
                     </button>
-                  </div>
-                ) : null}
-              </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </section>
@@ -297,19 +285,28 @@ export function CrmHomeView({
         {/* Opportunities */}
         <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
           <div className="px-5 py-3 border-b border-[#bfc8c8] bg-[#eef5f2]/40 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <MaterialIcon name="query_stats" className="text-[#0f4c4c] text-[20px]" />
               <h4 className="text-sm font-semibold tracking-wide uppercase text-[#003434]">
                 Opportunities
               </h4>
             </div>
-            <button
-              type="button"
-              onClick={onBrowseOpportunities}
-              className="text-[11px] font-medium uppercase tracking-wide text-[#0f4c4c] hover:underline"
-            >
-              View all
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              {!opportunity.hasRecord ? (
+                <SectionActionButton
+                  icon="person_search"
+                  label="Go to Leads"
+                  onClick={onBrowseLeads}
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={onBrowseOpportunities}
+                className="text-[11px] font-medium uppercase tracking-wide text-[#0f4c4c] hover:underline"
+              >
+                View all
+              </button>
+            </div>
           </div>
           <div className="px-5 py-4">
             {opportunity.hasRecord ? (
@@ -331,17 +328,7 @@ export function CrmHomeView({
                 />
               </button>
             ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <EmptyHint message="No opportunity yet. Convert a Lead when you're ready to open the deal." />
-                <button
-                  type="button"
-                  onClick={onBrowseLeads}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
-                >
-                  <MaterialIcon name="person_search" className="text-[16px]" />
-                  Go to Leads
-                </button>
-              </div>
+              <EmptyHint message="No opportunity yet. Convert a Lead when you're ready to open the deal." />
             )}
           </div>
         </section>
