@@ -41,12 +41,12 @@ const FIELD_DEFS: {
   {
     key: "companyName",
     label: "Company Name",
-    placeholder: "e.g. Summit Dental Group",
+    placeholder: "Company name",
   },
   {
     key: "contactName",
     label: "Contact Name",
-    placeholder: "e.g. Dana Reyes",
+    placeholder: "Primary contact name",
   },
   {
     key: "contactTitle",
@@ -62,12 +62,12 @@ const FIELD_DEFS: {
   {
     key: "trigger",
     label: "Trigger Event",
-    placeholder: "e.g. Opening an 8th location next quarter",
+    placeholder: "What timing signal makes this worth pursuing now?",
   },
   {
     key: "nextStep",
     label: "Next Step",
-    placeholder: "e.g. Book discovery call with Dana",
+    placeholder: "What will you do next with this lead?",
   },
 ];
 

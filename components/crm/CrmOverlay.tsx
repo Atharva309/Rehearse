@@ -586,6 +586,12 @@ export function CrmOverlay({
 
         {view === "home" ? (
           <CrmHomeView
+            leads={leads.map((lead) => ({
+              id: lead.id,
+              companyName: lead.company_name,
+              contactName: lead.contact_name,
+              status: lead.status,
+            }))}
             account={{
               hasRecord: hasAccount,
               name: accountDisplayName || "Account",
@@ -605,6 +611,17 @@ export function CrmOverlay({
               completionPercent: opportunityPercent,
             }}
             availableContactKeys={addableContactKeys}
+            onOpenLead={(leadId) => {
+              setSelectedLeadId(leadId);
+              setLeadFormKey(leadId);
+              setView("lead-record");
+            }}
+            onAddLead={() => {
+              setSelectedLeadId(null);
+              setLeadFormKey(`new-${Date.now()}`);
+              setView("lead-record");
+            }}
+            onBrowseLeads={openLeadsList}
             onOpenAccount={() =>
               hasConverted ? setView("account-record") : openLeadsList()
             }
@@ -874,9 +891,7 @@ export function CrmOverlay({
                 ) : (
                   <div className="px-6 py-12 text-center">
                     <p className="text-sm text-[#707978]">
-                      {hasConverted
-                        ? "No contacts yet. Add someone from the buying committee to get started."
-                        : "Dana appears after you convert a Lead. You can still add Dr. Kim anytime."}
+                      No contacts yet. Add buying-committee members as you meet them.
                     </p>
                   </div>
                 )}

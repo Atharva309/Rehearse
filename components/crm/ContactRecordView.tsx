@@ -172,7 +172,7 @@ export function ContactRecordView({
           </nav>
           <div className="bg-white border border-[#bfc8c8] rounded-lg px-6 py-12 text-center space-y-4">
             <p className="text-sm text-[#707978]">
-              Dana Reyes is not created yet — convert a Lead to add her as a Contact.
+              This contact isn&apos;t available yet — convert a Lead to unlock the primary contact.
             </p>
             {onGoToLeads ? (
               <button

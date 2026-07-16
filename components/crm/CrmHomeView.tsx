@@ -1,6 +1,6 @@
 /**
  * CrmHomeView.tsx
- * CRM Home dashboard — short Account, Contacts, and Opportunities sections.
+ * CRM Home dashboard — Leads, Account, Contacts, and Opportunities sections.
  * All sections start empty; students fill CRM as they progress the simulation.
  */
 
@@ -31,11 +31,22 @@ export type CrmHomeOpportunitySummary = {
   completionPercent: number;
 };
 
+export type CrmHomeLeadSummary = {
+  id: string;
+  companyName: string;
+  contactName: string;
+  status: "new" | "converted";
+};
+
 type CrmHomeViewProps = {
+  leads: CrmHomeLeadSummary[];
   account: CrmHomeAccountSummary;
   contacts: CrmHomeContactSummary[];
   opportunity: CrmHomeOpportunitySummary;
   availableContactKeys: CrmContactKey[];
+  onOpenLead: (leadId: string) => void;
+  onAddLead: () => void;
+  onBrowseLeads: () => void;
   onOpenAccount: () => void;
   onOpenContact: (key: CrmContactKey) => void;
   onAddContact: (key: CrmContactKey) => void;
@@ -55,13 +66,17 @@ function EmptyHint({ message }: { message: string }): React.ReactElement {
 }
 
 /**
- * Home dashboard with three short coverage sections.
+ * Home dashboard with Leads + coverage sections.
  */
 export function CrmHomeView({
+  leads,
   account,
   contacts,
   opportunity,
   availableContactKeys,
+  onOpenLead,
+  onAddLead,
+  onBrowseLeads,
   onOpenAccount,
   onOpenContact,
   onAddContact,
@@ -76,10 +91,86 @@ export function CrmHomeView({
         <header>
           <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Home</h3>
           <p className="text-sm text-[#404848] mt-1">
-            Your CRM starts empty. Log accounts, contacts, and opportunity stages as you work
-            the deal.
+            Your CRM starts empty. Capture leads, then build account, contacts, and opportunity
+            records as you work the deal.
           </p>
         </header>
+
+        {/* Leads */}
+        <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#bfc8c8] bg-[#eef5f2]/40 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <MaterialIcon name="person_search" className="text-[#0f4c4c] text-[20px]" />
+              <h4 className="text-sm font-semibold tracking-wide uppercase text-[#003434]">
+                Leads
+              </h4>
+            </div>
+            <button
+              type="button"
+              onClick={onBrowseLeads}
+              className="text-[11px] font-medium uppercase tracking-wide text-[#0f4c4c] hover:underline"
+            >
+              View all
+            </button>
+          </div>
+          <div className="px-5 py-4">
+            {leads.length === 0 ? (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <EmptyHint message="No leads yet. Add a Lead for the company you're researching." />
+                <button
+                  type="button"
+                  onClick={onAddLead}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                >
+                  <MaterialIcon name="add" className="text-[16px]" />
+                  Add Lead
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <ul className="divide-y divide-[#bfc8c8]/60">
+                  {leads.slice(0, 3).map((lead) => (
+                    <li key={lead.id}>
+                      <button
+                        type="button"
+                        onClick={() => onOpenLead(lead.id)}
+                        className="w-full text-left py-2.5 hover:bg-[#eef5f2] rounded-md px-2 -mx-2 transition-colors flex items-center justify-between gap-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-[#161d1b] truncate">
+                            {lead.companyName.trim() || "Untitled lead"}
+                          </p>
+                          <p className="text-xs text-[#404848] truncate">
+                            {lead.contactName.trim() || "No contact yet"}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                            lead.status === "converted"
+                              ? "bg-[#0f4c4c] text-white"
+                              : "bg-[#ffdcc1] text-[#6c3a00]"
+                          }`}
+                        >
+                          {lead.status === "converted" ? "Converted" : "New"}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={onAddLead}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                  >
+                    <MaterialIcon name="add" className="text-[16px]" />
+                    Add Lead
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* Account */}
         <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
@@ -114,14 +205,14 @@ export function CrmHomeView({
               </button>
             ) : (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <EmptyHint message="No account yet. Add one to capture strategy notes." />
+                <EmptyHint message="No account yet. Convert a Lead when you're ready to open the deal." />
                 <button
                   type="button"
-                  onClick={onOpenAccount}
+                  onClick={onBrowseLeads}
                   className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
                 >
-                  <MaterialIcon name="add" className="text-[16px]" />
-                  Add account
+                  <MaterialIcon name="person_search" className="text-[16px]" />
+                  Go to Leads
                 </button>
               </div>
             )}
@@ -235,14 +326,14 @@ export function CrmHomeView({
               </button>
             ) : (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <EmptyHint message="No opportunity yet. Create one when you start logging stages." />
+                <EmptyHint message="No opportunity yet. Convert a Lead when you're ready to open the deal." />
                 <button
                   type="button"
-                  onClick={onOpenOpportunity}
+                  onClick={onBrowseLeads}
                   className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
                 >
-                  <MaterialIcon name="add" className="text-[16px]" />
-                  Create opportunity
+                  <MaterialIcon name="person_search" className="text-[16px]" />
+                  Go to Leads
                 </button>
               </div>
             )}

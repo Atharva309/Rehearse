@@ -155,7 +155,7 @@ export function AccountRecordView({
           </nav>
           <div className="bg-white border border-[#bfc8c8] rounded-lg px-6 py-12 text-center space-y-4">
             <p className="text-sm text-[#707978]">
-              No account yet — convert a Lead to create the Summit Dental account.
+              No account yet — convert a Lead when you&apos;re ready to open the deal.
             </p>
             {onGoToLeads ? (
               <button

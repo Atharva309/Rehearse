@@ -130,10 +130,22 @@ export async function POST(request: Request): Promise<NextResponse> {
       .eq("attempt_id", attemptId);
 
     if (deleteCrmLeadsError) {
-      console.error("[simulation/restart] delete crm leads", deleteCrmLeadsError);
-      return NextResponse.json(
-        { error: deleteCrmLeadsError.message || "Could not clear CRM leads." },
-        { status: 500 }
+      // Table missing until supabase/crm-leads-migration.sql is applied — do not block restart.
+      const msg = (deleteCrmLeadsError.message ?? "").toLowerCase();
+      const isMissingTable =
+        deleteCrmLeadsError.code === "PGRST205" ||
+        msg.includes("schema cache") ||
+        msg.includes("does not exist") ||
+        msg.includes("could not find the table");
+      if (!isMissingTable) {
+        console.error("[simulation/restart] delete crm leads", deleteCrmLeadsError);
+        return NextResponse.json(
+          { error: deleteCrmLeadsError.message || "Could not clear CRM leads." },
+          { status: 500 }
+        );
+      }
+      console.warn(
+        "[simulation/restart] crm_leads table missing — run supabase/crm-leads-migration.sql"
       );
     }
 

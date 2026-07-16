@@ -1,10 +1,12 @@
 /**
  * CrmHelperWidget.tsx
- * Persistent top-right CRM coach card — one prioritized guidance message.
+ * Collapsible CRM coach tip — expands briefly, then docks as a side tab
+ * (Chrome-extension style) so it does not block the CRM canvas.
  */
 
 "use client";
 
+import { useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmLead, SimulationStage } from "@/types";
 
@@ -15,6 +17,8 @@ type CrmHelperWidgetProps = {
   loggedStages: ReadonlySet<string>;
   hasKimContact: boolean;
 };
+
+const AUTO_COLLAPSE_MS = 3500;
 
 const OPPORTUNITY_LOG_STAGES = [
   "discovery",
@@ -90,7 +94,7 @@ function helperMessage({
   }
 
   if (currentStage === "objections" && !hasKimContact) {
-    return "New stakeholder — add Dr. Saul Kim as a Contact.";
+    return "New stakeholder — add contacts as new people enter the deal.";
   }
 
   const allLogged = OPPORTUNITY_LOG_STAGES.every((stage) => loggedStages.has(stage));
@@ -106,24 +110,61 @@ function helperMessage({
 }
 
 /**
- * Fixed coach card shown while the CRM overlay is open.
+ * Fixed coach tip — auto-collapses to a right-edge tab after a short delay.
  */
 export function CrmHelperWidget(props: CrmHelperWidgetProps): React.ReactElement {
   const message = helperMessage(props);
+  const [expanded, setExpanded] = useState(true);
+
+  useEffect(() => {
+    setExpanded(true);
+    const timer = window.setTimeout(() => setExpanded(false), AUTO_COLLAPSE_MS);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="fixed top-1/2 right-0 z-[120] -translate-y-1/2 flex flex-col items-center gap-1 rounded-l-lg border border-r-0 border-[#bfc8c8] bg-white px-2 py-3 shadow-md hover:bg-[#eef5f2] transition-colors"
+        aria-label="Show CRM tip"
+        title="CRM tip"
+      >
+        <MaterialIcon name="lightbulb" className="text-[18px] text-[#6c3a00]" />
+        <span
+          className="text-[10px] font-bold uppercase tracking-widest text-[#404848]"
+          style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+        >
+          Tip
+        </span>
+      </button>
+    );
+  }
 
   return (
     <aside
-      className="fixed top-20 right-6 z-[120] w-[min(320px,calc(100vw-280px))] rounded-lg border border-[#bfc8c8] bg-white shadow-lg shadow-black/10 p-4"
+      className="fixed top-20 right-6 z-[120] w-[min(300px,calc(100vw-280px))] rounded-lg border border-[#bfc8c8] bg-white shadow-lg shadow-black/10 p-4"
       aria-label="CRM helper"
     >
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 rounded-full bg-[#ffdcc1] text-[#6c3a00] flex items-center justify-center shrink-0">
           <MaterialIcon name="lightbulb" className="text-[18px]" />
         </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#404848] mb-1">
-            CRM tip
-          </p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#404848]">
+              CRM tip
+            </p>
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="text-[#707978] hover:text-[#003434] p-0.5 rounded"
+              aria-label="Collapse tip"
+            >
+              <MaterialIcon name="chevron_right" className="text-[18px]" />
+            </button>
+          </div>
           <p className="text-sm text-[#161d1b] leading-snug">{message}</p>
         </div>
       </div>
