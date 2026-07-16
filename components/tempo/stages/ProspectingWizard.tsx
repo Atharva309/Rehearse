@@ -231,7 +231,11 @@ export function ProspectingWizard({
               </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 lg:p-xl">
+          <div
+            className={`flex-1 min-h-0 overflow-y-auto ${
+              currentStep === 0 ? "p-2 lg:p-3" : "p-4 lg:p-xl"
+            }`}
+          >
             <ProspectingStepPanels
               currentStep={currentStep}
               attemptId={attemptId}
@@ -249,7 +253,7 @@ export function ProspectingWizard({
           </div>
         </section>
 
-        <aside className="w-80 bg-surface-container border-l border-outline-variant overflow-y-auto p-lg hidden xl:block shrink-0">
+        <aside className="w-64 bg-surface-container border-l border-outline-variant overflow-y-auto p-md hidden xl:block shrink-0">
           <div className="flex items-center justify-between mb-lg">
             <h3 className="font-headline-md text-headline-md">Reference Library</h3>
             <MaterialIcon name="library_books" className="text-on-surface-variant" />

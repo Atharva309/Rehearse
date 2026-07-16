@@ -25,8 +25,8 @@ export type ProspectDirectoryCompany = {
   signalHint: string;
 };
 
-/** How many decoy companies to show alongside the real target. */
-export const PROSPECT_DIRECTORY_DECOY_COUNT = 9;
+/** Show every non-target company in the 25-company Tempo directory. */
+export const PROSPECT_DIRECTORY_DECOY_COUNT = 24;
 
 /**
  * Stable seeded companies: 1 Tempo target + dental/vet/PT/optometry/med spa/chiro decoys.

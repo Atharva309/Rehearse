@@ -109,26 +109,24 @@ export function ProspectingCompanyDirectory({
       : [];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-0 lg:gap-0 h-[min(720px,calc(100vh-12rem))] min-h-[520px] -mx-2 lg:-mx-4 -my-2 border border-outline-variant rounded-xl overflow-hidden bg-surface">
+    <div className="flex flex-col lg:flex-row h-full min-h-[520px] border border-outline-variant rounded-xl overflow-hidden bg-surface">
       {/* Left: company list */}
-      <section className="w-full lg:w-[340px] xl:w-[380px] flex flex-col bg-surface-container-lowest border-b lg:border-b-0 lg:border-r border-outline-variant shrink-0 min-h-0">
-        <div className="p-lg border-b border-outline-variant shrink-0">
-          <div className="mb-md">
-            <nav className="flex items-center gap-1 text-label-sm text-on-surface-variant mb-xs">
+      <section className="w-full lg:w-[280px] xl:w-[300px] flex flex-col bg-surface-container-lowest border-b lg:border-b-0 lg:border-r border-outline-variant shrink-0 min-h-0">
+        <div className="p-3 border-b border-outline-variant shrink-0">
+          <div className="mb-2">
+            <nav className="flex items-center gap-0.5 text-[10px] leading-tight text-on-surface-variant mb-0.5">
               <span>Prospecting</span>
-              <MaterialIcon name="chevron_right" className="text-[14px]" />
+              <MaterialIcon name="chevron_right" className="text-[12px]" />
               <span className="text-primary font-bold">Company Directory</span>
             </nav>
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <h2 className="font-headline-md text-headline-md text-primary">
-                  Candidate Companies
-                </h2>
-                <p className="text-body-md text-on-surface-variant mt-1 leading-snug">
+                <h2 className="text-sm font-bold text-primary leading-tight">Candidate Companies</h2>
+                <p className="text-[11px] text-on-surface-variant leading-tight">
                   Review each and decide who&apos;s worth pursuing.
                 </p>
               </div>
-              <span className="shrink-0 bg-surface-container-high px-2 py-1 rounded text-label-sm text-on-surface-variant">
+              <span className="shrink-0 bg-surface-container-high px-1.5 py-0.5 rounded text-[10px] text-on-surface-variant">
                 {companies.length} Companies
               </span>
             </div>
@@ -139,7 +137,7 @@ export function ProspectingCompanyDirectory({
               className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]"
             />
             <input
-              className="w-full h-10 pl-10 pr-4 bg-surface-container border border-outline-variant rounded-lg text-body-md focus:ring-2 focus:ring-secondary/50 focus:border-secondary outline-none transition-all"
+              className="w-full h-8 pl-9 pr-3 bg-surface-container border border-outline-variant rounded-lg text-sm focus:ring-2 focus:ring-secondary/50 focus:border-secondary outline-none transition-all"
               placeholder="Search companies..."
               type="text"
               value={search}
@@ -148,7 +146,7 @@ export function ProspectingCompanyDirectory({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-md space-y-3 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
           {isLoading ? (
             <p className="text-body-md text-on-surface-variant py-4 text-center">Loading…</p>
           ) : error ? (
@@ -163,34 +161,34 @@ export function ProspectingCompanyDirectory({
                   key={company.id}
                   type="button"
                   onClick={() => onSelectCompany(company.id)}
-                  className={`w-full text-left p-4 rounded-lg cursor-pointer transition-all group active:scale-[0.99] border ${
+                  className={`w-full text-left p-2.5 rounded-lg cursor-pointer transition-all group active:scale-[0.99] border ${
                     isSelected
                       ? "bg-surface border-2 border-secondary shadow-sm"
                       : "bg-surface border-outline-variant hover:border-outline hover:shadow-sm"
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-2 gap-2">
+                  <div className="flex justify-between items-start mb-1 gap-1.5">
                     <h3
-                      className={`text-label-md font-bold transition-colors ${
+                      className={`text-[13px] leading-tight font-bold transition-colors ${
                         isSelected ? "text-primary" : "text-on-surface group-hover:text-primary"
                       }`}
                     >
                       {company.name}
                     </h3>
-                    <span className="text-label-sm px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant shrink-0">
+                    <span className="text-[9px] leading-tight px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant shrink-0">
                       {company.industry}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-label-sm text-on-surface-variant mb-2">
-                    <MaterialIcon name="groups" className="text-[14px]" />
+                  <div className="flex items-center gap-1 text-[10px] leading-tight text-on-surface-variant mb-1">
+                    <MaterialIcon name="groups" className="text-[12px]" />
                     <span>{company.sizeLabel}</span>
                   </div>
-                  <div className="flex items-start gap-2 pt-2 border-t border-dashed border-outline-variant/50">
+                  <div className="flex items-start gap-1 pt-1 border-t border-dashed border-outline-variant/50">
                     <MaterialIcon
                       name="rss_feed"
-                      className="text-[14px] text-secondary mt-0.5 shrink-0"
+                      className="text-[12px] text-secondary shrink-0"
                     />
-                    <p className="text-[12px] text-on-surface-variant font-medium line-clamp-2 italic">
+                    <p className="text-[10px] leading-tight text-on-surface-variant font-medium line-clamp-1 italic">
                       {company.signalHint}
                     </p>
                   </div>

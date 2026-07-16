@@ -65,7 +65,7 @@ export const tempoDirectorySeed: DirectoryConfig = {
         "Pain is running in the wrong direction — cost-cutting and staff reduction, not growth strain — so a scaling-focused pitch doesn't land",
     },
   ],
-  fillerCount: 47,
+  fillerCount: 21,
   industryPool: [
     "Dental",
     "Veterinary",
