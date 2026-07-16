@@ -9,7 +9,6 @@ import { NextResponse } from "next/server";
 import { requireStudentApi } from "@/lib/api-auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
-  PROSPECT_DIRECTORY_SEED,
   pickProspectDirectorySubset,
   toPublicProspectCompany,
   type ProspectDirectoryCompanyRow,
@@ -21,39 +20,35 @@ type StageDataBag = {
 };
 
 /**
- * Maps a DB row (or seed row) into the internal directory shape.
+ * Maps a database row into the internal directory shape.
  */
 function mapDirectoryRow(row: Record<string, unknown>): ProspectDirectoryCompanyRow {
   return {
     id: String(row.id),
-    name: String(row.name ?? ""),
+    name: String(row.company_name ?? ""),
     industry: String(row.industry ?? ""),
-    sizeLabel: String(row.size_label ?? row.sizeLabel ?? ""),
-    signalHint: String(row.signal_hint ?? row.signalHint ?? ""),
-    isTarget: Boolean(row.is_target ?? row.isTarget),
+    sizeLabel: String(row.size_locations ?? ""),
+    signalHint: String(row.signal_hint ?? ""),
+    isTarget: row.entry_type === "target",
   };
 }
 
 /**
- * Loads directory rows from Supabase, falling back to the in-repo seed.
+ * Loads active directory rows for the attempt's simulation from Supabase.
  */
-async function loadDirectoryRows(): Promise<ProspectDirectoryCompanyRow[]> {
+async function loadDirectoryRows(simulationId: string): Promise<ProspectDirectoryCompanyRow[]> {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("crm_prospect_directory")
-    .select("id, name, industry, size_label, signal_hint, is_target");
+    .select("id, company_name, industry, size_locations, signal_hint, entry_type")
+    .eq("simulation_id", simulationId)
+    .eq("is_active", true);
 
-  if (error || !data || data.length === 0) {
-    if (error) {
-      console.warn(
-        "[prospect-directory] table unavailable — using seed. Run supabase/crm-prospect-directory-migration.sql:",
-        error.message
-      );
-    }
-    return [...PROSPECT_DIRECTORY_SEED];
+  if (error) {
+    throw new Error(`Could not load prospect directory: ${error.message}`);
   }
 
-  return data.map((row) => mapDirectoryRow(row as Record<string, unknown>));
+  return (data ?? []).map((row) => mapDirectoryRow(row as Record<string, unknown>));
 }
 
 /**
@@ -87,7 +82,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const supabase = createServiceClient();
     const { data: attempt, error: attemptError } = await supabase
       .from("attempts")
-      .select("id, student_id, stage_data")
+      .select("id, student_id, simulation_id, stage_data")
       .eq("id", attemptId)
       .eq("student_id", auth.session.studentId)
       .maybeSingle();
@@ -96,7 +91,13 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
     }
 
-    const allRows = await loadDirectoryRows();
+    const allRows = await loadDirectoryRows(String(attempt.simulation_id));
+    if (allRows.length === 0) {
+      return NextResponse.json(
+        { error: "No active prospect directory is configured for this simulation." },
+        { status: 404 }
+      );
+    }
     const stageData = (attempt.stage_data ?? {}) as StageDataBag;
     const cachedIds = Array.isArray(stageData.directoryCompanyIds)
       ? stageData.directoryCompanyIds.filter((id): id is string => typeof id === "string")
