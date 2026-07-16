@@ -54,12 +54,8 @@ function helperMessage({
  */
 export function CrmHelperWidget(props: CrmHelperWidgetProps): React.ReactElement | null {
   const { currentStage } = props;
+  const showTip = isInProspecting(currentStage);
   const [phase, setPhase] = useState<TipPhase>("docked");
-
-  if (!isInProspecting(currentStage)) {
-    return null;
-  }
-
   const message = helperMessage(props);
 
   /**
@@ -76,6 +72,10 @@ export function CrmHelperWidget(props: CrmHelperWidgetProps): React.ReactElement
     const timer = window.setTimeout(() => setPhase("docked"), COLLAPSE_ANIM_MS);
     return () => window.clearTimeout(timer);
   }, [phase]);
+
+  if (!showTip) {
+    return null;
+  }
 
   if (phase === "docked") {
     return (
