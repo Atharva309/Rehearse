@@ -4,7 +4,10 @@
  */
 
 import { TEMPO_SIMULATION_ID } from "../../lib/constants";
-import type { DirectoryConfig } from "../generate-prospect-directory";
+import {
+  parseSizeNumber,
+  type DirectoryConfig,
+} from "../generate-prospect-directory";
 
 export const tempoDirectorySeed: DirectoryConfig = {
   simulationId: TEMPO_SIMULATION_ID,
@@ -50,7 +53,7 @@ export const tempoDirectorySeed: DirectoryConfig = {
     {
       companyName: "Golden State Dental Alliance",
       contactName: "M. Torres",
-      contactTitle: "Regional Director",
+      contactTitle: "Practice Manager",
       industry: "Dental",
       sizeLocations: "12 locations",
       signalHint: "Recently reduced administrative staff as part of a cost-cutting initiative",
@@ -130,6 +133,35 @@ export const tempoDirectorySeed: DirectoryConfig = {
     "Regional Director",
     "Owner",
     "Founder",
+  ],
+  comparableAxes: [
+    {
+      name: "size",
+      keywords: ["size", "location", "locations", "clinic", "clinics", "studio"],
+      getValue: (entry) => parseSizeNumber(entry.sizeLocations),
+      regenerateFillerValue: (config) => {
+        const targetSize = parseSizeNumber(config.target.sizeLocations) ?? 8;
+        const newSize =
+          Math.floor(Math.random() * Math.max(1, targetSize - 1)) + 1;
+        return { sizeLocations: `${newSize} locations` };
+      },
+    },
+    {
+      name: "seniority",
+      keywords: ["senior", "director", "title", "seniority", "authority"],
+      getValue: (entry, config) =>
+        config.contactTitleSeniorityRank.indexOf(entry.contactTitle),
+      regenerateFillerValue: (config) => {
+        const targetRank = config.contactTitleSeniorityRank.indexOf(
+          config.target.contactTitle
+        );
+        const validTitles = config.contactTitlePool.filter(
+          (title) => config.contactTitleSeniorityRank.indexOf(title) < targetRank
+        );
+        const pick = validTitles[Math.floor(Math.random() * validTitles.length)];
+        return { contactTitle: pick };
+      },
+    },
   ],
   contactLastNamePool: [
     "Alvarez",

@@ -24,6 +24,14 @@ export interface CraftedDecoyEntry extends DirectoryEntry {
   weakerAxis: string;
 }
 
+/** Config-defined numeric comparison used for decoy validation and filler capping. */
+export interface ComparableAxis {
+  name: string;
+  keywords: string[];
+  getValue: (entry: DirectoryEntry, config: DirectoryConfig) => number | null;
+  regenerateFillerValue?: (config: DirectoryConfig) => Partial<DirectoryEntry>;
+}
+
 export interface DirectoryConfig {
   simulationId: string;
   target: DirectoryEntry;
@@ -34,8 +42,8 @@ export interface DirectoryConfig {
   suffixByIndustry: Record<string, string[]>;
   contactTitlePool: string[];
   contactLastNamePool: string[];
-  /** Ordered low → high seniority; used to cap filler contact titles below the target. */
   contactTitleSeniorityRank: string[];
+  comparableAxes: ComparableAxis[];
 }
 
 type EntryType = "target" | "crafted_decoy" | "filler";
@@ -52,16 +60,6 @@ type DirectoryRowInsert = {
   entry_type: EntryType;
   is_active: boolean;
 };
-
-const FILLER_SIZE_OPTIONS = [
-  "1 location",
-  "2 locations",
-  "3 locations",
-  "1 clinic",
-  "2 clinics",
-  "3 clinics",
-  "1 studio",
-];
 
 const FILLER_SIGNAL_HINTS = [
   "Steady operations with no notable public updates recently.",
@@ -83,11 +81,9 @@ function pickRandom<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)] as T;
 }
 
-/**
- * Parses the leading integer from a free-text size string (e.g. "8 locations" → 8).
- */
-function parseLeadingIntegerFromSize(sizeLocations: string): number | null {
-  const match = sizeLocations.trim().match(/^(\d+)/);
+/** Parses the leading integer from a free-text comparable value. */
+export function parseSizeNumber(valueText: string): number | null {
+  const match = valueText.trim().match(/^(\d+)/);
   if (!match) {
     return null;
   }
@@ -96,94 +92,108 @@ function parseLeadingIntegerFromSize(sizeLocations: string): number | null {
 }
 
 /**
- * Seniority index in rank list (low → high), or null if title is unknown.
+ * Applies every configured axis cap to one filler candidate.
+ * Axes without usable values or regeneration strategies degrade with a warning.
  */
-function getSeniorityRank(title: string, rankList: readonly string[]): number | null {
-  const idx = rankList.indexOf(title.trim());
-  return idx === -1 ? null : idx;
-}
+function applyComparableAxisCaps(
+  candidate: DirectoryEntry,
+  config: DirectoryConfig
+): DirectoryEntry {
+  let cappedCandidate = candidate;
 
-/**
- * Picks a filler size strictly below the target's parsed size when cap is known.
- */
-function pickFillerSizeLocations(targetSizeNum: number | null): string {
-  if (targetSizeNum === null) {
-    return pickRandom(FILLER_SIZE_OPTIONS);
-  }
+  for (const axis of config.comparableAxes) {
+    const targetValue = axis.getValue(config.target, config);
+    let fillerValue = axis.getValue(cappedCandidate, config);
 
-  const strictlyBelow = (candidate: string): boolean => {
-    const n = parseLeadingIntegerFromSize(candidate);
-    return n !== null && n < targetSizeNum;
-  };
-
-  const validPool = FILLER_SIZE_OPTIONS.filter(strictlyBelow);
-
-  for (let attempt = 0; attempt < FILLER_GUARD_RETRY_MAX; attempt += 1) {
-    const candidate =
-      validPool.length > 0 ? pickRandom(validPool) : pickRandom(FILLER_SIZE_OPTIONS);
-    if (strictlyBelow(candidate)) {
-      return candidate;
-    }
-  }
-
-  const fallbackNum = Math.max(1, targetSizeNum - 1);
-  return `${fallbackNum} locations`;
-}
-
-/**
- * Picks a filler contact title strictly below the target's seniority when ranks are known.
- */
-function pickFillerContactTitle(config: DirectoryConfig): string {
-  const { contactTitlePool, contactTitleSeniorityRank, target } = config;
-  const targetRank = getSeniorityRank(target.contactTitle, contactTitleSeniorityRank);
-
-  if (targetRank === null) {
-    console.warn(
-      `[generate-prospect-directory] Target contact title "${target.contactTitle}" not in contactTitleSeniorityRank; skipping filler seniority cap.`
-    );
-    return pickRandom(contactTitlePool);
-  }
-
-  const validTitles = contactTitlePool.filter((title) => {
-    const rank = getSeniorityRank(title, contactTitleSeniorityRank);
-    return rank !== null && rank < targetRank;
-  });
-
-  if (validTitles.length === 0) {
-    console.warn(
-      `[generate-prospect-directory] contactTitlePool has no title below target seniority ("${target.contactTitle}"); add pool options below the target rank. Skipping seniority cap for filler titles.`
-    );
-    return pickRandom(contactTitlePool);
-  }
-
-  for (let attempt = 0; attempt < FILLER_GUARD_RETRY_MAX; attempt += 1) {
-    const candidate = pickRandom(validTitles);
-    const candidateRank = getSeniorityRank(candidate, contactTitleSeniorityRank);
-    if (candidateRank === null) {
+    if (targetValue === null || fillerValue === null) {
       console.warn(
-        `[generate-prospect-directory] Filler title "${candidate}" not in contactTitleSeniorityRank; skipping seniority check for this entry.`
+        `[generate-prospect-directory] Skipping axis "${axis.name}" for filler "${candidate.companyName}" because its target or filler value is unavailable.`
       );
-      return candidate;
+      continue;
     }
-    if (candidateRank < targetRank) {
-      return candidate;
+    if (fillerValue < targetValue) {
+      continue;
+    }
+    if (!axis.regenerateFillerValue) {
+      console.warn(
+        `[generate-prospect-directory] Axis "${axis.name}" cannot cap filler "${candidate.companyName}" because no regeneration strategy is configured.`
+      );
+      continue;
+    }
+
+    let isCapped = false;
+    for (let attempt = 0; attempt < FILLER_GUARD_RETRY_MAX; attempt += 1) {
+      cappedCandidate = {
+        ...cappedCandidate,
+        ...axis.regenerateFillerValue(config),
+      };
+      fillerValue = axis.getValue(cappedCandidate, config);
+      if (fillerValue === null) {
+        console.warn(
+          `[generate-prospect-directory] Skipping axis "${axis.name}" for filler "${candidate.companyName}" because regeneration produced an unavailable value.`
+        );
+        isCapped = true;
+        break;
+      }
+      if (fillerValue < targetValue) {
+        isCapped = true;
+        break;
+      }
+    }
+
+    if (!isCapped) {
+      console.warn(
+        `[generate-prospect-directory] Axis "${axis.name}" remained at or above its target value for filler "${candidate.companyName}" after ${FILLER_GUARD_RETRY_MAX} attempts.`
+      );
     }
   }
 
-  return pickRandom(validTitles);
+  return cappedCandidate;
 }
 
 /**
- * Ensures every crafted decoy declares strongerAxis and weakerAxis (hard-stop).
+ * Validates required decoy rationale and measured wins across configured axes.
  */
-export function validateCraftedDecoys(decoys: CraftedDecoyEntry[]): void {
-  for (const decoy of decoys) {
+export function validateCraftedDecoys(config: DirectoryConfig): void {
+  for (const decoy of config.craftedDecoys) {
     const label = decoy.companyName.trim() || "(unnamed crafted decoy)";
     if (!decoy.strongerAxis?.trim()) {
       throw new Error(`Crafted decoy "${label}" is missing required field strongerAxis.`);
     }
     if (!decoy.weakerAxis?.trim()) {
       throw new Error(`Crafted decoy "${label}" is missing required field weakerAxis.`);
+    }
+
+    const winningAxes = config.comparableAxes.filter((axis) => {
+      const decoyValue = axis.getValue(decoy, config);
+      const targetValue = axis.getValue(config.target, config);
+      return decoyValue !== null && targetValue !== null && decoyValue > targetValue;
+    });
+
+    if (winningAxes.length > 1) {
+      throw new Error(
+        `Crafted decoy "${label}" out-performs the target on multiple axes: ${winningAxes
+          .map((axis) => axis.name)
+          .join(", ")}.`
+      );
+    }
+
+    if (winningAxes.length === 0) {
+      console.warn(
+        `[generate-prospect-directory] Crafted decoy "${label}" does not measurably out-perform the target on any configured axis; double-check that this is intentional.`
+      );
+      continue;
+    }
+
+    const winningAxis = winningAxes[0];
+    const declaredStrength = decoy.strongerAxis.toLowerCase();
+    const referencesWinningAxis = winningAxis.keywords.some((keyword) =>
+      declaredStrength.includes(keyword.toLowerCase())
+    );
+    if (!referencesWinningAxis) {
+      console.warn(
+        `[generate-prospect-directory] Crafted decoy "${label}" wins on axis "${winningAxis.name}", but strongerAxis may not reference that measured strength.`
+      );
     }
   }
 }
@@ -253,13 +263,6 @@ function buildUniqueFillerCompanyName(
  * so a filler can never duplicate them.
  */
 function buildFillerEntries(config: DirectoryConfig): DirectoryEntry[] {
-  const targetSizeNum = parseLeadingIntegerFromSize(config.target.sizeLocations);
-  if (targetSizeNum === null) {
-    console.warn(
-      "[generate-prospect-directory] Could not parse target sizeLocations; filler size cap skipped for this run."
-    );
-  }
-
   const usableIndustries = config.industryPool.filter(
     (industry) => (config.suffixByIndustry[industry] ?? []).length > 0
   );
@@ -283,14 +286,15 @@ function buildFillerEntries(config: DirectoryConfig): DirectoryEntry[] {
     const lastName = pickRandom(config.contactLastNamePool);
     const initial = String.fromCharCode(65 + Math.floor(Math.random() * 26));
 
-    fillers.push({
+    const candidate: DirectoryEntry = {
+      ...config.target,
       companyName,
       contactName: `${initial}. ${lastName}`,
-      contactTitle: pickFillerContactTitle(config),
       industry,
-      sizeLocations: pickFillerSizeLocations(targetSizeNum),
       signalHint: pickRandom(FILLER_SIGNAL_HINTS),
-    });
+      hiddenClaim: undefined,
+    };
+    fillers.push(applyComparableAxisCaps(candidate, config));
   }
 
   return fillers;
@@ -303,7 +307,7 @@ export async function generateProspectDirectory(
   supabase: SupabaseClient,
   config: DirectoryConfig
 ): Promise<{ inserted: number }> {
-  validateCraftedDecoys(config.craftedDecoys);
+  validateCraftedDecoys(config);
 
   const { count, error: countError } = await supabase
     .from("crm_prospect_directory")
