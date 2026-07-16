@@ -550,13 +550,14 @@ export function CrmOverlay({
       </aside>
 
       <main className="ml-[240px] flex-grow flex flex-col h-screen min-w-0">
-        <header className="w-full px-6 py-4 bg-[#f4fbf7] border-b border-[#bfc8c8] shadow-sm sticky top-0 z-30">
+        <header className="w-full h-12 px-6 bg-[#f4fbf7] border-b border-[#bfc8c8] shadow-sm sticky top-0 z-30 flex items-center">
           <button
             type="button"
             onClick={handleBackToSimulation}
             disabled={closing}
-            className="px-4 py-2 border border-[#003434] text-[#003434] text-[12px] font-medium rounded-lg hover:bg-[#eef5f2] transition-colors duration-200 uppercase tracking-wide disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#003434] hover:text-[#0f4c4c] transition-colors disabled:opacity-60"
           >
+            <MaterialIcon name="arrow_back" className="text-[18px]" />
             Back to Simulation
           </button>
         </header>

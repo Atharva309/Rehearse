@@ -93,7 +93,7 @@ export function ProspectingWizard({
       <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
         <div className="flex flex-1 min-h-0 overflow-hidden">
         <aside className="w-60 bg-primary-container text-on-primary-container flex flex-col h-full shrink-0 hidden lg:flex">
-          <div className="px-lg pt-md pb-sm">
+          <div className="px-lg h-12 flex items-center border-b border-white/10 shrink-0">
             <TempoBackToDashboard />
           </div>
           <div className="p-lg border-b border-white/10">

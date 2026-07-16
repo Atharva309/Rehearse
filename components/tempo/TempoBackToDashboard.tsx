@@ -15,7 +15,7 @@ type TempoBackToDashboardProps = {
 };
 
 /**
- * Compact back control — gold fill so it stands out on the dark left column.
+ * Compact arrow + text exit — matches top-bar control height.
  */
 export function TempoBackToDashboard({
   href = "/student/dashboard",
@@ -27,9 +27,9 @@ export function TempoBackToDashboard({
     <button
       type="button"
       onClick={() => router.push(href)}
-      className={`inline-flex items-center gap-1.5 w-fit px-3 py-2 rounded-lg text-[11px] font-bold tracking-wide uppercase bg-tertiary-container text-on-tertiary-fixed border border-tertiary-container shadow-sm hover:brightness-95 active:scale-[0.98] transition-all ${className}`}
+      className={`inline-flex items-center gap-1.5 h-8 w-fit text-[12px] font-medium tracking-wide text-on-primary/85 hover:text-on-primary transition-colors ${className}`}
     >
-      <MaterialIcon name="arrow_back" className="text-[16px]" />
+      <MaterialIcon name="arrow_back" className="text-[18px]" />
       Back to Dashboard
     </button>
   );

@@ -19,8 +19,8 @@ type CrmHelperWidgetProps = {
 
 const COLLAPSE_ANIM_MS = 220;
 
-/** Aligns with the CRM “Back to Simulation” header row. */
-const TIP_TOP_CLASS = "top-4";
+/** Aligns with the CRM “Back to Simulation” header row (h-12). */
+const TIP_TOP_CLASS = "top-2.5";
 
 type TipPhase = "open" | "closing" | "docked";
 
