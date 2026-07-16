@@ -78,6 +78,8 @@ type CrmOverlayProps = {
   displayName: string;
   /** When set with isOpen, skip list and open Opportunity record on this stage tab. */
   deepLinkStage?: SimulationStage | null;
+  /** When set with isOpen, skip list and open the requested CRM record view. */
+  deepLinkView?: "account" | null;
   /** When true with isOpen, open the Leads list (e.g. Discovery convert gate). */
   deepLinkLeads?: boolean;
   /** Notifies parent when log entries change (for handoff gate / button blink). */
@@ -104,6 +106,7 @@ type TempoCrmGateContextValue = {
   needsLoggingStage: string | null;
   openCrmForStage: (stage: string) => void;
   openCrmLeads: () => void;
+  openCrmAccount: () => void;
   hasConvertedLead: boolean;
   refreshCrmLogs: () => Promise<void>;
   /** Registers a stage as completed for gate/blink (e.g. right after submit, before page reload). */
@@ -115,6 +118,7 @@ const TempoCrmGateContext = createContext<TempoCrmGateContextValue>({
   needsLoggingStage: null,
   openCrmForStage: () => undefined,
   openCrmLeads: () => undefined,
+  openCrmAccount: () => undefined,
   hasConvertedLead: false,
   refreshCrmLogs: async () => undefined,
   noteCompletedStage: () => undefined,
@@ -196,6 +200,7 @@ export function CrmOverlay({
   currentStage,
   displayName,
   deepLinkStage = null,
+  deepLinkView = null,
   deepLinkLeads = false,
   onLogEntriesChange,
   onLeadsChange,
@@ -224,12 +229,19 @@ export function CrmOverlay({
         setContactKey("dana_reyes");
         return;
       }
+      if (deepLinkView === "account") {
+        setActiveDeepLink(null);
+        setSelectedLeadId(null);
+        setView("account-record");
+        setContactKey("dana_reyes");
+        return;
+      }
       const link = asRecordStage(deepLinkStage);
       setActiveDeepLink(link);
       setView(link ? "record" : "home");
       setContactKey("dana_reyes");
     }
-  }, [isOpen, deepLinkStage, deepLinkLeads]);
+  }, [isOpen, deepLinkStage, deepLinkView, deepLinkLeads]);
 
   useEffect(() => {
     return () => {
@@ -996,6 +1008,7 @@ export function CrmAccess({
   const [isPageReady, setIsPageReady] = useState(false);
   const [isCrmOpen, setIsCrmOpen] = useState(false);
   const [deepLinkStage, setDeepLinkStage] = useState<SimulationStage | null>(null);
+  const [deepLinkView, setDeepLinkView] = useState<"account" | null>(null);
   const [deepLinkLeads, setDeepLinkLeads] = useState(false);
   const [loggedStageIds, setLoggedStageIds] = useState<string[]>(initialLoggedStages);
   const [liveCompleted, setLiveCompleted] = useState<string[]>(completedStages);
@@ -1061,10 +1074,12 @@ export function CrmAccess({
     if (stage === "prospecting") {
       setDeepLinkLeads(true);
       setDeepLinkStage(null);
+      setDeepLinkView(null);
       setIsCrmOpen(true);
       return;
     }
     setDeepLinkLeads(false);
+    setDeepLinkView(null);
     setDeepLinkStage(stage as SimulationStage);
     setIsCrmOpen(true);
   }, []);
@@ -1072,6 +1087,14 @@ export function CrmAccess({
   const openCrmLeads = useCallback((): void => {
     setDeepLinkLeads(true);
     setDeepLinkStage(null);
+    setDeepLinkView(null);
+    setIsCrmOpen(true);
+  }, []);
+
+  const openCrmAccount = useCallback((): void => {
+    setDeepLinkLeads(false);
+    setDeepLinkStage(null);
+    setDeepLinkView("account");
     setIsCrmOpen(true);
   }, []);
 
@@ -1082,6 +1105,7 @@ export function CrmAccess({
   const handleCloseCrm = useCallback((): void => {
     setIsCrmOpen(false);
     setDeepLinkStage(null);
+    setDeepLinkView(null);
     setDeepLinkLeads(false);
     void refreshCrmLogs();
     void refreshLeads();
@@ -1101,6 +1125,7 @@ export function CrmAccess({
       needsLoggingStage,
       openCrmForStage,
       openCrmLeads,
+      openCrmAccount,
       hasConvertedLead,
       refreshCrmLogs,
       noteCompletedStage,
@@ -1110,6 +1135,7 @@ export function CrmAccess({
       needsLoggingStage,
       openCrmForStage,
       openCrmLeads,
+      openCrmAccount,
       hasConvertedLead,
       refreshCrmLogs,
       noteCompletedStage,
@@ -1126,6 +1152,7 @@ export function CrmAccess({
             onClick={() => {
               setDeepLinkLeads(false);
               setDeepLinkStage(null);
+              setDeepLinkView(null);
               setIsCrmOpen(true);
             }}
           />
@@ -1138,6 +1165,7 @@ export function CrmAccess({
             currentStage={currentStage}
             displayName={displayName}
             deepLinkStage={deepLinkStage}
+            deepLinkView={deepLinkView}
             deepLinkLeads={deepLinkLeads}
             onLogEntriesChange={handleLogEntriesChange}
             onLeadsChange={handleLeadsChange}

@@ -50,7 +50,7 @@ export function HandoffModal({
 }: HandoffModalProps): React.ReactElement {
   const [entered, setEntered] = useState(false);
   const gate = useTempoCrmGate();
-  const { noteCompletedStage, loggedStages, openCrmForStage } = gate;
+  const { noteCompletedStage, loggedStages, openCrmForStage, openCrmAccount } = gate;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setEntered(true), 100);
@@ -72,6 +72,7 @@ export function HandoffModal({
         : true;
 
   const isGated = requiresLog && !crmLogExists;
+  const showAccountNudge = !isGated && justCompleted === "prospecting";
 
   useEffect(() => {
     if (isGated && justCompleted) {
@@ -183,14 +184,34 @@ export function HandoffModal({
                 </button>
               </>
             ) : (
-              <button
-                type="button"
-                onClick={onBegin}
-                className="w-full h-12 rounded-lg font-headline-md flex items-center justify-center gap-2 bg-primary-container text-white font-bold hover:bg-primary transition-all active:scale-[0.98]"
-              >
-                Begin Stage {stageNumber}
-                <MaterialIcon name="arrow_forward" />
-              </button>
+              <>
+                {showAccountNudge ? (
+                  <p className="text-body-md text-on-surface-variant text-center">
+                    Auto-filled facts are in your CRM now, but your strategy and contact-role notes
+                    are still empty. Worth a quick visit before your call.
+                  </p>
+                ) : null}
+                <div className={showAccountNudge ? "grid gap-3 sm:grid-cols-2" : ""}>
+                  {showAccountNudge ? (
+                    <button
+                      type="button"
+                      onClick={openCrmAccount}
+                      className="w-full min-h-12 px-3 py-2 rounded-lg font-headline-md flex items-center justify-center gap-2 border border-primary-container text-primary font-bold hover:bg-surface-container-low transition-all active:scale-[0.98]"
+                    >
+                      <MaterialIcon name="business_center" />
+                      Go to CRM — Add Account &amp; Contact Notes
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={onBegin}
+                    className="w-full h-12 rounded-lg font-headline-md flex items-center justify-center gap-2 bg-primary-container text-white font-bold hover:bg-primary transition-all active:scale-[0.98]"
+                  >
+                    Begin Stage {stageNumber}
+                    <MaterialIcon name="arrow_forward" />
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>

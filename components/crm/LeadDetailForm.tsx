@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmLead } from "@/types";
 
@@ -116,6 +116,9 @@ export function LeadDetailForm({
   const [values, setValues] = useState<LeadFormValues>(() => valuesFromLead(lead));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [companyOptions, setCompanyOptions] = useState<string[]>([]);
+  const [isDirectoryLoading, setIsDirectoryLoading] = useState(true);
+  const [directoryError, setDirectoryError] = useState<string | null>(null);
 
   const title = values.companyName.trim() || (lead ? "Lead" : "New lead");
   const badge = statusLabel(lead?.status);
@@ -123,6 +126,52 @@ export function LeadDetailForm({
     () => !isReadOnly && !isSaving,
     [isReadOnly, isSaving]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCompanyOptions = async (): Promise<void> => {
+      setIsDirectoryLoading(true);
+      setDirectoryError(null);
+      try {
+        const res = await fetch(
+          `/api/student/prospect-directory?attemptId=${encodeURIComponent(attemptId)}`
+        );
+        if (!res.ok) {
+          throw new Error("Directory request failed");
+        }
+        const body = (await res.json()) as {
+          companies?: { name?: string }[];
+        };
+        const names = (body.companies ?? [])
+          .map((company) => company.name?.trim() ?? "")
+          .filter((name): name is string => Boolean(name));
+        if (!cancelled) {
+          setCompanyOptions(names);
+          if (!isReadOnly) {
+            setValues((prev) =>
+              !prev.companyName || names.includes(prev.companyName)
+                ? prev
+                : { ...prev, companyName: "" }
+            );
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setDirectoryError("Could not load company options.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsDirectoryLoading(false);
+        }
+      }
+    };
+
+    void loadCompanyOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, [attemptId, isReadOnly]);
 
   /**
    * Creates or patches the Lead via the CRM Leads API.
@@ -217,6 +266,29 @@ export function LeadDetailForm({
                       <div className="w-full rounded-md px-4 py-2 text-sm text-[#161d1b] bg-[#eef5f2] border border-[#bfc8c8] whitespace-pre-wrap">
                         {value.trim() || "—"}
                       </div>
+                    ) : field.key === "companyName" ? (
+                      <>
+                        <select
+                          className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all disabled:opacity-60"
+                          value={values.companyName}
+                          disabled={isDirectoryLoading}
+                          onChange={(e) =>
+                            setValues((prev) => ({ ...prev, companyName: e.target.value }))
+                          }
+                        >
+                          <option value="">
+                            {isDirectoryLoading ? "Loading companies…" : "Select a company"}
+                          </option>
+                          {companyOptions.map((companyName) => (
+                            <option key={companyName} value={companyName}>
+                              {companyName}
+                            </option>
+                          ))}
+                        </select>
+                        {directoryError ? (
+                          <p className="text-[12px] text-[#ba1a1a]">{directoryError}</p>
+                        ) : null}
+                      </>
                     ) : field.multiline ? (
                       <textarea
                         className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all placeholder:text-[#bfc8c8] resize-none"
