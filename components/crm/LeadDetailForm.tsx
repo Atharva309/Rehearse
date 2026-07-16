@@ -1,12 +1,16 @@
 /**
  * LeadDetailForm.tsx
  * Create/edit/convert a CRM Lead. Converted leads are read-only.
- * Failed convert shows manager feedback; success routes to Opportunity.
+ * Failed convert opens ConvertFailureModal; success routes to Opportunity.
  */
 
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  ConvertFailureModal,
+  type ConvertFailureReason,
+} from "@/components/crm/ConvertFailureModal";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { CrmLead } from "@/types";
 
@@ -92,6 +96,16 @@ function valuesFromLead(lead: CrmLead | null): LeadFormValues {
 }
 
 /**
+ * Narrows convert API reason to a known failure modal reason.
+ */
+function asConvertFailureReason(reason: string | undefined): ConvertFailureReason | null {
+  if (reason === "wrong_company" || reason === "wrong_contact") {
+    return reason;
+  }
+  return null;
+}
+
+/**
  * Lead create/edit/convert form.
  */
 export function LeadDetailForm({
@@ -106,7 +120,7 @@ export function LeadDetailForm({
   const [isSaving, setIsSaving] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [managerNote, setManagerNote] = useState<string | null>(null);
+  const [failureReason, setFailureReason] = useState<ConvertFailureReason | null>(null);
   const [convertSuccess, setConvertSuccess] = useState(false);
 
   const title = values.companyName.trim() || (lead ? "Lead" : "New lead");
@@ -121,7 +135,6 @@ export function LeadDetailForm({
    */
   const persistLead = async (notifyParent: boolean): Promise<CrmLead | null> => {
     setError(null);
-    setManagerNote(null);
     try {
       if (!lead) {
         const res = await fetch("/api/student/crm-leads", {
@@ -183,7 +196,7 @@ export function LeadDetailForm({
     }
     setIsConverting(true);
     setError(null);
-    setManagerNote(null);
+    setFailureReason(null);
     try {
       // Avoid onSaved mid-convert — parent remounts on new lead id and would abort Convert.
       const saved = await persistLead(false);
@@ -204,8 +217,9 @@ export function LeadDetailForm({
 
       if (!res.ok || !body?.success) {
         onSaved(saved);
-        if (body?.managerNote) {
-          setManagerNote(body.managerNote);
+        const reason = asConvertFailureReason(body?.reason);
+        if (reason) {
+          setFailureReason(reason);
           return;
         }
         setError(body?.error ?? "Could not convert lead.");
@@ -224,6 +238,13 @@ export function LeadDetailForm({
 
   return (
     <div className="p-6 flex-grow overflow-auto">
+      {failureReason ? (
+        <ConvertFailureModal
+          reason={failureReason}
+          onDismiss={() => setFailureReason(null)}
+        />
+      ) : null}
+
       <div className="max-w-[1200px] mx-auto w-full space-y-6">
         <nav className="flex items-center gap-2 text-[#404848] text-[12px] font-medium tracking-wide">
           <button
@@ -241,15 +262,6 @@ export function LeadDetailForm({
             </span>
           ) : null}
         </nav>
-
-        {managerNote ? (
-          <div className="bg-surface-container-low p-4 rounded-r-lg border-l-4 border-tertiary-container">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[#6c3a00] mb-2">
-              Message from your manager
-            </p>
-            <p className="font-body-lg text-on-surface leading-relaxed italic">{managerNote}</p>
-          </div>
-        ) : null}
 
         {convertSuccess ? (
           <div className="bg-[#eef5f2] border border-[#0f4c4c]/30 rounded-lg px-4 py-3 text-sm text-[#003434]">
