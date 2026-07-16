@@ -66,12 +66,30 @@ export function similarity(a: string, b: string): number {
 }
 
 /**
- * True when normalized similarity meets the typo-tolerance threshold (default 0.8).
+ * True when input matches target via exact, prefix/substring (len ≥ 4), or fuzzy typo match.
  */
 export function isCloseMatch(
   input: string,
   target: string,
   threshold = 0.8
 ): boolean {
-  return similarity(input, target) >= threshold;
+  const normInput = normalizeForCompare(input);
+  const normTarget = normalizeForCompare(target);
+
+  if (normInput === normTarget) {
+    return true;
+  }
+
+  // Prefix/substring: allow dropping trailing words (e.g. "Summit Dental", "Dana").
+  // Guard short inputs so "S" / "D" do not trivially match.
+  if (normInput.length >= 4) {
+    if (normTarget.startsWith(normInput) || normInput.startsWith(normTarget)) {
+      return true;
+    }
+    if (normTarget.includes(normInput) || normInput.includes(normTarget)) {
+      return true;
+    }
+  }
+
+  return similarity(normInput, normTarget) >= threshold;
 }
