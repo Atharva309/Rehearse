@@ -29,6 +29,10 @@ export const tempoDirectorySeed: DirectoryConfig = {
       signalHint: "Expanded to current size about 2 years ago; no recent changes reported",
       hiddenClaim:
         "Staff have mentioned wanting better software, but no budget has been allocated",
+      strongerAxis:
+        "Multi-location dental group, similar profile to the target at a glance",
+      weakerAxis:
+        "Trigger is stale — expanded 2 years ago, no recent change; contact is Office Manager, lower authority than a real decision-maker",
     },
     {
       companyName: "Northview Family Dentistry",
@@ -39,6 +43,9 @@ export const tempoDirectorySeed: DirectoryConfig = {
       signalHint: "Already uses a scheduling tool (SlotEasy); no reported complaints",
       hiddenClaim:
         "One location has slightly higher no-show rates than the others, but this hasn't been raised as a concern internally",
+      strongerAxis: "Real, existing dental business with an identifiable contact",
+      weakerAxis:
+        "Too small to feel real pain at scale (3 locations), and already using a competitor's tool with no reported complaints",
     },
     {
       companyName: "Golden State Dental Alliance",
@@ -49,6 +56,10 @@ export const tempoDirectorySeed: DirectoryConfig = {
       signalHint: "Recently reduced administrative staff as part of a cost-cutting initiative",
       hiddenClaim:
         "Leadership is reportedly cautious about new software spend given the recent cuts",
+      strongerAxis:
+        "Larger than the target (12 locations vs. 8), looks like a bigger, more impressive opportunity",
+      weakerAxis:
+        "Pain is running in the wrong direction — cost-cutting and staff reduction, not growth strain — so a scaling-focused pitch doesn't land",
     },
   ],
   fillerCount: 47,
@@ -86,6 +97,15 @@ export const tempoDirectorySeed: DirectoryConfig = {
     Chiropractic: ["Chiropractic Center", "Wellness Group"],
   },
   contactTitlePool: ["Office Manager", "Practice Manager", "Operations Coordinator"],
+  contactTitleSeniorityRank: [
+    "Office Manager",
+    "Practice Manager",
+    "Operations Coordinator",
+    "Director of Operations",
+    "Regional Director",
+    "Owner",
+    "Founder",
+  ],
   contactLastNamePool: [
     "Alvarez",
     "Chen",
