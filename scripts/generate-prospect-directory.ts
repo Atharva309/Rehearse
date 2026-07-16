@@ -70,47 +70,6 @@ function pickRandom<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)] as T;
 }
 
-const FILLER_SIZE_RETRY_MAX = 10;
-
-/**
- * Parses the leading integer from a free-text size string (e.g. "8 locations" → 8).
- */
-function parseLeadingIntegerFromSize(sizeLocations: string): number | null {
-  const match = sizeLocations.trim().match(/^(\d+)/);
-  if (!match) {
-    return null;
-  }
-  const value = Number.parseInt(match[1], 10);
-  return Number.isFinite(value) ? value : null;
-}
-
-/**
- * Picks a filler sizeLocations string strictly below targetSize when cap is set.
- */
-function pickFillerSizeLocations(targetSizeNum: number | null): string {
-  if (targetSizeNum === null) {
-    return pickRandom(FILLER_SIZE_OPTIONS);
-  }
-
-  const strictlyBelow = (candidate: string): boolean => {
-    const n = parseLeadingIntegerFromSize(candidate);
-    return n !== null && n < targetSizeNum;
-  };
-
-  const pool = FILLER_SIZE_OPTIONS.filter(strictlyBelow);
-
-  for (let attempt = 0; attempt < FILLER_SIZE_RETRY_MAX; attempt += 1) {
-    const candidate =
-      pool.length > 0 ? pickRandom(pool) : pickRandom(FILLER_SIZE_OPTIONS);
-    if (strictlyBelow(candidate)) {
-      return candidate;
-    }
-  }
-
-  const fallbackNum = Math.max(1, targetSizeNum - 1);
-  return `${fallbackNum} locations`;
-}
-
 /**
  * Maps a config entry into a crm_prospect_directory insert row.
  */
@@ -135,12 +94,8 @@ function toInsertRow(
 
 /**
  * Builds filler directory entries from pools in the config.
- * When fillerSizeCap is set, each filler's parsed size is strictly less than the target's.
  */
-function buildFillerEntries(
-  config: DirectoryConfig,
-  fillerSizeCap: number | null
-): DirectoryEntry[] {
+function buildFillerEntries(config: DirectoryConfig): DirectoryEntry[] {
   const fillers: DirectoryEntry[] = [];
   const usedCompanyNames = new Set<string>();
   const maxAttempts = config.fillerCount * 20;
@@ -169,7 +124,7 @@ function buildFillerEntries(
       contactName: `${initial}. ${lastName}`,
       contactTitle: pickRandom(config.contactTitlePool),
       industry,
-      sizeLocations: pickFillerSizeLocations(fillerSizeCap),
+      sizeLocations: pickRandom(FILLER_SIZE_OPTIONS),
       signalHint: pickRandom(FILLER_SIGNAL_HINTS),
     });
   }
@@ -206,14 +161,7 @@ export async function generateProspectDirectory(
     return { inserted: 0 };
   }
 
-  const targetSizeNum = parseLeadingIntegerFromSize(config.target.sizeLocations);
-  if (targetSizeNum === null) {
-    console.warn(
-      "[generate-prospect-directory] Could not parse target sizeLocations; filler size cap skipped for this run."
-    );
-  }
-
-  const fillerEntries = buildFillerEntries(config, targetSizeNum);
+  const fillerEntries = buildFillerEntries(config);
   const rows: DirectoryRowInsert[] = [
     toInsertRow(config.simulationId, config.target, "target"),
     ...config.craftedDecoys.map((entry) =>
