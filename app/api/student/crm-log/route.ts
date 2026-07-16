@@ -6,16 +6,19 @@
 
 import { NextResponse } from "next/server";
 import { requireStudentApi } from "@/lib/api-auth";
+import { CRM_STAGE_FIELDS } from "@/lib/tempo-crm-fields";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
-const CRM_LOG_STAGES = new Set<SimulationStage>([
-  "prospecting",
-  "discovery",
-  "presentation",
-  "objections",
-  "close",
-]);
+/** Tempo opportunity log stages — keys of CRM_STAGE_FIELDS (single source of truth). */
+const TEMPO_CRM_LOG_STAGES = Object.keys(CRM_STAGE_FIELDS);
+
+/**
+ * True when stage is a string key present in Tempo's CRM log schema.
+ */
+function isAllowedCrmLogStage(stage: unknown): stage is keyof typeof CRM_STAGE_FIELDS {
+  return typeof stage === "string" && stage in CRM_STAGE_FIELDS;
+}
 
 type CrmLogPostBody = {
   attemptId?: string;
@@ -97,13 +100,20 @@ export async function POST(request: Request): Promise<NextResponse> {
     const body = (await request.json()) as CrmLogPostBody;
     const { attemptId, stage, fields } = body;
 
-    if (!attemptId || !stage || !fields || typeof fields !== "object") {
+    if (!attemptId || stage === undefined || stage === null || !fields || typeof fields !== "object") {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
-    if (!CRM_LOG_STAGES.has(stage)) {
-      return NextResponse.json({ error: "Invalid CRM stage." }, { status: 400 });
+    if (!isAllowedCrmLogStage(stage)) {
+      return NextResponse.json(
+        {
+          error: `Invalid CRM stage. Allowed stages: ${TEMPO_CRM_LOG_STAGES.join(", ")}.`,
+        },
+        { status: 400 }
+      );
     }
+
+    const logStage = stage;
 
     const sanitized: Record<string, string> = {};
     for (const [key, value] of Object.entries(fields)) {
@@ -124,7 +134,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       .upsert(
         {
           attempt_id: attemptId,
-          stage,
+          stage: logStage,
           fields: sanitized,
           submitted_at: submittedAt,
         },

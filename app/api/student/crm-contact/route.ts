@@ -12,7 +12,19 @@ import {
 } from "@/lib/tempo-crm-contact";
 import { createServiceClient } from "@/lib/supabase/server";
 
-const CONTACT_KEYS = new Set<CrmContactKey>(CRM_CONTACT_SLOTS);
+/**
+ * Tempo CRM contact_key values allowed for crm_contact_notes (simulation-specific later).
+ */
+const TEMPO_CRM_VALID_CONTACT_KEYS: readonly CrmContactKey[] = CRM_CONTACT_SLOTS;
+
+const TEMPO_CRM_CONTACT_KEY_SET = new Set<string>(TEMPO_CRM_VALID_CONTACT_KEYS);
+
+/**
+ * True when contactKey is a permitted Tempo contact slot.
+ */
+function isAllowedCrmContactKey(key: unknown): key is CrmContactKey {
+  return typeof key === "string" && TEMPO_CRM_CONTACT_KEY_SET.has(key);
+}
 
 /** Legacy fallback when crm_contact_notes.fields column is not migrated yet. */
 const PROFILE_MARKER = "__crm_profile__\n";
@@ -145,13 +157,18 @@ export async function GET(request: Request): Promise<NextResponse> {
   try {
     const url = new URL(request.url);
     const attemptId = url.searchParams.get("attemptId")?.trim();
-    const contactKey = url.searchParams.get("contactKey")?.trim() as CrmContactKey | undefined;
+    const contactKey = url.searchParams.get("contactKey")?.trim();
 
     if (!attemptId || !contactKey) {
       return NextResponse.json({ error: "Missing attemptId or contactKey." }, { status: 400 });
     }
-    if (!CONTACT_KEYS.has(contactKey)) {
-      return NextResponse.json({ error: "Invalid contactKey." }, { status: 400 });
+    if (!isAllowedCrmContactKey(contactKey)) {
+      return NextResponse.json(
+        {
+          error: `Invalid contactKey. Allowed values: ${TEMPO_CRM_VALID_CONTACT_KEYS.join(", ")}.`,
+        },
+        { status: 400 }
+      );
     }
 
     const attempt = await loadOwnedAttempt(attemptId, auth.session.studentId);
@@ -219,20 +236,27 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const body = (await request.json()) as ContactBody;
     const attemptId = body.attemptId?.trim();
-    const contactKey = body.contactKey?.trim() as CrmContactKey | undefined;
+    const contactKeyRaw = body.contactKey?.trim();
 
     if (
       !attemptId ||
-      !contactKey ||
+      !contactKeyRaw ||
       typeof body.notes !== "string" ||
       typeof body.role !== "string" ||
       body.fields === undefined
     ) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
-    if (!CONTACT_KEYS.has(contactKey)) {
-      return NextResponse.json({ error: "Invalid contactKey." }, { status: 400 });
+    if (!isAllowedCrmContactKey(contactKeyRaw)) {
+      return NextResponse.json(
+        {
+          error: `Invalid contactKey. Allowed values: ${TEMPO_CRM_VALID_CONTACT_KEYS.join(", ")}.`,
+        },
+        { status: 400 }
+      );
     }
+
+    const contactKey = contactKeyRaw;
 
     const fields = normalizeFields(body.fields);
     if (!(fields.name ?? "").trim()) {
