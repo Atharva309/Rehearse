@@ -186,15 +186,26 @@ export function ProspectingLeadSelectionStep({
             })}
           </ul>
           <div className="p-lg bg-surface-container-low border-t border-outline-variant flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                openCrmLeads();
-              }}
-              className="text-label-md text-primary font-medium hover:underline"
-            >
-              Manage leads in CRM
-            </button>
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  openCrmLeads();
+                }}
+                className="text-label-md text-primary font-medium hover:underline"
+              >
+                Manage leads in CRM
+              </button>
+              <button
+                type="button"
+                onClick={() => void loadLeads()}
+                disabled={isLoading || isSelecting}
+                className="inline-flex items-center gap-1.5 text-label-md text-on-surface-variant font-medium hover:text-on-surface disabled:opacity-50"
+              >
+                <MaterialIcon name="refresh" className="text-[18px]" />
+                Refresh list
+              </button>
+            </div>
             <button
               type="button"
               disabled={!pickedId || isSelecting}
