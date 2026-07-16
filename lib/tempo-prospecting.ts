@@ -5,6 +5,7 @@
  */
 
 import type { ChatMessage } from "@/types";
+import { hasProspectingResearchActivity } from "@/lib/tempo-prospect-directory";
 
 export type ProspectingStepId = "research" | "select_lead" | "opening";
 
@@ -15,7 +16,7 @@ export type ProspectingStepDefinition = {
 };
 
 export const PROSPECTING_STEPS: readonly ProspectingStepDefinition[] = [
-  { id: "research", label: "AI Research", description: "Research Summit Dental" },
+  { id: "research", label: "Company Directory", description: "Research candidate companies" },
   {
     id: "select_lead",
     label: "Select Target Lead",
@@ -128,7 +129,14 @@ export const OPENING_MESSAGE_TIPS = SELF_CHECK_ITEMS.map((item) => item.label);
 
 export type ProspectingWizardState = {
   currentStep: number;
+  /** @deprecated Prefer companyChats; kept as flatten of active chat for older drafts. */
   chatMessages: ChatMessage[];
+  /** Per-company research transcripts keyed by directory company id. */
+  companyChats: Record<string, ChatMessage[]>;
+  /** Currently selected directory company — null until the student clicks one. */
+  selectedCompanyId: string | null;
+  /** Cached directory order for this attempt (set after first directory load). */
+  directoryCompanyIds: string[];
   openingMessage: string;
   selfCheck: Record<string, boolean>;
   stretchOpen: boolean;
@@ -142,6 +150,9 @@ export type ProspectingWizardState = {
 export const DEFAULT_PROSPECTING_WIZARD_STATE: ProspectingWizardState = {
   currentStep: 0,
   chatMessages: [],
+  companyChats: {},
+  selectedCompanyId: null,
+  directoryCompanyIds: [],
   openingMessage: "",
   selfCheck: {},
   stretchOpen: false,
@@ -181,11 +192,40 @@ export function normalizeProspectingWizardState(
       ? anyRaw.selectedLeadId.trim()
       : null;
 
+  const selectedCompanyId =
+    typeof anyRaw.selectedCompanyId === "string" && anyRaw.selectedCompanyId.trim()
+      ? anyRaw.selectedCompanyId.trim()
+      : null;
+
+  const directoryCompanyIds = Array.isArray(anyRaw.directoryCompanyIds)
+    ? anyRaw.directoryCompanyIds.filter((id): id is string => typeof id === "string")
+    : [];
+
+  const companyChats: Record<string, ChatMessage[]> =
+    anyRaw.companyChats && typeof anyRaw.companyChats === "object"
+      ? (anyRaw.companyChats as Record<string, ChatMessage[]>)
+      : {};
+
+  const legacyMessages = Array.isArray(anyRaw.chatMessages)
+    ? (anyRaw.chatMessages as ChatMessage[])
+    : [];
+
+  // Migrate pre-directory drafts that only stored a single chatMessages array.
+  if (Object.keys(companyChats).length === 0 && legacyMessages.length > 0 && selectedCompanyId) {
+    companyChats[selectedCompanyId] = legacyMessages;
+  }
+
+  const activeMessages =
+    selectedCompanyId && companyChats[selectedCompanyId]
+      ? companyChats[selectedCompanyId]
+      : legacyMessages;
+
   return {
     ...DEFAULT_PROSPECTING_WIZARD_STATE,
-    chatMessages: Array.isArray(anyRaw.chatMessages)
-      ? (anyRaw.chatMessages as ProspectingWizardState["chatMessages"])
-      : [],
+    chatMessages: activeMessages,
+    companyChats,
+    selectedCompanyId,
+    directoryCompanyIds,
     openingMessage: typeof anyRaw.openingMessage === "string" ? anyRaw.openingMessage : "",
     selfCheck:
       anyRaw.selfCheck && typeof anyRaw.selfCheck === "object"
@@ -297,7 +337,7 @@ export function canAdvanceProspectingStep(
 ): boolean {
   switch (stepIndex) {
     case 0:
-      return state.chatMessages.some((msg) => msg.role === "user");
+      return hasProspectingResearchActivity(state.companyChats);
     case 1:
       return Boolean(state.selectedLeadId);
     case 2:

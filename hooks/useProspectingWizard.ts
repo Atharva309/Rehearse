@@ -1,13 +1,17 @@
 /**
  * useProspectingWizard.ts
  * State and persistence for the Tempo Stage 1 Prospecting wizard.
- * Auto-saves to API + localStorage on changes.
+ * Research step uses company-directory scoped chats (per-company history).
  */
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { completeStage } from "@/lib/attempt-actions";
+import {
+  buildScopedResearchPrompt,
+  type ProspectDirectoryCompany,
+} from "@/lib/tempo-prospect-directory";
 import {
   canAdvanceProspectingStep,
   canSubmitProspectingBrief,
@@ -15,7 +19,6 @@ import {
   DEFAULT_PROSPECTING_WIZARD_STATE,
   loadProspectingWizardFromStorage,
   saveProspectingWizardToStorage,
-  TEMPO_RESEARCH_SYSTEM_PROMPT,
   sanitizeAiResearchReply,
   normalizeProspectingWizardState,
   type ProspectingWizardState,
@@ -39,6 +42,8 @@ type UseProspectingWizardResult = {
     key: K,
     value: ProspectingWizardState[K]
   ) => void;
+  selectDirectoryCompany: (companyId: string) => void;
+  setDirectoryCompanies: (companies: ProspectDirectoryCompany[]) => void;
   toggleSelfCheck: (id: string, checked: boolean) => void;
   canProceed: boolean;
   canSubmit: boolean;
@@ -53,7 +58,7 @@ type UseProspectingWizardResult = {
 };
 
 /**
- * Manages prospecting wizard state, chat, save, and submit flows.
+ * Manages prospecting wizard state, scoped research chat, save, and submit flows.
  */
 export function useProspectingWizard({
   attemptId,
@@ -64,6 +69,7 @@ export function useProspectingWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const directoryRef = useRef<ProspectDirectoryCompany[]>([]);
 
   const persistState = useCallback(
     async (next: ProspectingWizardState): Promise<void> => {
@@ -137,6 +143,48 @@ export function useProspectingWizard({
     [updateField]
   );
 
+  /**
+   * Stores the public directory list locally and caches id order on the attempt draft.
+   */
+  const setDirectoryCompanies = useCallback(
+    (companies: ProspectDirectoryCompany[]): void => {
+      directoryRef.current = companies;
+      const ids = companies.map((c) => c.id);
+      setState((prev) => {
+        if (
+          prev.directoryCompanyIds.length === ids.length &&
+          prev.directoryCompanyIds.every((id, i) => id === ids[i])
+        ) {
+          return prev;
+        }
+        const next = { ...prev, directoryCompanyIds: ids };
+        void persistState(next);
+        return next;
+      });
+    },
+    [persistState]
+  );
+
+  /**
+   * Selects a directory company for scoped chat. Does not clear other companies' histories.
+   */
+  const selectDirectoryCompany = useCallback(
+    (companyId: string): void => {
+      setChatInput("");
+      setState((prev) => {
+        const messages = prev.companyChats[companyId] ?? [];
+        const next = {
+          ...prev,
+          selectedCompanyId: companyId,
+          chatMessages: messages,
+        };
+        void persistState(next);
+        return next;
+      });
+    },
+    [persistState]
+  );
+
   const toggleSelfCheck = useCallback(
     (id: string, checked: boolean): void => {
       setState((prev) => {
@@ -183,14 +231,26 @@ export function useProspectingWizard({
 
   const handleSendMessage = useCallback(async (): Promise<void> => {
     const trimmed = chatInput.trim();
-    if (!trimmed || isAILoading) {
+    const companyId = state.selectedCompanyId;
+    if (!trimmed || isAILoading || !companyId) {
       return;
     }
 
+    const company =
+      directoryRef.current.find((c) => c.id === companyId) ?? null;
+    if (!company) {
+      return;
+    }
+
+    const prior = state.companyChats[companyId] ?? [];
     const userMessage: ChatMessage = { role: "user", content: trimmed };
-    const nextMessages = [...state.chatMessages, userMessage];
+    const nextMessages = [...prior, userMessage];
     setChatInput("");
-    setState((prev) => ({ ...prev, chatMessages: nextMessages }));
+    setState((prev) => ({
+      ...prev,
+      companyChats: { ...prev.companyChats, [companyId]: nextMessages },
+      chatMessages: nextMessages,
+    }));
     setIsAILoading(true);
 
     try {
@@ -200,7 +260,7 @@ export function useProspectingWizard({
         body: JSON.stringify({
           messages: nextMessages.slice(0, -1),
           newMessage: trimmed,
-          systemPrompt: TEMPO_RESEARCH_SYSTEM_PROMPT,
+          systemPrompt: buildScopedResearchPrompt(company),
         }),
       });
 
@@ -214,25 +274,40 @@ export function useProspectingWizard({
         content: sanitizeAiResearchReply(body.reply),
       };
       setState((prev) => {
-        const next = { ...prev, chatMessages: [...nextMessages, assistantMessage] };
+        const withReply = [...nextMessages, assistantMessage];
+        const next = {
+          ...prev,
+          companyChats: { ...prev.companyChats, [companyId]: withReply },
+          chatMessages: withReply,
+        };
         void persistState(next);
         return next;
       });
     } catch {
-      setState((prev) => ({
-        ...prev,
-        chatMessages: [
+      setState((prev) => {
+        const withError: ChatMessage[] = [
           ...nextMessages,
           {
             role: "assistant",
             content: "Sorry — I couldn't respond right now. Try again in a moment.",
           },
-        ],
-      }));
+        ];
+        return {
+          ...prev,
+          companyChats: { ...prev.companyChats, [companyId]: withError },
+          chatMessages: withError,
+        };
+      });
     } finally {
       setIsAILoading(false);
     }
-  }, [chatInput, isAILoading, persistState, state.chatMessages]);
+  }, [
+    chatInput,
+    isAILoading,
+    persistState,
+    state.companyChats,
+    state.selectedCompanyId,
+  ]);
 
   const handleSubmit = useCallback(async (): Promise<void> => {
     if (!canSubmitProspectingBrief(state)) {
@@ -242,6 +317,8 @@ export function useProspectingWizard({
     setIsSubmitting(true);
     try {
       const transcript = JSON.stringify({
+        companyChats: state.companyChats,
+        selectedCompanyId: state.selectedCompanyId,
         chatMessages: state.chatMessages,
         openingMessage: state.openingMessage,
         selfCheck: state.selfCheck,
@@ -277,6 +354,8 @@ export function useProspectingWizard({
     setChatInput,
     setCurrentStep,
     updateField,
+    selectDirectoryCompany,
+    setDirectoryCompanies,
     toggleSelfCheck,
     canProceed,
     canSubmit,

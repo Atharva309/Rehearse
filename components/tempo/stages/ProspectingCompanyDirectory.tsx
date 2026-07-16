@@ -1,0 +1,265 @@
+/**
+ * ProspectingCompanyDirectory.tsx
+ * Two-column Prospecting research step: company list + scoped chat (or empty state).
+ * No page chrome — embeds inside the existing Prospecting wizard center column.
+ */
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { ProspectingScopedChat } from "@/components/tempo/stages/ProspectingScopedChat";
+import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import type { ProspectDirectoryCompany } from "@/lib/tempo-prospect-directory";
+import type { ChatMessage } from "@/types";
+
+type ProspectingCompanyDirectoryProps = {
+  attemptId: string;
+  selectedCompanyId: string | null;
+  companyChats: Record<string, ChatMessage[]>;
+  chatInput: string;
+  isAILoading: boolean;
+  onSelectCompany: (companyId: string) => void;
+  onChatInputChange: (value: string) => void;
+  onSendMessage: () => void;
+  /** Called when the directory finishes loading so the hook can cache public rows. */
+  onCompaniesLoaded: (companies: ProspectDirectoryCompany[]) => void;
+};
+
+/**
+ * Left directory list + right scoped chat / empty canvas.
+ */
+export function ProspectingCompanyDirectory({
+  attemptId,
+  selectedCompanyId,
+  companyChats,
+  chatInput,
+  isAILoading,
+  onSelectCompany,
+  onChatInputChange,
+  onSendMessage,
+  onCompaniesLoaded,
+}: ProspectingCompanyDirectoryProps): React.ReactElement {
+  const [companies, setCompanies] = useState<ProspectDirectoryCompany[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async (): Promise<void> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(
+          `/api/student/prospect-directory?attemptId=${encodeURIComponent(attemptId)}`
+        );
+        if (!res.ok) {
+          if (!cancelled) {
+            setError("Could not load company directory.");
+          }
+          return;
+        }
+        const body = (await res.json()) as { companies?: ProspectDirectoryCompany[] };
+        const next = body.companies ?? [];
+        if (!cancelled) {
+          setCompanies(next);
+          onCompaniesLoaded(next);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Could not load company directory.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally only re-fetch when attempt changes; parent callback is stable enough.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attemptId]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) {
+      return companies;
+    }
+    return companies.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.industry.toLowerCase().includes(q) ||
+        c.signalHint.toLowerCase().includes(q)
+    );
+  }, [companies, search]);
+
+  const selected =
+    selectedCompanyId === null
+      ? null
+      : companies.find((c) => c.id === selectedCompanyId) ?? null;
+
+  const selectedMessages =
+    selectedCompanyId && companyChats[selectedCompanyId]
+      ? companyChats[selectedCompanyId]
+      : [];
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-0 lg:gap-0 h-[min(720px,calc(100vh-12rem))] min-h-[520px] -mx-2 lg:-mx-4 -my-2 border border-outline-variant rounded-xl overflow-hidden bg-surface">
+      {/* Left: company list */}
+      <section className="w-full lg:w-[340px] xl:w-[380px] flex flex-col bg-surface-container-lowest border-b lg:border-b-0 lg:border-r border-outline-variant shrink-0 min-h-0">
+        <div className="p-lg border-b border-outline-variant shrink-0">
+          <div className="mb-md">
+            <nav className="flex items-center gap-1 text-label-sm text-on-surface-variant mb-xs">
+              <span>Prospecting</span>
+              <MaterialIcon name="chevron_right" className="text-[14px]" />
+              <span className="text-primary font-bold">Company Directory</span>
+            </nav>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="font-headline-md text-headline-md text-primary">
+                  Candidate Companies
+                </h2>
+                <p className="text-body-md text-on-surface-variant mt-1 leading-snug">
+                  Review each and decide who&apos;s worth pursuing.
+                </p>
+              </div>
+              <span className="shrink-0 bg-surface-container-high px-2 py-1 rounded text-label-sm text-on-surface-variant">
+                {companies.length} Companies
+              </span>
+            </div>
+          </div>
+          <div className="relative">
+            <MaterialIcon
+              name="search"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]"
+            />
+            <input
+              className="w-full h-10 pl-10 pr-4 bg-surface-container border border-outline-variant rounded-lg text-body-md focus:ring-2 focus:ring-secondary/50 focus:border-secondary outline-none transition-all"
+              placeholder="Search companies..."
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-md space-y-3 custom-scrollbar">
+          {isLoading ? (
+            <p className="text-body-md text-on-surface-variant py-4 text-center">Loading…</p>
+          ) : error ? (
+            <p className="text-sm text-error py-4 text-center">{error}</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-body-md text-on-surface-variant py-4 text-center">No matches.</p>
+          ) : (
+            filtered.map((company) => {
+              const isSelected = selectedCompanyId === company.id;
+              return (
+                <button
+                  key={company.id}
+                  type="button"
+                  onClick={() => onSelectCompany(company.id)}
+                  className={`w-full text-left p-4 rounded-lg cursor-pointer transition-all group active:scale-[0.99] border ${
+                    isSelected
+                      ? "bg-surface border-2 border-secondary shadow-sm"
+                      : "bg-surface border-outline-variant hover:border-outline hover:shadow-sm"
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2 gap-2">
+                    <h3
+                      className={`text-label-md font-bold transition-colors ${
+                        isSelected ? "text-primary" : "text-on-surface group-hover:text-primary"
+                      }`}
+                    >
+                      {company.name}
+                    </h3>
+                    <span className="text-label-sm px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant shrink-0">
+                      {company.industry}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-label-sm text-on-surface-variant mb-2">
+                    <MaterialIcon name="groups" className="text-[14px]" />
+                    <span>{company.sizeLabel}</span>
+                  </div>
+                  <div className="flex items-start gap-2 pt-2 border-t border-dashed border-outline-variant/50">
+                    <MaterialIcon
+                      name="rss_feed"
+                      className="text-[14px] text-secondary mt-0.5 shrink-0"
+                    />
+                    <p className="text-[12px] text-on-surface-variant font-medium line-clamp-2 italic">
+                      {company.signalHint}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      {/* Right: empty state or scoped chat */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-surface-container-low">
+        {selected ? (
+          <div className="flex-1 flex flex-col p-md min-h-0">
+            <ProspectingScopedChat
+              company={selected}
+              messages={selectedMessages}
+              chatInput={chatInput}
+              isAILoading={isAILoading}
+              onChatInputChange={onChatInputChange}
+              onSendMessage={onSendMessage}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-xl relative overflow-hidden">
+            <div
+              className="absolute inset-0 opacity-20 pointer-events-none"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 2px 2px, #e2e8f0 1px, transparent 0)",
+                backgroundSize: "24px 24px",
+              }}
+            />
+            <div className="relative z-10 text-center max-w-md">
+              <div className="w-24 h-24 bg-surface rounded-2xl border border-outline-variant shadow-lg flex items-center justify-center mx-auto mb-lg">
+                <MaterialIcon
+                  name="domain_verification"
+                  className="text-[48px] text-outline"
+                />
+              </div>
+              <h3 className="font-display text-display text-primary mb-md">Ready for Analysis</h3>
+              <p className="text-body-lg text-on-surface-variant mb-xl leading-relaxed">
+                Select a company from the list to begin your research. You&apos;ll dig into recent
+                signals and ask grounded questions — then decide who belongs on your Lead list.
+              </p>
+              <div className="grid grid-cols-2 gap-4 text-left">
+                <div className="p-4 bg-surface/80 border border-outline-variant rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MaterialIcon name="verified" className="text-secondary text-[18px]" />
+                    <span className="text-label-md font-bold">Known Facts</span>
+                  </div>
+                  <p className="text-label-sm text-on-surface-variant">
+                    Start from each company&apos;s industry, scale, and trigger signal.
+                  </p>
+                </div>
+                <div className="p-4 bg-surface/80 border border-outline-variant rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MaterialIcon name="psychology" className="text-secondary text-[18px]" />
+                    <span className="text-label-md font-bold">Verify Claims</span>
+                  </div>
+                  <p className="text-label-sm text-on-surface-variant">
+                    AI research can stretch beyond the brief — check what you can trust.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

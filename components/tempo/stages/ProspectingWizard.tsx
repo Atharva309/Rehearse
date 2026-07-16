@@ -241,6 +241,8 @@ export function ProspectingWizard({
               wordCount={wizard.wordCount}
               onChatInputChange={wizard.setChatInput}
               onSendMessage={() => void wizard.handleSendMessage()}
+              onSelectCompany={wizard.selectDirectoryCompany}
+              onCompaniesLoaded={wizard.setDirectoryCompanies}
               onFieldChange={wizard.updateField}
               onLeadSelected={(leadId) => wizard.completeLeadSelection(leadId)}
             />

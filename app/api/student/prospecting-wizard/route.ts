@@ -73,7 +73,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const { data: attempt } = await supabase
       .from("attempts")
-      .select("id, student_id")
+      .select("id, student_id, stage_data")
       .eq("id", attemptId)
       .eq("student_id", auth.session.studentId)
       .single();
@@ -82,9 +82,23 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
     }
 
+    const existing = (attempt.stage_data ?? {}) as Record<string, unknown>;
+    const normalized = normalizeProspectingWizardState(state);
+    const existingDirectoryIds = Array.isArray(existing.directoryCompanyIds)
+      ? existing.directoryCompanyIds.filter((id): id is string => typeof id === "string")
+      : [];
+    const merged = {
+      ...existing,
+      ...normalized,
+      directoryCompanyIds:
+        normalized.directoryCompanyIds.length > 0
+          ? normalized.directoryCompanyIds
+          : existingDirectoryIds,
+    };
+
     const { error: updateError } = await supabase
       .from("attempts")
-      .update({ stage_data: normalizeProspectingWizardState(state) })
+      .update({ stage_data: merged })
       .eq("id", attemptId);
 
     if (updateError) {
