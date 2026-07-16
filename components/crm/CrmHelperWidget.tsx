@@ -1,7 +1,6 @@
 /**
  * CrmHelperWidget.tsx
- * Collapsible CRM coach tip — expands briefly, then docks as a side tab
- * (Chrome-extension style) so it does not block the CRM canvas.
+ * Prospecting-only CRM tip — docks as a top-right side tab; expands only on click.
  */
 
 "use client";
@@ -18,33 +17,12 @@ type CrmHelperWidgetProps = {
   hasKimContact: boolean;
 };
 
-const AUTO_COLLAPSE_MS = 3500;
 const COLLAPSE_ANIM_MS = 220;
 
-/** Shared vertical anchor — panel and docked tab stay at the same height. */
-const TIP_TOP_CLASS = "top-20";
-
-const OPPORTUNITY_LOG_STAGES = [
-  "discovery",
-  "presentation",
-  "objections",
-  "close",
-] as const;
+/** Aligns with the CRM “Back to Simulation” header row. */
+const TIP_TOP_CLASS = "top-4";
 
 type TipPhase = "open" | "closing" | "docked";
-
-/**
- * True when Tempo has moved past Prospecting into Discovery or later.
- */
-function hasReachedDiscovery(stage: SimulationStage): boolean {
-  return (
-    stage === "discovery" ||
-    stage === "presentation" ||
-    stage === "objections" ||
-    stage === "close" ||
-    stage === "results"
-  );
-}
 
 /**
  * True when the student is still in Prospecting / lead_gen.
@@ -54,73 +32,35 @@ function isInProspecting(stage: SimulationStage): boolean {
 }
 
 /**
- * Maps current Tempo stage onto the Opportunity tab that should be logged now.
- */
-function currentLogStage(stage: SimulationStage): string | null {
-  if (stage === "discovery") {
-    return "discovery";
-  }
-  if (stage === "presentation") {
-    return "presentation";
-  }
-  if (stage === "objections") {
-    return "objections";
-  }
-  if (stage === "close" || stage === "results") {
-    return "close";
-  }
-  return null;
-}
-
-/**
- * Picks exactly one helper message from the priority order in the CRM task.
+ * Prospecting-stage tip copy only.
  */
 function helperMessage({
   leads,
   hasConvertedLead,
-  currentStage,
-  loggedStages,
-  hasKimContact,
-}: CrmHelperWidgetProps): string {
+}: Pick<CrmHelperWidgetProps, "leads" | "hasConvertedLead">): string {
   if (leads.length === 0) {
     return "Start here: add a Lead for the company you're researching.";
   }
 
-  if (!hasConvertedLead && isInProspecting(currentStage)) {
-    return "Fill out your Lead's details before your outreach goes out.";
+  if (!hasConvertedLead) {
+    return "Fill out your Lead's details, then select your target in the Prospecting simulation.";
   }
 
-  if (!hasConvertedLead && hasReachedDiscovery(currentStage)) {
-    return "Select your best lead in the simulation to move Prospecting forward.";
-  }
-
-  const logStage = currentLogStage(currentStage);
-  if (hasConvertedLead && logStage && !loggedStages.has(logStage)) {
-    return "Log this stage in your Opportunity as you complete it.";
-  }
-
-  if (currentStage === "objections" && !hasKimContact) {
-    return "New stakeholder — add contacts as new people enter the deal.";
-  }
-
-  const allLogged = OPPORTUNITY_LOG_STAGES.every((stage) => loggedStages.has(stage));
-  if (hasConvertedLead && allLogged) {
-    return "Your CRM record is complete for this deal.";
-  }
-
-  if (hasConvertedLead && logStage && !loggedStages.has(logStage)) {
-    return "Log this stage in your Opportunity as you complete it.";
-  }
-
-  return "Your CRM record is complete for this deal.";
+  return "Lead selected — finish your Opening Message in the simulation to complete Prospecting.";
 }
 
 /**
- * Fixed coach tip — auto-collapses to a right-edge tab after a short delay.
+ * Top-right coach tip for Prospecting only — starts docked; opens on click.
  */
-export function CrmHelperWidget(props: CrmHelperWidgetProps): React.ReactElement {
+export function CrmHelperWidget(props: CrmHelperWidgetProps): React.ReactElement | null {
+  const { currentStage } = props;
+  const [phase, setPhase] = useState<TipPhase>("docked");
+
+  if (!isInProspecting(currentStage)) {
+    return null;
+  }
+
   const message = helperMessage(props);
-  const [phase, setPhase] = useState<TipPhase>("open");
 
   /**
    * Starts the short slide-out, then docks the tip tab.
@@ -128,12 +68,6 @@ export function CrmHelperWidget(props: CrmHelperWidgetProps): React.ReactElement
   const beginCollapse = (): void => {
     setPhase((prev) => (prev === "docked" || prev === "closing" ? prev : "closing"));
   };
-
-  useEffect(() => {
-    setPhase("open");
-    const timer = window.setTimeout(() => beginCollapse(), AUTO_COLLAPSE_MS);
-    return () => window.clearTimeout(timer);
-  }, [message]);
 
   useEffect(() => {
     if (phase !== "closing") {

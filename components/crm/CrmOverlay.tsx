@@ -495,8 +495,8 @@ export function CrmOverlay({
       onLeadsChange?.(next);
       return next;
     });
-    setSelectedLeadId(lead.id);
-    setView("lead-record");
+    setSelectedLeadId(null);
+    setView("leads-list");
   };
 
   return (
