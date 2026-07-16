@@ -114,7 +114,7 @@ export function CrmHomeView({
 
   return (
     <div className="p-6 flex-grow overflow-auto">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         <header>
           <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Home</h3>
           <p className="text-sm text-[#404848] mt-1">
@@ -123,8 +123,9 @@ export function CrmHomeView({
           </p>
         </header>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Leads */}
-        <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+        <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col min-h-[220px]">
           <div className="px-5 py-3 border-b border-[#bfc8c8] bg-[#eef5f2]/40 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <MaterialIcon name="person_search" className="text-[#0f4c4c] text-[20px]" />
@@ -143,7 +144,7 @@ export function CrmHomeView({
               </button>
             </div>
           </div>
-          <div className="px-5 py-4">
+          <div className="px-5 py-4 flex-1">
             {previewLeads.length === 0 ? (
               <EmptyHint message="No leads yet. Add a Lead for the company you're researching." />
             ) : (
@@ -187,7 +188,7 @@ export function CrmHomeView({
         </section>
 
         {/* Account */}
-        <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+        <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col min-h-[220px]">
           <div className="px-5 py-3 border-b border-[#bfc8c8] bg-[#eef5f2]/40 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <MaterialIcon name="business" className="text-[#0f4c4c] text-[20px]" />
@@ -212,7 +213,7 @@ export function CrmHomeView({
               </button>
             </div>
           </div>
-          <div className="px-5 py-4">
+          <div className="px-5 py-4 flex-1">
             {account.hasRecord ? (
               <button
                 type="button"
@@ -233,7 +234,7 @@ export function CrmHomeView({
         </section>
 
         {/* Contacts */}
-        <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+        <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col min-h-[220px]">
           <div className="px-5 py-3 border-b border-[#bfc8c8] bg-[#eef5f2]/40 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <MaterialIcon name="group" className="text-[#0f4c4c] text-[20px]" />
@@ -258,7 +259,7 @@ export function CrmHomeView({
               </button>
             </div>
           </div>
-          <div className="px-5 py-4">
+          <div className="px-5 py-4 flex-1">
             {previewContacts.length === 0 ? (
               <EmptyHint message="No contacts yet. Add buying-committee members as you meet them." />
             ) : (
@@ -283,7 +284,7 @@ export function CrmHomeView({
         </section>
 
         {/* Opportunities */}
-        <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+        <section className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col min-h-[220px]">
           <div className="px-5 py-3 border-b border-[#bfc8c8] bg-[#eef5f2]/40 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <MaterialIcon name="query_stats" className="text-[#0f4c4c] text-[20px]" />
@@ -308,7 +309,7 @@ export function CrmHomeView({
               </button>
             </div>
           </div>
-          <div className="px-5 py-4">
+          <div className="px-5 py-4 flex-1">
             {opportunity.hasRecord ? (
               <button
                 type="button"
@@ -332,6 +333,7 @@ export function CrmHomeView({
             )}
           </div>
         </section>
+        </div>
       </div>
     </div>
   );
