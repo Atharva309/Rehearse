@@ -73,6 +73,9 @@ const FILLER_SIGNAL_HINTS = [
 
 const FILLER_GUARD_RETRY_MAX = 10;
 
+/** Appended to a suffix as a last-resort tiebreaker when rerolls keep colliding. */
+const NAME_COLLISION_QUALIFIERS = ["West", "East", "North", "South", "Central"];
+
 /**
  * Picks a random element from a non-empty array.
  */
@@ -208,7 +211,46 @@ function toInsertRow(
 }
 
 /**
+ * Builds a filler company name guaranteed not to collide with usedNames.
+ * Rerolls the prefix first (then suffix) up to FILLER_GUARD_RETRY_MAX times;
+ * as a last resort appends a directional qualifier (e.g. "Dental Group — West").
+ */
+function buildUniqueFillerCompanyName(
+  config: DirectoryConfig,
+  suffixes: readonly string[],
+  usedNames: ReadonlySet<string>
+): string {
+  let suffix = pickRandom(suffixes);
+  let candidate = `${pickRandom(config.namePrefixPool)} ${suffix}`;
+
+  for (let attempt = 0; attempt < FILLER_GUARD_RETRY_MAX; attempt += 1) {
+    if (!usedNames.has(candidate)) {
+      return candidate;
+    }
+    // Vary the prefix on every reroll; also vary the suffix on later rerolls.
+    if (attempt >= FILLER_GUARD_RETRY_MAX / 2) {
+      suffix = pickRandom(suffixes);
+    }
+    candidate = `${pickRandom(config.namePrefixPool)} ${suffix}`;
+  }
+
+  // Should be very rare with the expanded pool — disambiguate rather than loop forever.
+  for (const qualifier of NAME_COLLISION_QUALIFIERS) {
+    const qualified = `${candidate} — ${qualifier}`;
+    if (!usedNames.has(qualified)) {
+      return qualified;
+    }
+  }
+
+  throw new Error(
+    `Could not build a unique filler company name after ${FILLER_GUARD_RETRY_MAX} rerolls and all qualifiers (last candidate: "${candidate}").`
+  );
+}
+
+/**
  * Builds filler directory entries from pools in the config.
+ * usedCompanyNames is pre-seeded with the target's and crafted decoys' names
+ * so a filler can never duplicate them.
  */
 function buildFillerEntries(config: DirectoryConfig): DirectoryEntry[] {
   const targetSizeNum = parseLeadingIntegerFromSize(config.target.sizeLocations);
@@ -218,24 +260,24 @@ function buildFillerEntries(config: DirectoryConfig): DirectoryEntry[] {
     );
   }
 
-  const fillers: DirectoryEntry[] = [];
-  const usedCompanyNames = new Set<string>();
-  const maxAttempts = config.fillerCount * 20;
-  let attempts = 0;
+  const usableIndustries = config.industryPool.filter(
+    (industry) => (config.suffixByIndustry[industry] ?? []).length > 0
+  );
+  if (usableIndustries.length === 0) {
+    throw new Error("No industry in industryPool has suffixes in suffixByIndustry.");
+  }
 
-  while (fillers.length < config.fillerCount && attempts < maxAttempts) {
-    attempts += 1;
-    const industry = pickRandom(config.industryPool);
+  const usedCompanyNames = new Set<string>([
+    config.target.companyName,
+    ...config.craftedDecoys.map((decoy) => decoy.companyName),
+  ]);
+
+  const fillers: DirectoryEntry[] = [];
+
+  while (fillers.length < config.fillerCount) {
+    const industry = pickRandom(usableIndustries);
     const suffixes = config.suffixByIndustry[industry];
-    if (!suffixes || suffixes.length === 0) {
-      continue;
-    }
-    const prefix = pickRandom(config.namePrefixPool);
-    const suffix = pickRandom(suffixes);
-    const companyName = `${prefix} ${suffix}`;
-    if (usedCompanyNames.has(companyName)) {
-      continue;
-    }
+    const companyName = buildUniqueFillerCompanyName(config, suffixes, usedCompanyNames);
     usedCompanyNames.add(companyName);
 
     const lastName = pickRandom(config.contactLastNamePool);
@@ -249,12 +291,6 @@ function buildFillerEntries(config: DirectoryConfig): DirectoryEntry[] {
       sizeLocations: pickFillerSizeLocations(targetSizeNum),
       signalHint: pickRandom(FILLER_SIGNAL_HINTS),
     });
-  }
-
-  if (fillers.length < config.fillerCount) {
-    throw new Error(
-      `Could only generate ${fillers.length} unique filler rows; need ${config.fillerCount}.`
-    );
   }
 
   return fillers;
