@@ -128,8 +128,8 @@ export const CRM_STAGE_FIELDS: Record<string, string[]> = {
 
 /**
  * Ordered Tempo stages for handoff “just completed” mapping (includes Prospecting
- * so stageNumber → completed-stage still resolves; Prospecting itself is gated
- * via Lead conversion, not CRM_STAGE_FIELDS).
+ * so stageNumber → completed-stage still resolves; Prospecting has no CRM log schema
+ * and conversion is automatic on stage completion).
  */
 export const CRM_TEMPO_STAGE_ORDER = [
   "prospecting",
@@ -160,7 +160,7 @@ export function justCompletedStageForHandoff(stageNumber: number): string | null
 
 /**
  * Most recent completed schema stage that still lacks a CRM log row, or null.
- * Does not cover Lead conversion — callers handle Prospecting separately.
+ * Does not cover Lead conversion — conversion is automatic on Prospecting completion.
  */
 export function findStageNeedingCrmLog(
   completedStages: readonly string[],

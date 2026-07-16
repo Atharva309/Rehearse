@@ -2,8 +2,9 @@
  * HandoffModal.tsx
  * Manager handoff modal for Tempo simulation stages.
  * Overlays the page with blur backdrop; student must click Begin Stage to proceed.
- * Schema-driven CRM hard gate: Discovery requires a converted Lead; later stages
- * require a CRM log for the just-completed stage. Tempo / Rehearse Essentials only.
+ * Schema-driven CRM hard gate: stages after Discovery that have a log schema
+ * require a CRM log for the just-completed stage. Lead conversion is automatic
+ * on Prospecting completion — Discovery is not gated on a manual Convert click.
  */
 
 "use client";
@@ -49,13 +50,7 @@ export function HandoffModal({
 }: HandoffModalProps): React.ReactElement {
   const [entered, setEntered] = useState(false);
   const gate = useTempoCrmGate();
-  const {
-    noteCompletedStage,
-    loggedStages,
-    openCrmForStage,
-    openCrmLeads,
-    hasConvertedLead,
-  } = gate;
+  const { noteCompletedStage, loggedStages, openCrmForStage } = gate;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setEntered(true), 100);
@@ -66,12 +61,8 @@ export function HandoffModal({
   const justCompleted =
     justCompletedProp !== undefined ? justCompletedProp : inferredCompleted;
 
-  const isLeadConversionGate = justCompleted === "prospecting";
-
   const requiresLog =
-    typeof justCompleted === "string" &&
-    !isLeadConversionGate &&
-    stageRequiresCrmLog(justCompleted);
+    typeof justCompleted === "string" && stageRequiresCrmLog(justCompleted);
 
   const crmLogExists =
     crmLogExistsProp !== undefined
@@ -80,9 +71,7 @@ export function HandoffModal({
         ? loggedStages.has(justCompleted)
         : true;
 
-  const isGated = isLeadConversionGate
-    ? !hasConvertedLead
-    : requiresLog && !crmLogExists;
+  const isGated = requiresLog && !crmLogExists;
 
   useEffect(() => {
     if (isGated && justCompleted) {
@@ -91,14 +80,6 @@ export function HandoffModal({
   }, [isGated, justCompleted, noteCompletedStage]);
 
   const handleOpenCrm = (): void => {
-    if (isLeadConversionGate) {
-      if (onOpenCrmProp && justCompleted) {
-        onOpenCrmProp(justCompleted);
-        return;
-      }
-      openCrmLeads();
-      return;
-    }
     if (!justCompleted) {
       return;
     }
@@ -181,9 +162,7 @@ export function HandoffModal({
             {isGated ? (
               <>
                 <p className="text-body-md text-on-surface-variant text-center">
-                  {isLeadConversionGate
-                    ? "Convert the correct Lead in CRM before continuing."
-                    : "Fill out your CRM log for this stage before continuing."}
+                  Fill out your CRM log for this stage before continuing.
                 </p>
                 <button
                   type="button"
@@ -191,7 +170,7 @@ export function HandoffModal({
                   className="w-full h-12 rounded-lg font-headline-md flex items-center justify-center gap-2 bg-[#0f4c4c] text-white font-bold hover:brightness-110 transition-all active:scale-[0.98]"
                 >
                   <MaterialIcon name="hub" />
-                  {isLeadConversionGate ? "Convert Lead in CRM to Continue" : "Log in CRM to Continue"}
+                  Log in CRM to Continue
                 </button>
                 <button
                   type="button"

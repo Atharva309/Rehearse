@@ -1053,14 +1053,8 @@ export function CrmAccess({
   const loggedStages = useMemo(() => new Set(loggedStageIds), [loggedStageIds]);
 
   const needsLoggingStage = useMemo(() => {
-    if (
-      (liveCompleted.includes("prospecting") || liveCompleted.includes("lead_gen")) &&
-      !hasConvertedLead
-    ) {
-      return "prospecting";
-    }
     return findStageNeedingCrmLog(liveCompleted, loggedStages);
-  }, [liveCompleted, loggedStages, hasConvertedLead]);
+  }, [liveCompleted, loggedStages]);
 
   const openCrmForStage = useCallback((stage: string): void => {
     if (stage === "prospecting") {
@@ -1129,10 +1123,6 @@ export function CrmAccess({
           <GoToCrmButton
             needsLogging={needsLoggingStage !== null}
             onClick={() => {
-              if (needsLoggingStage === "prospecting") {
-                openCrmLeads();
-                return;
-              }
               setDeepLinkLeads(false);
               setDeepLinkStage(null);
               setIsCrmOpen(true);
