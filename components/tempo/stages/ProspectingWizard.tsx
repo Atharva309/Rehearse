@@ -234,6 +234,7 @@ export function ProspectingWizard({
           <div className="flex-1 overflow-y-auto p-4 lg:p-xl">
             <ProspectingStepPanels
               currentStep={currentStep}
+              attemptId={attemptId}
               state={state}
               chatInput={wizard.chatInput}
               isAILoading={wizard.isAILoading}
@@ -241,6 +242,7 @@ export function ProspectingWizard({
               onChatInputChange={wizard.setChatInput}
               onSendMessage={() => void wizard.handleSendMessage()}
               onFieldChange={wizard.updateField}
+              onLeadSelected={(leadId) => wizard.completeLeadSelection(leadId)}
             />
           </div>
         </section>

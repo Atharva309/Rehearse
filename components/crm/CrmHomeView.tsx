@@ -35,7 +35,7 @@ export type CrmHomeLeadSummary = {
   id: string;
   companyName: string;
   contactName: string;
-  status: "new" | "converted";
+  status: "new" | "selected" | "converted";
 };
 
 type CrmHomeViewProps = {
@@ -148,10 +148,16 @@ export function CrmHomeView({
                           className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                             lead.status === "converted"
                               ? "bg-[#0f4c4c] text-white"
-                              : "bg-[#ffdcc1] text-[#6c3a00]"
+                              : lead.status === "selected"
+                                ? "bg-[#acc7ff] text-[#00315f]"
+                                : "bg-[#e3eae6] text-[#404848]"
                           }`}
                         >
-                          {lead.status === "converted" ? "Converted" : "New"}
+                          {lead.status === "converted"
+                            ? "Converted"
+                            : lead.status === "selected"
+                              ? "Selected"
+                              : "New"}
                         </span>
                       </button>
                     </li>

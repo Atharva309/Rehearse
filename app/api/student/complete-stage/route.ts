@@ -9,6 +9,7 @@ import { requireStudentApi } from "@/lib/api-auth";
 import { getNextStage } from "@/lib/stages";
 import { createServiceClient } from "@/lib/supabase/server";
 import { detectTempoBadges } from "@/lib/tempo-badges";
+import { convertLead } from "@/lib/tempo-lead-conversion";
 import type { SimulationStage } from "@/types";
 
 type CompleteStageBody = {
@@ -47,6 +48,39 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (!attempt) {
       return NextResponse.json({ error: "Attempt not found." }, { status: 404 });
+    }
+
+    if (stage === "prospecting") {
+      const { data: selectedLead, error: selectedError } = await supabase
+        .from("crm_leads")
+        .select("id")
+        .eq("attempt_id", attemptId)
+        .eq("status", "selected")
+        .maybeSingle();
+
+      if (selectedError) {
+        console.error(
+          "[complete-stage] could not load selected lead for auto-convert:",
+          selectedError
+        );
+      } else if (!selectedLead) {
+        console.error(
+          "[complete-stage] prospecting completed with no selected crm_leads row — Discovery gate will block until a Lead is converted"
+        );
+      } else {
+        try {
+          const convertResult = await convertLead(supabase, attemptId, selectedLead.id as string);
+          if (!convertResult.success) {
+            console.error(
+              "[complete-stage] auto-convert failed after wizard selection:",
+              convertResult.reason,
+              convertResult.managerNote
+            );
+          }
+        } catch (err) {
+          console.error("[complete-stage] auto-convert threw:", err);
+        }
+      }
     }
 
     let badgesEarned: string[] = [];

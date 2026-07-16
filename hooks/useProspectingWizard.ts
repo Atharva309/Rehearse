@@ -45,6 +45,8 @@ type UseProspectingWizardResult = {
   wordCount: number;
   handleSaveDraft: () => Promise<void>;
   handleStepAdvance: (nextStep: number) => Promise<void>;
+  /** Marks a CRM lead as selected and advances to Opening Message. */
+  completeLeadSelection: (leadId: string) => Promise<void>;
   handleSendMessage: () => Promise<void>;
   handleSubmit: () => Promise<void>;
   dismissProspectingHandoff: () => void;
@@ -165,6 +167,20 @@ export function useProspectingWizard({
     [persistState, state]
   );
 
+  /**
+   * Persists the validated target lead and advances to the Opening Message step.
+   */
+  const completeLeadSelection = useCallback(
+    async (leadId: string): Promise<void> => {
+      setState((prev) => {
+        const next = { ...prev, selectedLeadId: leadId, currentStep: 2 };
+        void persistState(next);
+        return next;
+      });
+    },
+    [persistState]
+  );
+
   const handleSendMessage = useCallback(async (): Promise<void> => {
     const trimmed = chatInput.trim();
     if (!trimmed || isAILoading) {
@@ -267,6 +283,7 @@ export function useProspectingWizard({
     wordCount,
     handleSaveDraft,
     handleStepAdvance,
+    completeLeadSelection,
     handleSendMessage,
     handleSubmit,
     dismissProspectingHandoff,

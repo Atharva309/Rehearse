@@ -499,21 +499,6 @@ export function CrmOverlay({
     setView("lead-record");
   };
 
-  const handleLeadConverted = (lead: CrmLead): void => {
-    setLeads((prev) => {
-      const without = prev.filter((row) => row.id !== lead.id);
-      const next = [...without, lead].sort((a, b) =>
-        a.created_at.localeCompare(b.created_at)
-      );
-      onLeadsChange?.(next);
-      return next;
-    });
-    setHasAccountRow(true);
-    void loadAccountAndContacts();
-    setActiveDeepLink(null);
-    setView("record");
-  };
-
   return (
     <div
       className={`fixed inset-0 z-[110] flex min-h-screen text-[#161d1b] bg-[#f4fbf7] ${
@@ -663,7 +648,6 @@ export function CrmOverlay({
             lead={selectedLead}
             onBackToList={openLeadsList}
             onSaved={handleLeadSaved}
-            onConverted={handleLeadConverted}
           />
         ) : null}
 

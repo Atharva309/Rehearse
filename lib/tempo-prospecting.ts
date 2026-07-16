@@ -6,7 +6,7 @@
 
 import type { ChatMessage } from "@/types";
 
-export type ProspectingStepId = "research" | "opening";
+export type ProspectingStepId = "research" | "select_lead" | "opening";
 
 export type ProspectingStepDefinition = {
   id: ProspectingStepId;
@@ -16,6 +16,11 @@ export type ProspectingStepDefinition = {
 
 export const PROSPECTING_STEPS: readonly ProspectingStepDefinition[] = [
   { id: "research", label: "AI Research", description: "Research Summit Dental" },
+  {
+    id: "select_lead",
+    label: "Select Target Lead",
+    description: "Choose your best lead",
+  },
   { id: "opening", label: "Opening Message", description: "Write your outreach" },
 ] as const;
 
@@ -130,6 +135,8 @@ export type ProspectingWizardState = {
   agentDesign: string;
   agentCorrections: string;
   prospectingHandoffSeen: boolean;
+  /** CRM lead id marked as the Prospecting target (status selected). */
+  selectedLeadId: string | null;
 };
 
 export const DEFAULT_PROSPECTING_WIZARD_STATE: ProspectingWizardState = {
@@ -141,10 +148,11 @@ export const DEFAULT_PROSPECTING_WIZARD_STATE: ProspectingWizardState = {
   agentDesign: "",
   agentCorrections: "",
   prospectingHandoffSeen: false,
+  selectedLeadId: null,
 };
 
 /**
- * Normalizes persisted wizard drafts (including pre-CRM-dedupe 5-step saves).
+ * Normalizes persisted wizard drafts (including pre-lead-selection 2-step saves).
  */
 export function normalizeProspectingWizardState(
   raw: Partial<ProspectingWizardState> | null | undefined
@@ -155,14 +163,23 @@ export function normalizeProspectingWizardState(
     "triggerEvent" in anyRaw ||
     "researchNotes" in anyRaw ||
     "fitJustification" in anyRaw ||
-    (typeof anyRaw.currentStep === "number" && anyRaw.currentStep > 1);
+    (typeof anyRaw.currentStep === "number" && anyRaw.currentStep > 2);
 
   let step = typeof anyRaw.currentStep === "number" ? anyRaw.currentStep : 0;
+  const hasSelectedLeadField = "selectedLeadId" in anyRaw;
   if (isLegacy) {
-    step = step >= 4 ? 1 : 0;
+    step = step >= 4 ? 2 : 0;
+  } else if (!hasSelectedLeadField && step === 1) {
+    // Pre-select-lead 2-step drafts: Opening was index 1 → now index 2.
+    step = 2;
   } else {
     step = Math.min(Math.max(0, step), PROSPECTING_STEPS.length - 1);
   }
+
+  const selectedLeadId =
+    typeof anyRaw.selectedLeadId === "string" && anyRaw.selectedLeadId.trim()
+      ? anyRaw.selectedLeadId.trim()
+      : null;
 
   return {
     ...DEFAULT_PROSPECTING_WIZARD_STATE,
@@ -178,6 +195,7 @@ export function normalizeProspectingWizardState(
     agentDesign: typeof anyRaw.agentDesign === "string" ? anyRaw.agentDesign : "",
     agentCorrections: typeof anyRaw.agentCorrections === "string" ? anyRaw.agentCorrections : "",
     prospectingHandoffSeen: Boolean(anyRaw.prospectingHandoffSeen),
+    selectedLeadId,
     currentStep: step,
   };
 }
@@ -281,6 +299,8 @@ export function canAdvanceProspectingStep(
     case 0:
       return state.chatMessages.some((msg) => msg.role === "user");
     case 1:
+      return Boolean(state.selectedLeadId);
+    case 2:
       return canSubmitProspectingBrief(state);
     default:
       return false;

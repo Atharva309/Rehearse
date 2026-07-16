@@ -49,7 +49,12 @@ function mapLeadRow(row: Record<string, unknown>): CrmLead {
     why_fit: String(row.why_fit ?? ""),
     trigger_event: String(row.trigger_event ?? ""),
     next_step: String(row.next_step ?? ""),
-    status: row.status === "converted" ? "converted" : "new",
+    status:
+      row.status === "converted"
+        ? "converted"
+        : row.status === "selected"
+          ? "selected"
+          : "new",
     created_at: String(row.created_at ?? ""),
     updated_at: String(row.updated_at ?? ""),
   };

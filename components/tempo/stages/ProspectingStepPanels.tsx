@@ -1,12 +1,13 @@
 /**
  * ProspectingStepPanels.tsx
  * Step content panels for the Tempo Stage 1 Prospecting wizard.
- * Steps: AI Research → Opening Message (CRM-duplicate fields live in CRM).
+ * Steps: AI Research → Select Target Lead → Opening Message.
  */
 
 "use client";
 
 import { useEffect, useRef } from "react";
+import { ProspectingLeadSelectionStep } from "@/components/tempo/stages/ProspectingLeadSelectionStep";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import {
   AUTO_RESEARCH_CARDS,
@@ -18,6 +19,7 @@ import type { ChatMessage } from "@/types";
 
 type StepPanelsProps = {
   currentStep: number;
+  attemptId: string;
   state: ProspectingWizardState;
   chatInput: string;
   isAILoading: boolean;
@@ -28,6 +30,7 @@ type StepPanelsProps = {
     key: K,
     value: ProspectingWizardState[K]
   ) => void;
+  onLeadSelected: (leadId: string) => Promise<void>;
 };
 
 /**
@@ -35,6 +38,7 @@ type StepPanelsProps = {
  */
 export function ProspectingStepPanels({
   currentStep,
+  attemptId,
   state,
   chatInput,
   isAILoading,
@@ -42,6 +46,7 @@ export function ProspectingStepPanels({
   onChatInputChange,
   onSendMessage,
   onFieldChange,
+  onLeadSelected,
 }: StepPanelsProps): React.ReactElement {
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +60,16 @@ export function ProspectingStepPanels({
     }
     el.scrollTop = el.scrollHeight;
   }, [currentStep, state.chatMessages, isAILoading]);
+
+  if (currentStep === 1) {
+    return (
+      <ProspectingLeadSelectionStep
+        attemptId={attemptId}
+        selectedLeadId={state.selectedLeadId}
+        onSelected={onLeadSelected}
+      />
+    );
+  }
 
   if (currentStep === 0) {
     return (

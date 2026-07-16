@@ -88,7 +88,7 @@ export type CrmLead = {
   why_fit: string;
   trigger_event: string;
   next_step: string;
-  status: "new" | "converted";
+  status: "new" | "selected" | "converted";
   created_at: string;
   updated_at: string;
 };

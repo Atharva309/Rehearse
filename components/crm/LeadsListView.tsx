@@ -25,8 +25,15 @@ function StatusBadge({ status }: { status: CrmLead["status"] }): React.ReactElem
       </span>
     );
   }
+  if (status === "selected") {
+    return (
+      <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#acc7ff] text-[#00315f] text-[10px] font-bold uppercase tracking-widest">
+        Selected as Target
+      </span>
+    );
+  }
   return (
-    <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#ffdcc1] text-[#6c3a00] text-[10px] font-bold uppercase tracking-widest">
+    <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#e3eae6] text-[#404848] text-[10px] font-bold uppercase tracking-widest">
       New
     </span>
   );
@@ -47,7 +54,8 @@ export function LeadsListView({
           <div>
             <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Leads</h3>
             <p className="text-sm text-[#404848] mt-1">
-              Capture companies you are researching, then convert the right one into an Account.
+              Capture companies you are researching. Select your target in the Prospecting
+              simulation — conversion happens automatically when that stage completes.
             </p>
           </div>
           <button

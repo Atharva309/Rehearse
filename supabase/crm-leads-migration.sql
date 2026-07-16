@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.crm_leads (
   why_fit text NOT NULL DEFAULT '',
   trigger_event text NOT NULL DEFAULT '',
   next_step text NOT NULL DEFAULT '',
-  status text NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'converted')),
+  status text NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'selected', 'converted')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

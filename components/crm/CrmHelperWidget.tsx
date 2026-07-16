@@ -91,7 +91,7 @@ function helperMessage({
   }
 
   if (!hasConvertedLead && hasReachedDiscovery(currentStage)) {
-    return "Convert your Lead now to unlock Discovery logging.";
+    return "Select your best lead in the simulation to move Prospecting forward.";
   }
 
   const logStage = currentLogStage(currentStage);
