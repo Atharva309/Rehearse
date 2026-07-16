@@ -2,6 +2,7 @@
  * tempo-crm-fields.ts
  * Single source of truth for Tempo CRM opportunity log field schemas.
  * Gate logic uses stageRequiresCrmLog() — stages with no schema are never gated.
+ * Prospecting fields live on Leads (convert gate), not on Opportunity logs.
  */
 
 export type CrmStageFieldDef = {
@@ -13,37 +14,9 @@ export type CrmStageFieldDef = {
 };
 
 export const CRM_STAGE_FIELD_SCHEMA: Record<
-  "prospecting" | "discovery" | "presentation" | "objections" | "close",
+  "discovery" | "presentation" | "objections" | "close",
   CrmStageFieldDef[]
 > = {
-  prospecting: [
-    {
-      key: "accountName",
-      label: "Account Name",
-      placeholder: "e.g. Summit Dental Group",
-    },
-    {
-      key: "primaryContact",
-      label: "Primary Contact",
-      placeholder: "e.g. Dana Reyes, Practice Manager",
-    },
-    {
-      key: "whyFit",
-      label: "Why This Account Is a Fit",
-      placeholder: "Why does Summit Dental match your ICP?",
-      multiline: true,
-    },
-    {
-      key: "trigger",
-      label: "Trigger Event",
-      placeholder: "e.g. Opening an 8th location next quarter",
-    },
-    {
-      key: "nextStep",
-      label: "Next Step",
-      placeholder: "e.g. Book discovery call with Dana",
-    },
-  ],
   discovery: [
     {
       key: "businessIssue",
@@ -147,14 +120,17 @@ export const CRM_STAGE_FIELD_SCHEMA: Record<
 
 /** Field keys per stage — used by gate checks and badge/CRM consumers. */
 export const CRM_STAGE_FIELDS: Record<string, string[]> = {
-  prospecting: CRM_STAGE_FIELD_SCHEMA.prospecting.map((f) => f.key),
   discovery: CRM_STAGE_FIELD_SCHEMA.discovery.map((f) => f.key),
   presentation: CRM_STAGE_FIELD_SCHEMA.presentation.map((f) => f.key),
   objections: CRM_STAGE_FIELD_SCHEMA.objections.map((f) => f.key),
   close: CRM_STAGE_FIELD_SCHEMA.close.map((f) => f.key),
 };
 
-/** Ordered Tempo CRM stages for “most recently completed” gate checks. */
+/**
+ * Ordered Tempo stages for handoff “just completed” mapping (includes Prospecting
+ * so stageNumber → completed-stage still resolves; Prospecting itself is gated
+ * via Lead conversion, not CRM_STAGE_FIELDS).
+ */
 export const CRM_TEMPO_STAGE_ORDER = [
   "prospecting",
   "discovery",
@@ -184,6 +160,7 @@ export function justCompletedStageForHandoff(stageNumber: number): string | null
 
 /**
  * Most recent completed schema stage that still lacks a CRM log row, or null.
+ * Does not cover Lead conversion — callers handle Prospecting separately.
  */
 export function findStageNeedingCrmLog(
   completedStages: readonly string[],
@@ -192,6 +169,7 @@ export function findStageNeedingCrmLog(
   let needing: string | null = null;
   for (const stage of CRM_TEMPO_STAGE_ORDER) {
     if (
+      stage !== "prospecting" &&
       completedStages.includes(stage) &&
       stageRequiresCrmLog(stage) &&
       !loggedStages.has(stage)

@@ -1,29 +1,19 @@
 /**
  * CrmStageLogForm.tsx
  * Per-stage CRM opportunity logging form — create, edit, and read-only views.
- * Prospecting Account Name and Primary Contact are dropdowns of saved CRM records.
+ * Opportunity stages: Discovery, Presentation, Objection Handling, Negotiation.
  */
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import {
   CRM_STAGE_FIELD_SCHEMA,
   type CrmStageFieldDef,
 } from "@/lib/tempo-crm-fields";
-import {
-  accountHasProfile,
-  prospectingAutofillFromAccount,
-  type CrmAccountRecord,
-} from "@/lib/tempo-crm-account";
-import {
-  CRM_CONTACT_SLOTS,
-  contactHasProfile,
-  contactSelectLabel,
-  emptyContactFields,
-  type CrmContactRecord,
-} from "@/lib/tempo-crm-contact";
+import type { CrmAccountRecord } from "@/lib/tempo-crm-account";
+import type { CrmContactRecord } from "@/lib/tempo-crm-contact";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
 export type { CrmStageFieldDef };
@@ -37,9 +27,9 @@ type CrmStageLogFormProps = {
   attemptId: string;
   existingEntry: CrmLogEntry | null;
   onSaved: (entry: CrmLogEntry) => void;
-  /** Optional preloaded account (Prospecting dropdown). Fetched if omitted. */
+  /** Optional preloaded account (kept for call-site compat). */
   accountRecord?: CrmAccountRecord | null;
-  /** Saved CRM contacts for Prospecting Primary Contact dropdown. Fetched if omitted. */
+  /** Optional contacts (kept for call-site compat). */
   contactRecords?: CrmContactRecord[] | null;
 };
 
@@ -67,6 +57,21 @@ function allFieldsFilled(
 }
 
 /**
+ * Narrows a SimulationStage to a loggable Opportunity stage.
+ */
+function asLoggableStage(stage: SimulationStage): CrmLoggableStage | null {
+  if (
+    stage === "discovery" ||
+    stage === "presentation" ||
+    stage === "objections" ||
+    stage === "close"
+  ) {
+    return stage;
+  }
+  return null;
+}
+
+/**
  * Per-stage CRM log form with create / edit / read-only modes.
  */
 export function CrmStageLogForm({
@@ -74,119 +79,23 @@ export function CrmStageLogForm({
   attemptId,
   existingEntry,
   onSaved,
-  accountRecord: accountRecordProp,
-  contactRecords: contactRecordsProp,
 }: CrmStageLogFormProps): React.ReactElement {
-  const loggableStage = stage as CrmLoggableStage;
+  const loggableStage = asLoggableStage(stage) ?? "discovery";
+  const isUnsupported = asLoggableStage(stage) === null;
   const schema = CRM_STAGE_FIELD_SCHEMA[loggableStage];
-  const isProspecting = loggableStage === "prospecting";
 
   const [isEditing, setIsEditing] = useState(existingEntry === null);
   const [values, setValues] = useState<Record<string, string>>(() =>
-    existingEntry ? { ...emptyFields(loggableStage), ...existingEntry.fields } : emptyFields(loggableStage)
+    existingEntry
+      ? { ...emptyFields(loggableStage), ...existingEntry.fields }
+      : emptyFields(loggableStage)
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [accountRecord, setAccountRecord] = useState<CrmAccountRecord | null>(
-    accountRecordProp ?? null
-  );
-  const [contactRecords, setContactRecords] = useState<CrmContactRecord[]>(
-    contactRecordsProp ?? []
-  );
-
-  useEffect(() => {
-    if (accountRecordProp !== undefined) {
-      setAccountRecord(accountRecordProp);
-    }
-  }, [accountRecordProp]);
-
-  useEffect(() => {
-    if (contactRecordsProp !== undefined) {
-      setContactRecords(contactRecordsProp ?? []);
-    }
-  }, [contactRecordsProp]);
-
-  useEffect(() => {
-    if (!isProspecting || accountRecordProp !== undefined) {
-      return;
-    }
-    let cancelled = false;
-    const load = async (): Promise<void> => {
-      try {
-        const res = await fetch(
-          `/api/student/crm-account?attemptId=${encodeURIComponent(attemptId)}`
-        );
-        if (!res.ok || cancelled) {
-          return;
-        }
-        const body = (await res.json()) as {
-          notes?: string;
-          fields?: Record<string, string>;
-          updated_at?: string | null;
-        };
-        if (!cancelled) {
-          setAccountRecord({
-            fields: body.fields ?? {},
-            notes: body.notes ?? "",
-            updated_at: body.updated_at ?? null,
-          });
-        }
-      } catch {
-        /* leave null */
-      }
-    };
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [attemptId, isProspecting, accountRecordProp]);
-
-  useEffect(() => {
-    if (!isProspecting || contactRecordsProp !== undefined) {
-      return;
-    }
-    let cancelled = false;
-    const load = async (): Promise<void> => {
-      try {
-        const results = await Promise.all(
-          CRM_CONTACT_SLOTS.map(async (contactKey) => {
-            const res = await fetch(
-              `/api/student/crm-contact?attemptId=${encodeURIComponent(attemptId)}&contactKey=${encodeURIComponent(contactKey)}`
-            );
-            if (!res.ok) {
-              return null;
-            }
-            const body = (await res.json()) as {
-              role?: string;
-              notes?: string;
-              fields?: Record<string, string>;
-              updated_at?: string | null;
-            };
-            return {
-              contactKey,
-              fields: { ...emptyContactFields(), ...(body.fields ?? {}) },
-              role: body.role ?? "",
-              notes: body.notes ?? "",
-              updated_at: body.updated_at ?? null,
-            } satisfies CrmContactRecord;
-          })
-        );
-        if (!cancelled) {
-          setContactRecords(results.filter((row): row is CrmContactRecord => row !== null));
-        }
-      } catch {
-        /* leave empty */
-      }
-    };
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [attemptId, isProspecting, contactRecordsProp]);
 
   const canSave = useMemo(
-    () => allFieldsFilled(loggableStage, values) && !isSaving,
-    [loggableStage, values, isSaving]
+    () => !isUnsupported && allFieldsFilled(loggableStage, values) && !isSaving,
+    [isUnsupported, loggableStage, values, isSaving]
   );
 
   const readOnly = existingEntry !== null && !isEditing;
@@ -196,45 +105,6 @@ export function CrmStageLogForm({
       : stage === "close"
         ? "Negotiation"
         : stage.charAt(0).toUpperCase() + stage.slice(1);
-
-  const savedAccountName = (accountRecord?.fields.accountName ?? "").trim();
-  const hasAccount = accountHasProfile(accountRecord) && savedAccountName.length > 0;
-
-  const savedContacts = useMemo(
-    () => contactRecords.filter((contact) => contactHasProfile(contact)),
-    [contactRecords]
-  );
-  const contactOptions = useMemo(
-    () =>
-      savedContacts
-        .map((contact) => contactSelectLabel(contact.fields))
-        .filter((label) => label.length > 0),
-    [savedContacts]
-  );
-  const hasContacts = contactOptions.length > 0;
-
-  /**
-   * Selecting an account fills overlapping prospecting fields the account has.
-   */
-  const handleAccountSelect = (accountName: string): void => {
-    if (!accountRecord || !accountName) {
-      setValues((prev) => ({ ...prev, accountName: "" }));
-      return;
-    }
-    const patch = prospectingAutofillFromAccount(accountRecord.fields);
-    setValues((prev) => ({
-      ...prev,
-      ...patch,
-      accountName,
-    }));
-  };
-
-  /**
-   * Selecting a contact sets Primary Contact on the prospecting log.
-   */
-  const handleContactSelect = (label: string): void => {
-    setValues((prev) => ({ ...prev, primaryContact: label }));
-  };
 
   /**
    * Clears draft values (or restores saved entry when discarding an edit).
@@ -253,7 +123,7 @@ export function CrmStageLogForm({
    * POSTs the form to /api/student/crm-log and notifies the parent.
    */
   const handleSave = async (): Promise<void> => {
-    if (!canSave) {
+    if (!canSave || isUnsupported) {
       return;
     }
     setIsSaving(true);
@@ -280,17 +150,11 @@ export function CrmStageLogForm({
   };
 
   /**
-   * Renders one schema field — Account Name becomes a dropdown on Prospecting.
+   * Renders one schema field.
    */
   const renderField = (field: CrmStageFieldDef): React.ReactElement => {
     const value = values[field.key] ?? "";
     const spanFull = Boolean(field.multiline);
-    const useAccountDropdown =
-      isProspecting && field.key === "accountName" && !readOnly;
-    const useContactDropdown =
-      isProspecting && field.key === "primaryContact" && !readOnly;
-    const contactSelectValue =
-      contactOptions.includes(value) ? value : "";
 
     return (
       <div key={field.key} className={`space-y-2 ${spanFull ? "md:col-span-2" : ""}`}>
@@ -305,61 +169,6 @@ export function CrmStageLogForm({
             }`}
           >
             {field.prefix ? `${field.prefix}${value}` : value || "—"}
-          </div>
-        ) : useAccountDropdown ? (
-          <div className="space-y-1.5">
-            <select
-              className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all"
-              value={hasAccount && value === savedAccountName ? savedAccountName : ""}
-              onChange={(e) => handleAccountSelect(e.target.value)}
-            >
-              <option value="">
-                {hasAccount ? "Select an account…" : "No accounts yet — add one first"}
-              </option>
-              {hasAccount ? (
-                <option value={savedAccountName}>{savedAccountName}</option>
-              ) : null}
-            </select>
-            {!hasAccount ? (
-              <p className="text-[11px] text-[#707978]">
-                Use Add account on the Accounts page, then return here to select it.
-              </p>
-            ) : (
-              <p className="text-[11px] text-[#707978]">
-                Selecting an account fills fields it already has; leave the rest blank to fill
-                yourself.
-              </p>
-            )}
-          </div>
-        ) : useContactDropdown ? (
-          <div className="space-y-1.5">
-            <select
-              className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all"
-              value={contactSelectValue}
-              onChange={(e) => handleContactSelect(e.target.value)}
-            >
-              <option value="">
-                {hasContacts ? "Select a contact…" : "No contacts yet — add one first"}
-              </option>
-              {savedContacts.map((contact) => {
-                const label = contactSelectLabel(contact.fields);
-                return (
-                  <option key={contact.contactKey} value={label}>
-                    {label}
-                  </option>
-                );
-              })}
-            </select>
-            {!hasContacts ? (
-              <p className="text-[11px] text-[#707978]">
-                Use Add contact on the Contacts page, then return here to select them.
-              </p>
-            ) : (
-              <p className="text-[11px] text-[#707978]">
-                Pick someone from your saved contacts, or choose an account first if it lists a
-                primary contact there.
-              </p>
-            )}
           </div>
         ) : field.multiline ? (
           <textarea
@@ -403,6 +212,16 @@ export function CrmStageLogForm({
       </div>
     );
   };
+
+  if (isUnsupported) {
+    return (
+      <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm p-6">
+        <p className="text-sm text-[#707978]">
+          This stage is logged on a Lead, not on the Opportunity.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm overflow-hidden">

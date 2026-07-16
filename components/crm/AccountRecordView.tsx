@@ -19,6 +19,9 @@ type AccountRecordViewProps = {
   attemptId: string;
   onBackToList: () => void;
   onSaved?: (record: CrmAccountRecord) => void;
+  /** When false, Account is not created yet (Lead not converted). */
+  isUnlocked?: boolean;
+  onGoToLeads?: () => void;
 };
 
 /**
@@ -44,6 +47,8 @@ export function AccountRecordView({
   attemptId,
   onBackToList,
   onSaved,
+  isUnlocked = true,
+  onGoToLeads,
 }: AccountRecordViewProps): React.ReactElement {
   const [fields, setFields] = useState<Record<string, string>>(emptyAccountFields);
   const [notes, setNotes] = useState("");
@@ -54,11 +59,15 @@ export function AccountRecordView({
 
   const title = (fields.accountName ?? "").trim() || "New account";
   const canSave = useMemo(
-    () => canSaveAccountFields(fields) && !isSaving && !isLoading,
-    [fields, isSaving, isLoading]
+    () => isUnlocked && canSaveAccountFields(fields) && !isSaving && !isLoading,
+    [isUnlocked, fields, isSaving, isLoading]
   );
 
   useEffect(() => {
+    if (!isUnlocked) {
+      setIsLoading(false);
+      return;
+    }
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
@@ -89,7 +98,7 @@ export function AccountRecordView({
     return () => {
       cancelled = true;
     };
-  }, [attemptId]);
+  }, [attemptId, isUnlocked]);
 
   /**
    * Saves account profile + strategy notes via POST.
@@ -133,6 +142,37 @@ export function AccountRecordView({
 
   const updatedLabel = formatUpdatedAt(updatedAt);
 
+  if (!isUnlocked) {
+    return (
+      <div className="p-6 flex-grow overflow-auto">
+        <div className="max-w-[1200px] mx-auto w-full space-y-6">
+          <nav className="flex items-center gap-2 text-[#404848] text-[12px] font-medium tracking-wide">
+            <button type="button" onClick={onBackToList} className="hover:text-[#0f4c4c] transition-colors">
+              Accounts
+            </button>
+            <MaterialIcon name="chevron_right" className="text-[16px]" />
+            <span className="text-[#161d1b]">Account</span>
+          </nav>
+          <div className="bg-white border border-[#bfc8c8] rounded-lg px-6 py-12 text-center space-y-4">
+            <p className="text-sm text-[#707978]">
+              No account yet — convert a Lead to create the Summit Dental account.
+            </p>
+            {onGoToLeads ? (
+              <button
+                type="button"
+                onClick={onGoToLeads}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+              >
+                <MaterialIcon name="hub" className="text-[16px]" />
+                Go to Leads
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 flex-grow overflow-auto">
       <div className="max-w-[1200px] mx-auto w-full space-y-6">
@@ -148,8 +188,7 @@ export function AccountRecordView({
           <div className="p-6 border-b border-[#bfc8c8] bg-[#eef5f2]/20">
             <h3 className="text-lg font-semibold text-[#003434]">Account Details</h3>
             <p className="text-sm text-[#404848] mt-1">
-              Create the account here. You can select it from the Prospecting opportunity log
-              to autofill matching fields.
+              Account fields are created when you convert a Lead. Edit details and strategy notes here.
             </p>
           </div>
           <div className="p-6">

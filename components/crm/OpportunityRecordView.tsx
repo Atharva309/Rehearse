@@ -2,6 +2,7 @@
  * OpportunityRecordView.tsx
  * CRM opportunity record — stepper, stage tabs, and per-stage log forms.
  * Rendered inside CrmOverlay’s shared shell (sidebar/top bar stay in the overlay).
+ * Tabs: Discovery → Presentation → Objection Handling → Negotiation (no Prospecting).
  */
 
 "use client";
@@ -15,7 +16,6 @@ import type { CrmContactRecord } from "@/lib/tempo-crm-contact";
 import type { CrmLogEntry, SimulationStage } from "@/types";
 
 const CRM_RECORD_STAGES = [
-  { id: "prospecting" as const, label: "Prospecting" },
   { id: "discovery" as const, label: "Discovery" },
   { id: "presentation" as const, label: "Presentation" },
   { id: "objections" as const, label: "Objection Handling" },
@@ -46,14 +46,10 @@ type OpportunityRecordViewProps = {
  * Maps attempt.current_stage onto the CRM record stage order.
  */
 function normalizeCrmStage(stage: SimulationStage): CrmRecordStageId {
-  if (stage === "lead_gen") {
-    return "prospecting";
-  }
   if (stage === "results") {
     return "close";
   }
   if (
-    stage === "prospecting" ||
     stage === "discovery" ||
     stage === "presentation" ||
     stage === "objections" ||
@@ -61,11 +57,12 @@ function normalizeCrmStage(stage: SimulationStage): CrmRecordStageId {
   ) {
     return stage;
   }
-  return "prospecting";
+  // Prospecting / lead_gen: Opportunity tabs start at Discovery (locked until reached).
+  return "discovery";
 }
 
 /**
- * Index of a CRM stage in the record stepper (0–4).
+ * Index of a CRM stage in the record stepper (0–3).
  */
 function crmStageIndex(stage: CrmRecordStageId): number {
   return CRM_RECORD_STAGES.findIndex((s) => s.id === stage);
@@ -97,6 +94,10 @@ function tabStatusForStage(
 ): TabStatus {
   const currentIndex = crmStageIndex(normalizeCrmStage(currentStage));
   const thisIndex = crmStageIndex(stageId);
+  // While still in Prospecting, all Opportunity tabs stay locked.
+  if (currentStage === "prospecting" || currentStage === "lead_gen") {
+    return "locked";
+  }
   if (thisIndex > currentIndex) {
     return "locked";
   }
@@ -138,7 +139,7 @@ export function OpportunityRecordView({
     CRM_RECORD_STAGES.find(
       (s) => tabStatusForStage(s.id, currentStage, loggedStages) !== "locked"
     )?.id ??
-    "prospecting";
+    "discovery";
 
   const [selectedTab, setSelectedTab] = useState<CrmRecordStageId>(defaultTab);
 
@@ -146,12 +147,11 @@ export function OpportunityRecordView({
   const existingEntry =
     logEntries.find((entry) => entry.stage === selectedTab) ?? null;
   const stageBadgeLabel =
-    CRM_RECORD_STAGES.find((s) => s.id === normalizedCurrent)?.label ?? "Prospecting";
+    CRM_RECORD_STAGES.find((s) => s.id === normalizedCurrent)?.label ?? "Discovery";
 
   return (
     <div className="p-6 flex-grow overflow-auto">
       <div className="max-w-[1200px] mx-auto w-full">
-        {/* Breadcrumbs */}
         <nav className="mb-4 flex items-center gap-2 text-[#404848] text-[12px] font-medium tracking-wide">
           <button
             type="button"
@@ -164,7 +164,6 @@ export function OpportunityRecordView({
           <span className="text-[#161d1b]">{opportunityTitle}</span>
         </nav>
 
-        {/* Record header */}
         <div className="bg-white rounded-lg border border-[#bfc8c8] shadow-sm p-6 mb-6">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div className="space-y-1 min-w-0">
@@ -208,7 +207,6 @@ export function OpportunityRecordView({
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="flex border-b border-[#bfc8c8] mb-6 overflow-x-auto">
           {CRM_RECORD_STAGES.map((step) => {
             const status = tabStatusForStage(step.id, currentStage, loggedStages);

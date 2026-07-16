@@ -59,7 +59,21 @@ export async function POST(request: Request): Promise<NextResponse> {
     ) {
       let crmFields: Record<string, string> | null = null;
 
-      if (stage === "prospecting" || stage === "discovery" || stage === "objections") {
+      if (stage === "prospecting") {
+        const { data: convertedLead } = await supabase
+          .from("crm_leads")
+          .select("trigger_event, why_fit")
+          .eq("attempt_id", attemptId)
+          .eq("status", "converted")
+          .maybeSingle();
+
+        if (convertedLead) {
+          crmFields = {
+            trigger: String(convertedLead.trigger_event ?? ""),
+            whyFit: String(convertedLead.why_fit ?? ""),
+          };
+        }
+      } else if (stage === "discovery" || stage === "objections") {
         const { data: crmLog } = await supabase
           .from("crm_log_entries")
           .select("fields")

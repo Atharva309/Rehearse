@@ -25,6 +25,9 @@ type ContactRecordViewProps = {
   accountLabel?: string;
   onBackToList: () => void;
   onSaved?: (record: CrmContactRecord) => void;
+  /** Dana is locked until Lead conversion; Kim is always unlocked. */
+  isUnlocked?: boolean;
+  onGoToLeads?: () => void;
 };
 
 /**
@@ -52,6 +55,8 @@ export function ContactRecordView({
   accountLabel = "",
   onBackToList,
   onSaved,
+  isUnlocked = true,
+  onGoToLeads,
 }: ContactRecordViewProps): React.ReactElement {
   const [fields, setFields] = useState<Record<string, string>>(emptyContactFields);
   const [role, setRole] = useState("");
@@ -64,11 +69,15 @@ export function ContactRecordView({
   const title = (fields.name ?? "").trim() || "New contact";
   const accountSuffix = accountLabel.trim() || "—";
   const canSave = useMemo(
-    () => canSaveContactFields(fields) && !isSaving && !isLoading,
-    [fields, isSaving, isLoading]
+    () => isUnlocked && canSaveContactFields(fields) && !isSaving && !isLoading,
+    [isUnlocked, fields, isSaving, isLoading]
   );
 
   useEffect(() => {
+    if (!isUnlocked) {
+      setIsLoading(false);
+      return;
+    }
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
@@ -102,7 +111,7 @@ export function ContactRecordView({
     return () => {
       cancelled = true;
     };
-  }, [attemptId, contactKey]);
+  }, [attemptId, contactKey, isUnlocked]);
 
   /**
    * Saves contact profile + relationship notes via POST.
@@ -149,6 +158,37 @@ export function ContactRecordView({
   };
 
   const updatedLabel = formatUpdatedAt(updatedAt);
+
+  if (!isUnlocked) {
+    return (
+      <div className="p-6 flex-grow overflow-auto">
+        <div className="max-w-[1200px] mx-auto w-full space-y-6">
+          <nav className="flex items-center gap-2 text-[#404848] text-[12px] font-medium tracking-wide">
+            <button type="button" onClick={onBackToList} className="hover:text-[#0f4c4c] transition-colors">
+              Contacts
+            </button>
+            <MaterialIcon name="chevron_right" className="text-[16px]" />
+            <span className="text-[#161d1b]">Contact</span>
+          </nav>
+          <div className="bg-white border border-[#bfc8c8] rounded-lg px-6 py-12 text-center space-y-4">
+            <p className="text-sm text-[#707978]">
+              Dana Reyes is not created yet — convert a Lead to add her as a Contact.
+            </p>
+            {onGoToLeads ? (
+              <button
+                type="button"
+                onClick={onGoToLeads}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+              >
+                <MaterialIcon name="hub" className="text-[16px]" />
+                Go to Leads
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 flex-grow overflow-auto">

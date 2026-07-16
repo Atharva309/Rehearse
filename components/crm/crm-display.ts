@@ -14,7 +14,7 @@ import {
 import type { CrmLogEntry } from "@/types";
 
 /**
- * Account name from the prospecting CRM log, if the student filled it in.
+ * Account name leftover from a legacy prospecting CRM log (pre-Leads).
  */
 export function accountNameFromLogs(entries: CrmLogEntry[]): string {
   const prospecting = entries.find((e) => e.stage === "prospecting");
@@ -22,7 +22,7 @@ export function accountNameFromLogs(entries: CrmLogEntry[]): string {
 }
 
 /**
- * Primary contact label from the prospecting CRM log.
+ * Primary contact leftover from a legacy prospecting CRM log (pre-Leads).
  */
 export function primaryContactFromLogs(entries: CrmLogEntry[]): string {
   const prospecting = entries.find((e) => e.stage === "prospecting");
@@ -38,7 +38,6 @@ export function opportunityTitleFromLogs(entries: CrmLogEntry[]): string {
 }
 
 const OPPORTUNITY_COMPLETION_STAGES = [
-  "prospecting",
   "discovery",
   "presentation",
   "objections",
@@ -46,7 +45,7 @@ const OPPORTUNITY_COMPLETION_STAGES = [
 ] as const;
 
 /**
- * CRM opportunity completion percent from logged stage rows (0–100, steps of 20).
+ * CRM opportunity completion percent from logged stage rows (0–100, steps of 25).
  */
 export function opportunityCompletionPercent(entries: CrmLogEntry[]): number {
   if (entries.length === 0) {

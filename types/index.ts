@@ -78,6 +78,21 @@ export type CrmLogEntry = {
   submitted_at: string;
 };
 
+/** Multi-entry CRM Lead row (pre-conversion prospecting data). */
+export type CrmLead = {
+  id: string;
+  attempt_id: string;
+  company_name: string;
+  contact_name: string;
+  contact_title: string;
+  why_fit: string;
+  trigger_event: string;
+  next_step: string;
+  status: "new" | "converted";
+  created_at: string;
+  updated_at: string;
+};
+
 export type LeaderboardEntry = {
   rank: number;
   student_id: string;

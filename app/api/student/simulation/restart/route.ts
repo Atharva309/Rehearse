@@ -1,8 +1,8 @@
 /**
  * restart/route.ts
  * Resets the current in-progress attempt — clears stage scores and CRM rows
- * (crm_log_entries, crm_account_notes, crm_contact_notes), then returns the
- * student to lead_gen. Called when a student clicks "Restart Simulation".
+ * (crm_log_entries, crm_account_notes, crm_contact_notes, crm_leads), then
+ * returns the student to lead_gen. Called when a student clicks "Restart Simulation".
  * Requires a valid student session cookie.
  *
  * POST body: { attemptId, simulationId, classId }
@@ -120,6 +120,19 @@ export async function POST(request: Request): Promise<NextResponse> {
       console.error("[simulation/restart] delete crm contact notes", deleteCrmContactNotesError);
       return NextResponse.json(
         { error: deleteCrmContactNotesError.message || "Could not clear CRM contact notes." },
+        { status: 500 }
+      );
+    }
+
+    const { error: deleteCrmLeadsError } = await supabase
+      .from("crm_leads")
+      .delete()
+      .eq("attempt_id", attemptId);
+
+    if (deleteCrmLeadsError) {
+      console.error("[simulation/restart] delete crm leads", deleteCrmLeadsError);
+      return NextResponse.json(
+        { error: deleteCrmLeadsError.message || "Could not clear CRM leads." },
         { status: 500 }
       );
     }

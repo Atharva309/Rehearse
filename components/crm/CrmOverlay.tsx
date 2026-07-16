@@ -1,6 +1,6 @@
 /**
  * CrmOverlay.tsx
- * In-place Rehearse CRM overlay — opportunities, accounts, and contacts.
+ * In-place Rehearse CRM overlay — leads, opportunities, accounts, and contacts.
  * Exports CrmAccess which gates the floating CRM button until after mount
  * (simulation page is a Server Component with no loading flag of its own),
  * and TempoCrmGateProvider context for HandoffModal hard-gate wiring.
@@ -19,8 +19,11 @@ import {
 } from "react";
 import { AccountRecordView } from "@/components/crm/AccountRecordView";
 import { ContactRecordView } from "@/components/crm/ContactRecordView";
+import { CrmHelperWidget } from "@/components/crm/CrmHelperWidget";
 import { CrmHomeView } from "@/components/crm/CrmHomeView";
 import { GoToCrmButton } from "@/components/crm/GoToCrmButton";
+import { LeadDetailForm } from "@/components/crm/LeadDetailForm";
+import { LeadsListView } from "@/components/crm/LeadsListView";
 import { OpportunityRecordView } from "@/components/crm/OpportunityRecordView";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import { CrmOpportunityCompletionGauge } from "@/components/crm/CrmOpportunityCompletionGauge";
@@ -42,12 +45,14 @@ import {
   type CrmContactKey,
 } from "@/lib/tempo-crm-contact";
 import { findStageNeedingCrmLog } from "@/lib/tempo-crm-fields";
-import type { CrmLogEntry, SimulationStage } from "@/types";
+import type { CrmLead, CrmLogEntry, SimulationStage } from "@/types";
 
 const SLIDE_OUT_MS = 250;
 
 type CrmView =
   | "home"
+  | "leads-list"
+  | "lead-record"
   | "list"
   | "record"
   | "accounts-list"
@@ -55,10 +60,9 @@ type CrmView =
   | "contacts-list"
   | "contact-record";
 
-type SidebarNavId = "home" | "opportunities" | "accounts" | "contacts";
+type SidebarNavId = "home" | "leads" | "opportunities" | "accounts" | "contacts";
 
 type CrmRecordStageId =
-  | "prospecting"
   | "discovery"
   | "presentation"
   | "objections"
@@ -74,8 +78,12 @@ type CrmOverlayProps = {
   displayName: string;
   /** When set with isOpen, skip list and open Opportunity record on this stage tab. */
   deepLinkStage?: SimulationStage | null;
+  /** When true with isOpen, open the Leads list (e.g. Discovery convert gate). */
+  deepLinkLeads?: boolean;
   /** Notifies parent when log entries change (for handoff gate / button blink). */
   onLogEntriesChange?: (entries: CrmLogEntry[]) => void;
+  /** Notifies parent when conversion / lead list changes. */
+  onLeadsChange?: (leads: CrmLead[]) => void;
 };
 
 type CrmAccessProps = {
@@ -95,6 +103,8 @@ type TempoCrmGateContextValue = {
   loggedStages: ReadonlySet<string>;
   needsLoggingStage: string | null;
   openCrmForStage: (stage: string) => void;
+  openCrmLeads: () => void;
+  hasConvertedLead: boolean;
   refreshCrmLogs: () => Promise<void>;
   /** Registers a stage as completed for gate/blink (e.g. right after submit, before page reload). */
   noteCompletedStage: (stage: string) => void;
@@ -104,6 +114,8 @@ const TempoCrmGateContext = createContext<TempoCrmGateContextValue>({
   loggedStages: new Set(),
   needsLoggingStage: null,
   openCrmForStage: () => undefined,
+  openCrmLeads: () => undefined,
+  hasConvertedLead: false,
   refreshCrmLogs: async () => undefined,
   noteCompletedStage: () => undefined,
 });
@@ -127,6 +139,7 @@ const CRM_STAGE_LABELS: Partial<Record<SimulationStage, string>> = {
 
 const SIDEBAR_ITEMS: { id: SidebarNavId; label: string; icon: string }[] = [
   { id: "home", label: "Home", icon: "home" },
+  { id: "leads", label: "Leads", icon: "person_search" },
   { id: "opportunities", label: "Opportunities", icon: "query_stats" },
   { id: "accounts", label: "Accounts", icon: "business" },
   { id: "contacts", label: "Contacts", icon: "group" },
@@ -143,6 +156,9 @@ function crmStageLabel(stage: SimulationStage): string {
  * Resolves which sidebar item should appear active for the current view.
  */
 function activeNavForView(view: CrmView): SidebarNavId {
+  if (view === "leads-list" || view === "lead-record") {
+    return "leads";
+  }
   if (view === "accounts-list" || view === "account-record") {
     return "accounts";
   }
@@ -160,7 +176,6 @@ function activeNavForView(view: CrmView): SidebarNavId {
  */
 function asRecordStage(stage: SimulationStage | null | undefined): CrmRecordStageId | null {
   if (
-    stage === "prospecting" ||
     stage === "discovery" ||
     stage === "presentation" ||
     stage === "objections" ||
@@ -181,14 +196,20 @@ export function CrmOverlay({
   currentStage,
   displayName,
   deepLinkStage = null,
+  deepLinkLeads = false,
   onLogEntriesChange,
+  onLeadsChange,
 }: CrmOverlayProps): React.ReactElement | null {
   const [closing, setClosing] = useState(false);
   const [view, setView] = useState<CrmView>("home");
   const [contactKey, setContactKey] = useState<CrmContactKey>("dana_reyes");
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [leadFormKey, setLeadFormKey] = useState("new-lead");
+  const [leads, setLeads] = useState<CrmLead[]>([]);
   const [logEntries, setLogEntries] = useState<CrmLogEntry[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
   const [accountRecord, setAccountRecord] = useState<CrmAccountRecord | null>(null);
+  const [hasAccountRow, setHasAccountRow] = useState(false);
   const [contactSnapshots, setContactSnapshots] = useState<ContactNotesSnapshot[]>([]);
   const [activeDeepLink, setActiveDeepLink] = useState<CrmRecordStageId | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -196,12 +217,19 @@ export function CrmOverlay({
   useEffect(() => {
     if (isOpen) {
       setClosing(false);
+      if (deepLinkLeads) {
+        setActiveDeepLink(null);
+        setSelectedLeadId(null);
+        setView("leads-list");
+        setContactKey("dana_reyes");
+        return;
+      }
       const link = asRecordStage(deepLinkStage);
       setActiveDeepLink(link);
       setView(link ? "record" : "home");
       setContactKey("dana_reyes");
     }
-  }, [isOpen, deepLinkStage]);
+  }, [isOpen, deepLinkStage, deepLinkLeads]);
 
   useEffect(() => {
     return () => {
@@ -229,6 +257,23 @@ export function CrmOverlay({
     }
   }, [attemptId, onLogEntriesChange]);
 
+  const loadLeads = useCallback(async (): Promise<void> => {
+    try {
+      const res = await fetch(
+        `/api/student/crm-leads?attemptId=${encodeURIComponent(attemptId)}`
+      );
+      if (!res.ok) {
+        return;
+      }
+      const body = (await res.json()) as { leads?: CrmLead[] };
+      const next = body.leads ?? [];
+      setLeads(next);
+      onLeadsChange?.(next);
+    } catch {
+      /* keep prior */
+    }
+  }, [attemptId, onLeadsChange]);
+
   const loadAccountAndContacts = useCallback(async (): Promise<void> => {
     try {
       const [accountRes, ...contactResList] = await Promise.all([
@@ -246,11 +291,13 @@ export function CrmOverlay({
           fields?: Record<string, string>;
           updated_at?: string | null;
         };
-        setAccountRecord({
+        const record: CrmAccountRecord = {
           fields: body.fields ?? {},
           notes: body.notes ?? "",
           updated_at: body.updated_at ?? null,
-        });
+        };
+        setAccountRecord(record);
+        setHasAccountRow(Boolean(body.updated_at) || accountHasProfile(record));
       }
 
       const snapshots: ContactNotesSnapshot[] = [];
@@ -292,22 +339,37 @@ export function CrmOverlay({
       setLogsLoaded(false);
       setLogEntries([]);
       setAccountRecord(null);
+      setHasAccountRow(false);
       setContactSnapshots([]);
+      setLeads([]);
       return;
     }
     void loadLogs();
+    void loadLeads();
     void loadAccountAndContacts();
-  }, [isOpen, loadLogs, loadAccountAndContacts]);
+  }, [isOpen, loadLogs, loadLeads, loadAccountAndContacts]);
 
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-    if (view === "home" || view === "list" || view === "accounts-list" || view === "contacts-list") {
+    if (
+      view === "home" ||
+      view === "list" ||
+      view === "accounts-list" ||
+      view === "contacts-list" ||
+      view === "leads-list"
+    ) {
       void loadAccountAndContacts();
       void loadLogs();
+      void loadLeads();
     }
-  }, [view, isOpen, loadAccountAndContacts, loadLogs]);
+  }, [view, isOpen, loadAccountAndContacts, loadLogs, loadLeads]);
+
+  const loggedStageSet = useMemo(
+    () => new Set(logEntries.map((e) => e.stage)),
+    [logEntries]
+  );
 
   if (!isOpen) {
     return null;
@@ -315,19 +377,54 @@ export function CrmOverlay({
 
   const stageLabel = crmStageLabel(currentStage);
   const activeNav = activeNavForView(view);
-  const hasOpportunity = logEntries.length > 0;
-  const hasAccount = accountHasProfile(accountRecord);
-  const savedContacts = contactSnapshots.filter(contactHasRecord);
+  const hasConverted =
+    hasAccountRow || leads.some((lead) => lead.status === "converted");
+  const hasOpportunity = hasConverted;
+  const hasAccount = hasConverted && accountHasProfile(accountRecord);
+  const savedContacts = contactSnapshots.filter((snap) => {
+    if (!contactHasRecord(snap)) {
+      return false;
+    }
+    if (snap.contactKey === "dana_reyes" && !hasConverted) {
+      return false;
+    }
+    return true;
+  });
   const accountDisplayName =
     (accountRecord?.fields.accountName ?? "").trim() ||
     accountNameFromLogs(logEntries) ||
     (hasAccount ? "Untitled account" : "");
   const accountNotes = accountRecord?.notes ?? "";
-  const oppTitle = opportunityTitleFromLogs(logEntries);
+  const oppTitle =
+    accountDisplayName ||
+    opportunityTitleFromLogs(logEntries) ||
+    "Untitled opportunity";
   const opportunityPercent = opportunityCompletionPercent(logEntries);
-  const lastActivityLabel = hasOpportunity
-    ? `Logged ${logEntries.length} stage${logEntries.length === 1 ? "" : "s"}`
-    : "Not yet logged";
+  const nonProspectingLogs = logEntries.filter((e) => e.stage !== "prospecting");
+  const lastActivityLabel =
+    nonProspectingLogs.length > 0
+      ? `Logged ${nonProspectingLogs.length} stage${
+          nonProspectingLogs.length === 1 ? "" : "s"
+        }`
+      : hasConverted
+        ? "Ready to log"
+        : "Not yet created";
+
+  const addableContactKeys = availableContactKeysToAdd(contactSnapshots).filter((key) => {
+    if (key === "dana_reyes") {
+      return hasConverted;
+    }
+    return true;
+  });
+
+  const selectedLead =
+    selectedLeadId === null
+      ? null
+      : leads.find((lead) => lead.id === selectedLeadId) ?? null;
+
+  const hasKimContact = contactSnapshots.some(
+    (snap) => snap.contactKey === "dr_kim" && contactHasRecord(snap)
+  );
 
   const handleBackToSimulation = (): void => {
     if (closing) {
@@ -352,6 +449,10 @@ export function CrmOverlay({
   };
 
   const openOpportunityRecord = (): void => {
+    if (!hasConverted) {
+      setView("leads-list");
+      return;
+    }
     setActiveDeepLink(null);
     setView("record");
     if (!logsLoaded) {
@@ -359,10 +460,19 @@ export function CrmOverlay({
     }
   };
 
+  const openLeadsList = (): void => {
+    setSelectedLeadId(null);
+    setView("leads-list");
+  };
+
   const handleSidebarNav = (id: SidebarNavId): void => {
     setActiveDeepLink(null);
     if (id === "home") {
       setView("home");
+      return;
+    }
+    if (id === "leads") {
+      openLeadsList();
       return;
     }
     if (id === "opportunities") {
@@ -374,6 +484,34 @@ export function CrmOverlay({
       return;
     }
     setView("contacts-list");
+  };
+
+  const handleLeadSaved = (lead: CrmLead): void => {
+    setLeads((prev) => {
+      const without = prev.filter((row) => row.id !== lead.id);
+      const next = [...without, lead].sort((a, b) =>
+        a.created_at.localeCompare(b.created_at)
+      );
+      onLeadsChange?.(next);
+      return next;
+    });
+    setSelectedLeadId(lead.id);
+    setView("lead-record");
+  };
+
+  const handleLeadConverted = (lead: CrmLead): void => {
+    setLeads((prev) => {
+      const without = prev.filter((row) => row.id !== lead.id);
+      const next = [...without, lead].sort((a, b) =>
+        a.created_at.localeCompare(b.created_at)
+      );
+      onLeadsChange?.(next);
+      return next;
+    });
+    setHasAccountRow(true);
+    void loadAccountAndContacts();
+    setActiveDeepLink(null);
+    setView("record");
   };
 
   return (
@@ -438,6 +576,14 @@ export function CrmOverlay({
           </button>
         </header>
 
+        <CrmHelperWidget
+          leads={leads}
+          hasConvertedLead={hasConverted}
+          currentStage={currentStage}
+          loggedStages={loggedStageSet}
+          hasKimContact={hasKimContact}
+        />
+
         {view === "home" ? (
           <CrmHomeView
             account={{
@@ -458,8 +604,10 @@ export function CrmOverlay({
               activityLabel: lastActivityLabel,
               completionPercent: opportunityPercent,
             }}
-            availableContactKeys={availableContactKeysToAdd(contactSnapshots)}
-            onOpenAccount={() => setView("account-record")}
+            availableContactKeys={addableContactKeys}
+            onOpenAccount={() =>
+              hasConverted ? setView("account-record") : openLeadsList()
+            }
             onOpenContact={(key) => {
               setContactKey(key);
               setView("contact-record");
@@ -475,35 +623,84 @@ export function CrmOverlay({
           />
         ) : null}
 
-        {view === "record" ? (
-          <OpportunityRecordView
-            key={activeDeepLink ? `deep-${activeDeepLink}` : "record-default"}
-            attemptId={attemptId}
-            currentStage={currentStage}
-            logEntries={logEntries}
-            onLogSaved={handleLogSaved}
-            onBackToList={() => {
-              setActiveDeepLink(null);
-              setView("list");
+        {view === "leads-list" ? (
+          <LeadsListView
+            leads={leads}
+            onAddLead={() => {
+              setSelectedLeadId(null);
+              setLeadFormKey(`new-${Date.now()}`);
+              setView("lead-record");
             }}
-            initialTab={activeDeepLink}
-            opportunityTitle={hasOpportunity ? oppTitle : "New opportunity"}
-            primaryContactLabel={
-              primaryContactFromLogs(logEntries) ||
-              (accountRecord?.fields.primaryContact ?? "").trim()
-            }
-            accountRecord={accountRecord}
-            contactRecords={savedContacts}
-            completionPercent={opportunityPercent}
+            onOpenLead={(leadId) => {
+              setSelectedLeadId(leadId);
+              setLeadFormKey(leadId);
+              setView("lead-record");
+            }}
           />
+        ) : null}
+
+        {view === "lead-record" ? (
+          <LeadDetailForm
+            key={leadFormKey}
+            attemptId={attemptId}
+            lead={selectedLead}
+            onBackToList={openLeadsList}
+            onSaved={handleLeadSaved}
+            onConverted={handleLeadConverted}
+          />
+        ) : null}
+
+        {view === "record" ? (
+          hasConverted ? (
+            <OpportunityRecordView
+              key={activeDeepLink ? `deep-${activeDeepLink}` : "record-default"}
+              attemptId={attemptId}
+              currentStage={currentStage}
+              logEntries={logEntries}
+              onLogSaved={handleLogSaved}
+              onBackToList={() => {
+                setActiveDeepLink(null);
+                setView("list");
+              }}
+              initialTab={activeDeepLink}
+              opportunityTitle={oppTitle}
+              primaryContactLabel={
+                (accountRecord?.fields.primaryContact ?? "").trim() ||
+                primaryContactFromLogs(logEntries)
+              }
+              accountRecord={accountRecord}
+              contactRecords={savedContacts}
+              completionPercent={opportunityPercent}
+            />
+          ) : (
+            <div className="p-6 flex-grow overflow-auto">
+              <div className="max-w-7xl mx-auto">
+                <div className="bg-white border border-[#bfc8c8] rounded-lg px-6 py-12 text-center space-y-4">
+                  <p className="text-sm text-[#707978]">
+                    No opportunity yet — convert a Lead to get started
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openLeadsList}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                  >
+                    Go to Leads
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         ) : null}
 
         {view === "account-record" ? (
           <AccountRecordView
             attemptId={attemptId}
+            isUnlocked={hasConverted}
+            onGoToLeads={openLeadsList}
             onBackToList={() => setView("accounts-list")}
             onSaved={(record) => {
               setAccountRecord(record);
+              setHasAccountRow(true);
             }}
           />
         ) : null}
@@ -514,6 +711,8 @@ export function CrmOverlay({
             attemptId={attemptId}
             contactKey={contactKey}
             accountLabel={accountDisplayName || "—"}
+            isUnlocked={contactKey === "dr_kim" || hasConverted}
+            onGoToLeads={openLeadsList}
             onBackToList={() => setView("contacts-list")}
             onSaved={(record) => {
               setContactSnapshots((prev) => {
@@ -529,16 +728,6 @@ export function CrmOverlay({
             <div className="max-w-7xl mx-auto space-y-6">
               <div className="flex items-end justify-between gap-4">
                 <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Accounts</h3>
-                {!hasAccount ? (
-                  <button
-                    type="button"
-                    onClick={() => setView("account-record")}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
-                  >
-                    <MaterialIcon name="add" className="text-[16px]" />
-                    Add account
-                  </button>
-                ) : null}
               </div>
               <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
                 {hasAccount ? (
@@ -587,10 +776,17 @@ export function CrmOverlay({
                     </div>
                   </>
                 ) : (
-                  <div className="px-6 py-12 text-center">
+                  <div className="px-6 py-12 text-center space-y-4">
                     <p className="text-sm text-[#707978]">
-                      No accounts yet. Add an account to start capturing strategy notes.
+                      No account yet — convert a Lead to get started
                     </p>
+                    <button
+                      type="button"
+                      onClick={openLeadsList}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                    >
+                      Go to Leads
+                    </button>
                   </div>
                 )}
               </div>
@@ -603,11 +799,11 @@ export function CrmOverlay({
             <div className="max-w-7xl mx-auto space-y-6">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">Contacts</h3>
-                {availableContactKeysToAdd(contactSnapshots).length > 0 ? (
+                {addableContactKeys.length > 0 ? (
                   <button
                     type="button"
                     onClick={() => {
-                      const next = availableContactKeysToAdd(contactSnapshots)[0];
+                      const next = addableContactKeys[0];
                       if (!next) {
                         return;
                       }
@@ -678,7 +874,9 @@ export function CrmOverlay({
                 ) : (
                   <div className="px-6 py-12 text-center">
                     <p className="text-sm text-[#707978]">
-                      No contacts yet. Add someone from the buying committee to get started.
+                      {hasConverted
+                        ? "No contacts yet. Add someone from the buying committee to get started."
+                        : "Dana appears after you convert a Lead. You can still add Dr. Kim anytime."}
                     </p>
                   </div>
                 )}
@@ -694,16 +892,6 @@ export function CrmOverlay({
                 <h3 className="text-2xl font-semibold tracking-tight text-[#003434]">
                   My Opportunities
                 </h3>
-                {!hasOpportunity ? (
-                  <button
-                    type="button"
-                    onClick={openOpportunityRecord}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
-                  >
-                    <MaterialIcon name="add" className="text-[16px]" />
-                    Create opportunity
-                  </button>
-                ) : null}
               </header>
 
               <div className="bg-white border border-[#bfc8c8] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
@@ -768,10 +956,17 @@ export function CrmOverlay({
                     </div>
                   </>
                 ) : (
-                  <div className="px-6 py-12 text-center">
+                  <div className="px-6 py-12 text-center space-y-4">
                     <p className="text-sm text-[#707978]">
-                      No opportunities yet. Create one when you are ready to log a stage.
+                      No opportunity yet — convert a Lead to get started
                     </p>
+                    <button
+                      type="button"
+                      onClick={openLeadsList}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                    >
+                      Go to Leads
+                    </button>
                   </div>
                 )}
               </div>
@@ -801,8 +996,10 @@ export function CrmAccess({
   const [isPageReady, setIsPageReady] = useState(false);
   const [isCrmOpen, setIsCrmOpen] = useState(false);
   const [deepLinkStage, setDeepLinkStage] = useState<SimulationStage | null>(null);
+  const [deepLinkLeads, setDeepLinkLeads] = useState(false);
   const [loggedStageIds, setLoggedStageIds] = useState<string[]>(initialLoggedStages);
   const [liveCompleted, setLiveCompleted] = useState<string[]>(completedStages);
+  const [hasConvertedLead, setHasConvertedLead] = useState(false);
 
   useEffect(() => {
     setIsPageReady(true);
@@ -831,22 +1028,56 @@ export function CrmAccess({
     }
   }, [attemptId]);
 
+  const refreshLeads = useCallback(async (): Promise<void> => {
+    try {
+      const res = await fetch(
+        `/api/student/crm-leads?attemptId=${encodeURIComponent(attemptId)}`
+      );
+      if (!res.ok) {
+        return;
+      }
+      const body = (await res.json()) as { leads?: CrmLead[] };
+      setHasConvertedLead((body.leads ?? []).some((lead) => lead.status === "converted"));
+    } catch {
+      /* keep prior */
+    }
+  }, [attemptId]);
+
   useEffect(() => {
     if (!isPageReady) {
       return;
     }
     void refreshCrmLogs();
-  }, [isPageReady, refreshCrmLogs]);
+    void refreshLeads();
+  }, [isPageReady, refreshCrmLogs, refreshLeads]);
 
   const loggedStages = useMemo(() => new Set(loggedStageIds), [loggedStageIds]);
 
-  const needsLoggingStage = useMemo(
-    () => findStageNeedingCrmLog(liveCompleted, loggedStages),
-    [liveCompleted, loggedStages]
-  );
+  const needsLoggingStage = useMemo(() => {
+    if (
+      (liveCompleted.includes("prospecting") || liveCompleted.includes("lead_gen")) &&
+      !hasConvertedLead
+    ) {
+      return "prospecting";
+    }
+    return findStageNeedingCrmLog(liveCompleted, loggedStages);
+  }, [liveCompleted, loggedStages, hasConvertedLead]);
 
   const openCrmForStage = useCallback((stage: string): void => {
+    if (stage === "prospecting") {
+      setDeepLinkLeads(true);
+      setDeepLinkStage(null);
+      setIsCrmOpen(true);
+      return;
+    }
+    setDeepLinkLeads(false);
     setDeepLinkStage(stage as SimulationStage);
+    setIsCrmOpen(true);
+  }, []);
+
+  const openCrmLeads = useCallback((): void => {
+    setDeepLinkLeads(true);
+    setDeepLinkStage(null);
     setIsCrmOpen(true);
   }, []);
 
@@ -857,11 +1088,17 @@ export function CrmAccess({
   const handleCloseCrm = useCallback((): void => {
     setIsCrmOpen(false);
     setDeepLinkStage(null);
+    setDeepLinkLeads(false);
     void refreshCrmLogs();
-  }, [refreshCrmLogs]);
+    void refreshLeads();
+  }, [refreshCrmLogs, refreshLeads]);
 
   const handleLogEntriesChange = useCallback((entries: CrmLogEntry[]): void => {
     setLoggedStageIds(entries.map((e) => e.stage));
+  }, []);
+
+  const handleLeadsChange = useCallback((nextLeads: CrmLead[]): void => {
+    setHasConvertedLead(nextLeads.some((lead) => lead.status === "converted"));
   }, []);
 
   const gateValue = useMemo<TempoCrmGateContextValue>(
@@ -869,10 +1106,20 @@ export function CrmAccess({
       loggedStages,
       needsLoggingStage,
       openCrmForStage,
+      openCrmLeads,
+      hasConvertedLead,
       refreshCrmLogs,
       noteCompletedStage,
     }),
-    [loggedStages, needsLoggingStage, openCrmForStage, refreshCrmLogs, noteCompletedStage]
+    [
+      loggedStages,
+      needsLoggingStage,
+      openCrmForStage,
+      openCrmLeads,
+      hasConvertedLead,
+      refreshCrmLogs,
+      noteCompletedStage,
+    ]
   );
 
   return (
@@ -883,6 +1130,11 @@ export function CrmAccess({
           <GoToCrmButton
             needsLogging={needsLoggingStage !== null}
             onClick={() => {
+              if (needsLoggingStage === "prospecting") {
+                openCrmLeads();
+                return;
+              }
+              setDeepLinkLeads(false);
               setDeepLinkStage(null);
               setIsCrmOpen(true);
             }}
@@ -896,7 +1148,9 @@ export function CrmAccess({
             currentStage={currentStage}
             displayName={displayName}
             deepLinkStage={deepLinkStage}
+            deepLinkLeads={deepLinkLeads}
             onLogEntriesChange={handleLogEntriesChange}
+            onLeadsChange={handleLeadsChange}
           />
         </>
       ) : null}
