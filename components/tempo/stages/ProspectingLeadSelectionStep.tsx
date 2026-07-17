@@ -198,23 +198,21 @@ export function ProspectingLeadSelectionStep({
             )}
           </div>
 
-          {leads.length > 0 ? (
-            <div className="p-lg bg-surface-container-low border-t border-outline-variant flex justify-end">
-              <button
-                type="button"
-                disabled={!pickedId || isSelecting}
-                onClick={() => void handleSelectTarget()}
-                className={`px-lg py-sm rounded-lg font-bold text-label-md flex items-center gap-xs transition-all ${
-                  pickedId && !isSelecting
-                    ? "bg-primary-container text-white hover:bg-primary shadow-md"
-                    : "bg-surface-container-highest text-on-surface-variant/40 cursor-not-allowed"
-                }`}
-              >
-                {isSelecting ? "Selecting…" : "Select as Target"}
-                <MaterialIcon name="arrow_forward" className="text-[18px]" />
-              </button>
-            </div>
-          ) : null}
+          <div className="p-lg bg-surface-container-low border-t border-outline-variant flex justify-end">
+            <button
+              type="button"
+              disabled={!pickedId || isSelecting}
+              onClick={() => void handleSelectTarget()}
+              className={`px-lg py-sm rounded-lg font-bold text-label-md flex items-center gap-xs transition-all ${
+                pickedId && !isSelecting
+                  ? "bg-primary-container text-white hover:bg-primary shadow-md"
+                  : "bg-surface-container-highest text-on-surface-variant/40 cursor-not-allowed"
+              }`}
+            >
+              {isSelecting ? "Selecting…" : "Select as Target"}
+              <MaterialIcon name="arrow_forward" className="text-[18px]" />
+            </button>
+          </div>
         </div>
       </div>
 
