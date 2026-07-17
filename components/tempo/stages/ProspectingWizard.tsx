@@ -188,13 +188,15 @@ export function ProspectingWizard({
             </div>
 
             <div className="flex items-center gap-md shrink-0">
-                <button
-                  type="button"
-                  onClick={() => void wizard.handleSaveDraft()}
-                  className="hidden sm:inline px-md py-sm rounded-lg text-on-surface-variant font-bold text-label-md hover:text-primary transition-colors"
-                >
-                  Save Draft
-                </button>
+                {currentStep === PROSPECTING_STEPS.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => void wizard.handleSaveDraft()}
+                    className="hidden sm:inline px-md py-sm rounded-lg text-on-surface-variant font-bold text-label-md hover:text-primary transition-colors"
+                  >
+                    Save Draft
+                  </button>
+                ) : null}
 
                 {currentStep < PROSPECTING_STEPS.length - 1 ? (
                   <button
