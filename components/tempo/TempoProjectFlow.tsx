@@ -35,7 +35,7 @@ function statusForIndex(index: number, currentIndex: number): FlowStatus {
 
 /**
  * Horizontal segmented project-flow strip used in every Tempo stage top bar.
- * Completed = gold, current = black (pulsing), upcoming = muted; labels live in-segment.
+ * Completed = gold, current = left-column navy, upcoming = muted; labels live in-segment.
  */
 export function TempoProjectFlow({ currentIndex }: TempoProjectFlowProps): React.ReactElement {
   const clampedIndex = Math.max(0, Math.min(currentIndex, TEMPO_FLOW_STAGES.length - 1));
@@ -59,7 +59,7 @@ export function TempoProjectFlow({ currentIndex }: TempoProjectFlowProps): React
           segmentClass = `absolute inset-0 flex items-center justify-center px-1 bg-tertiary-container ${roundClass}`;
           textClass = "text-white";
         } else if (status === "current") {
-          segmentClass = `absolute inset-0 flex items-center justify-center px-1 bg-primary border border-primary tempo-flow-pulse ${roundClass}`;
+          segmentClass = `absolute inset-0 flex items-center justify-center px-1 bg-primary-container border border-primary-container tempo-flow-pulse ${roundClass}`;
           textClass = "text-white font-bold";
         }
 
