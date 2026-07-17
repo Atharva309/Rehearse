@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
 import type { ProspectDirectoryCompany } from "@/lib/tempo-prospect-directory";
 import { sanitizeAiResearchReply } from "@/lib/tempo-prospecting";
@@ -21,6 +21,8 @@ type ProspectingScopedChatProps = {
   onSendMessage: () => void;
 };
 
+type FactTab = "industry" | "scale" | "contact" | "signal";
+
 /**
  * Header, Known Facts card, and chat transcript for one directory company.
  */
@@ -33,6 +35,24 @@ export function ProspectingScopedChat({
   onSendMessage,
 }: ProspectingScopedChatProps): React.ReactElement {
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  const [activeFactTab, setActiveFactTab] = useState<FactTab>("industry");
+
+  const factTabs: Array<{ id: FactTab; label: string; icon: string; value: string }> = [
+    { id: "industry", label: "Industry", icon: "business", value: company.industry },
+    { id: "scale", label: "Scale", icon: "groups", value: company.sizeLabel },
+    {
+      id: "contact",
+      label: "Primary Contact",
+      icon: "person",
+      value: company.contactName.trim()
+        ? `${company.contactName}${
+            company.contactTitle.trim() ? ` — ${company.contactTitle}` : ""
+          }`
+        : "No primary contact listed.",
+    },
+    { id: "signal", label: "Trigger Signal", icon: "rss_feed", value: company.signalHint },
+  ];
+  const activeFact = factTabs.find((tab) => tab.id === activeFactTab) ?? factTabs[0];
 
   useEffect(() => {
     const el = chatScrollRef.current;
@@ -53,40 +73,49 @@ export function ProspectingScopedChat({
 
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-lg space-y-lg custom-scrollbar">
-          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-md">
-            <div className="flex items-center gap-2 mb-md text-secondary">
+          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-2 text-secondary">
               <MaterialIcon name="fact_check" className="text-[20px]" />
               <span className="text-label-md font-bold uppercase tracking-wider">Known Facts</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              <div className="flex flex-col rounded-lg border border-outline-variant bg-surface p-3">
-                <span className="text-label-sm text-on-surface-variant mb-1">Industry</span>
-                <span className="text-xs font-medium break-words">{company.industry}</span>
-              </div>
-              <div className="flex flex-col rounded-lg border border-outline-variant bg-surface p-3">
-                <span className="text-label-sm text-on-surface-variant mb-1">Scale</span>
-                <span className="text-xs font-medium break-words">{company.sizeLabel}</span>
-              </div>
-              {company.contactName.trim() ? (
-                <div className="flex flex-col rounded-lg border border-outline-variant bg-surface p-3">
-                  <span className="text-label-sm text-on-surface-variant mb-1">
-                    Primary Contact
-                  </span>
-                  <span className="text-xs font-medium break-words">
-                    {company.contactName}
-                    {company.contactTitle.trim() ? ` — ${company.contactTitle}` : ""}
-                  </span>
-                </div>
-              ) : null}
-              <div className="flex flex-col rounded-lg border border-outline-variant bg-surface p-3">
-                <span className="text-label-sm text-on-surface-variant mb-1">Trigger Signal</span>
-                <div className="flex items-start gap-1">
-                  <MaterialIcon
-                    name="rss_feed"
-                    className="text-[14px] text-secondary mt-0.5 shrink-0"
-                  />
-                  <span className="text-xs leading-snug break-words">{company.signalHint}</span>
-                </div>
+            <div
+              className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-lg bg-surface-container p-1"
+              role="tablist"
+              aria-label="Known company facts"
+            >
+              {factTabs.map((tab) => {
+                const isActive = activeFactTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActiveFactTab(tab.id)}
+                    className={`min-h-8 px-2 py-1.5 rounded-md text-[11px] font-bold transition-colors ${
+                      isActive
+                        ? "bg-white text-primary shadow-sm"
+                        : "text-on-surface-variant hover:bg-white/60"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div
+              className="flex items-start gap-2 mt-2 rounded-lg border border-outline-variant bg-white px-3 py-2"
+              role="tabpanel"
+            >
+              <MaterialIcon
+                name={activeFact.icon}
+                className="text-[16px] text-secondary mt-0.5 shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
+                  {activeFact.label}
+                </p>
+                <p className="text-xs font-medium leading-snug break-words">{activeFact.value}</p>
               </div>
             </div>
           </div>
