@@ -59,7 +59,7 @@ export function TempoProjectFlow({ currentIndex }: TempoProjectFlowProps): React
           segmentClass = `absolute inset-0 flex items-center justify-center px-1 bg-tertiary-container ${roundClass}`;
           textClass = "text-white";
         } else if (status === "current") {
-          segmentClass = `absolute inset-0 flex items-center justify-center px-1 bg-primary-container border border-primary-container tempo-flow-pulse ${roundClass}`;
+          segmentClass = `absolute inset-0 flex items-center justify-center px-1 bg-primary-container border border-primary-container ${roundClass}`;
           textClass = "text-white font-bold";
         }
 
