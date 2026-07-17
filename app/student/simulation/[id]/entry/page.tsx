@@ -84,7 +84,7 @@ export default async function TempoSimulationEntryPage({
 
   let { data: inProgressAttempt } = await supabase
     .from("attempts")
-    .select("id, status, current_stage, total_score")
+    .select("id, status, current_stage, total_score, stage_data")
     .eq("student_id", session.studentId)
     .eq("simulation_id", params.id)
     .eq("class_id", classId)
@@ -101,7 +101,7 @@ export default async function TempoSimulationEntryPage({
         simulation_id: params.id,
         current_stage: "lead_gen",
       })
-      .select("id, status, current_stage, total_score")
+      .select("id, status, current_stage, total_score, stage_data")
       .single();
 
     inProgressAttempt = created;
@@ -113,9 +113,18 @@ export default async function TempoSimulationEntryPage({
     redirect(`/student/simulation/${params.id}/complete?classId=${classId}&attempt=${inProgressAttempt.id}`);
   }
 
-  const isFreshStart = !inProgressAttempt || currentStage === "lead_gen" || currentStage === null;
+  // Stage 1 keeps current_stage at "lead_gen" until completion, so use wizard
+  // draft state (written as soon as the student begins) to detect progress.
+  const hasStartedStageOne = Boolean(inProgressAttempt?.stage_data);
+  const isFreshStart =
+    !inProgressAttempt ||
+    currentStage === null ||
+    (currentStage === "lead_gen" && !hasStartedStageOne);
   const isMidSimulation =
-    !!inProgressAttempt && !!currentStage && IN_PROGRESS_STAGES.includes(currentStage);
+    !!inProgressAttempt &&
+    !!currentStage &&
+    (IN_PROGRESS_STAGES.includes(currentStage) ||
+      (currentStage === "lead_gen" && hasStartedStageOne));
 
   const attemptId = inProgressAttempt?.id ?? null;
   const hasInProgressAttempt = !!inProgressAttempt;
