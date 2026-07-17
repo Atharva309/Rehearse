@@ -37,20 +37,42 @@ export function ProspectingScopedChat({
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const [activeFactTab, setActiveFactTab] = useState<FactTab>("industry");
 
-  const factTabs: Array<{ id: FactTab; label: string; icon: string; value: string }> = [
-    { id: "industry", label: "Industry", icon: "business", value: company.industry },
-    { id: "scale", label: "Scale", icon: "groups", value: company.sizeLabel },
+  const factTabs: Array<{
+    id: FactTab;
+    label: string;
+    icon?: string;
+    value: string;
+    description: string;
+  }> = [
+    {
+      id: "industry",
+      label: "Industry",
+      value: company.industry,
+      description: `Primary sector for ${company.name}`,
+    },
+    {
+      id: "scale",
+      label: "Scale",
+      value: company.sizeLabel,
+      description: "Current operating footprint",
+    },
     {
       id: "contact",
       label: "Primary Contact",
-      icon: "person",
       value: company.contactName.trim()
         ? `${company.contactName}${
             company.contactTitle.trim() ? ` — ${company.contactTitle}` : ""
           }`
         : "No primary contact listed.",
+      description: "Best known contact for initial outreach",
     },
-    { id: "signal", label: "Trigger Signal", icon: "rss_feed", value: company.signalHint },
+    {
+      id: "signal",
+      label: "Trigger Signal",
+      icon: "rss_feed",
+      value: company.signalHint,
+      description: "Most relevant recent account signal",
+    },
   ];
   const activeFact = factTabs.find((tab) => tab.id === activeFactTab) ?? factTabs[0];
 
@@ -78,44 +100,44 @@ export function ProspectingScopedChat({
               <MaterialIcon name="fact_check" className="text-[20px]" />
               <span className="text-label-md font-bold uppercase tracking-wider">Known Facts</span>
             </div>
-            <div
-              className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-lg bg-surface-container p-1"
-              role="tablist"
-              aria-label="Known company facts"
-            >
-              {factTabs.map((tab) => {
-                const isActive = activeFactTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    onClick={() => setActiveFactTab(tab.id)}
-                    className={`min-h-8 px-2 py-1.5 rounded-md text-[11px] font-bold transition-colors ${
-                      isActive
-                        ? "bg-white text-primary shadow-sm"
-                        : "text-on-surface-variant hover:bg-white/60"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div
-              className="flex items-start gap-2 mt-2 rounded-lg border border-outline-variant bg-white px-3 py-2"
-              role="tabpanel"
-            >
-              <MaterialIcon
-                name={activeFact.icon}
-                className="text-[16px] text-secondary mt-0.5 shrink-0"
-              />
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
-                  {activeFact.label}
-                </p>
-                <p className="text-xs font-medium leading-snug break-words">{activeFact.value}</p>
+            <div className="flex flex-col gap-3">
+              <div
+                className="flex gap-4 border-b border-outline-variant overflow-x-auto"
+                role="tablist"
+                aria-label="Known company facts"
+              >
+                {factTabs.map((tab) => {
+                  const isActive = activeFactTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setActiveFactTab(tab.id)}
+                      className={`flex items-center gap-1 shrink-0 pb-2 text-label-sm transition-colors border-b-2 ${
+                        isActive
+                          ? "font-bold text-primary border-primary"
+                          : "font-medium text-on-surface-variant border-transparent hover:text-primary"
+                      }`}
+                    >
+                      {tab.icon ? (
+                        <MaterialIcon name={tab.icon} className="text-[16px]" />
+                      ) : null}
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="min-h-[40px] flex items-center" role="tabpanel">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-body-md font-medium text-on-surface break-words">
+                    {activeFact.value}
+                  </span>
+                  <span className="text-label-sm text-on-surface-variant">
+                    {activeFact.description}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
