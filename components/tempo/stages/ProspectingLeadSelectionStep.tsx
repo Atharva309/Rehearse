@@ -116,7 +116,7 @@ export function ProspectingLeadSelectionStep({
         </div>
         <p className="text-body-md text-on-surface-variant mb-lg">
           Choose the lead you will pursue. Your selection is checked against what your manager is
-          prioritizing — pick carefully, then move on to your opening message.
+          prioritizing. Pick carefully, then move on to your opening message.
         </p>
       </div>
 
@@ -128,7 +128,7 @@ export function ProspectingLeadSelectionStep({
             className="inline-flex items-center gap-2 px-lg py-sm rounded-lg bg-[#0f4c4c] text-white font-bold text-label-md hover:bg-[#0f4c4c]/90 shadow-md transition-colors"
           >
             <MaterialIcon name="hub" className="text-[18px]" />
-            Open CRM — Leads
+            Open CRM: Leads
           </button>
           <button
             type="button"
@@ -150,7 +150,7 @@ export function ProspectingLeadSelectionStep({
             ) : leads.length === 0 ? (
               <div className="h-full flex items-center justify-center p-lg text-center bg-surface-container-high">
                 <p className="text-body-md text-on-surface max-w-lg">
-                  You haven&apos;t added any leads yet — open your CRM and add at least one before
+                  You haven&apos;t added any leads yet. Open your CRM and add at least one before
                   continuing.
                 </p>
               </div>

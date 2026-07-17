@@ -111,7 +111,7 @@ type TempoCrmGateContextValue = {
   needsLoggingStage: string | null;
   openCrmForStage: (stage: string) => void;
   openCrmLeads: () => void;
-  openCrmAccount: () => void;
+  openCrmHome: () => void;
   hasConvertedLead: boolean;
   /** True when Account + primary Contact have every required field filled (Stage 2 gate). */
   prospectingCrmComplete: boolean;
@@ -125,7 +125,7 @@ const TempoCrmGateContext = createContext<TempoCrmGateContextValue>({
   needsLoggingStage: null,
   openCrmForStage: () => undefined,
   openCrmLeads: () => undefined,
-  openCrmAccount: () => undefined,
+  openCrmHome: () => undefined,
   hasConvertedLead: false,
   prospectingCrmComplete: false,
   refreshCrmLogs: async () => undefined,
@@ -1156,10 +1156,10 @@ export function CrmAccess({
     setIsCrmOpen(true);
   }, []);
 
-  const openCrmAccount = useCallback((): void => {
+  const openCrmHome = useCallback((): void => {
     setDeepLinkLeads(false);
     setDeepLinkStage(null);
-    setDeepLinkView("account");
+    setDeepLinkView(null);
     setIsCrmOpen(true);
   }, []);
 
@@ -1191,7 +1191,7 @@ export function CrmAccess({
       needsLoggingStage,
       openCrmForStage,
       openCrmLeads,
-      openCrmAccount,
+      openCrmHome,
       hasConvertedLead,
       prospectingCrmComplete,
       refreshCrmLogs,
@@ -1202,7 +1202,7 @@ export function CrmAccess({
       needsLoggingStage,
       openCrmForStage,
       openCrmLeads,
-      openCrmAccount,
+      openCrmHome,
       hasConvertedLead,
       prospectingCrmComplete,
       refreshCrmLogs,

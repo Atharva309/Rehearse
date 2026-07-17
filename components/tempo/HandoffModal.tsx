@@ -54,7 +54,7 @@ export function HandoffModal({
     noteCompletedStage,
     loggedStages,
     openCrmForStage,
-    openCrmAccount,
+    openCrmHome,
     prospectingCrmComplete,
   } = gate;
 
@@ -148,7 +148,7 @@ export function HandoffModal({
               <div className="min-w-0">
                 <p className="font-label-sm text-secondary uppercase tracking-tight">Up next</p>
                 <h3 className="font-headline-md text-on-surface">
-                  Stage {stageNumber} — {stageName}
+                  Stage {stageNumber}: {stageName}
                 </h3>
               </div>
             </div>
@@ -203,11 +203,11 @@ export function HandoffModal({
                   {showAccountNudge ? (
                     <button
                       type="button"
-                      onClick={openCrmAccount}
+                      onClick={openCrmHome}
                       className="w-full min-h-12 px-3 py-2 rounded-lg flex items-center justify-center gap-2 bg-[#0f4c4c] text-white text-[13px] leading-tight font-bold hover:brightness-110 transition-all active:scale-[0.98]"
                     >
                       <MaterialIcon name="business_center" />
-                      Go to CRM — Add Account &amp; Contact Notes
+                      Go to CRM: Add Account &amp; Contact Notes
                     </button>
                   ) : null}
                   <button

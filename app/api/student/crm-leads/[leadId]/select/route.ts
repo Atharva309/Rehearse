@@ -17,7 +17,7 @@ type RouteContext = {
 };
 
 const WRONG_COMPANY_NOTE =
-  "Let’s focus this opportunity on Summit Dental Group — that’s the account I want us to pursue. Update the company on your lead and try again.";
+  "Let’s focus this opportunity on Summit Dental Group. That’s the account I want us to pursue. Update the company on your lead and try again.";
 
 const WRONG_CONTACT_NOTE =
   "I have a strong contact for us at Summit Dental Group: Dana Reyes. Update the lead with Dana as the contact and try again.";
