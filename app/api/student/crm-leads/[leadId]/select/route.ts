@@ -1,7 +1,7 @@
 /**
  * crm-leads/[leadId]/select/route.ts
  * POST — fuzzy-validate Lead identity and mark it as the selected target.
- * Failure messages escalate after repeated wrong attempts on the attempt row.
+ * Returns a manager note tailored to a wrong company or wrong contact.
  */
 
 import { NextResponse } from "next/server";
@@ -13,11 +13,11 @@ type RouteContext = {
   params: { leadId: string };
 };
 
-const FIRST_WRONG_NOTE =
-  "This company isn't available to contact — check your leads and try a different one.";
+const WRONG_COMPANY_NOTE =
+  "Let’s focus this opportunity on Summit Dental Group — that’s the account I want us to pursue. Update the company on your lead and try again.";
 
-const REPEATED_WRONG_NOTE =
-  "Summit Dental Group, with Dana Reyes as your contact, is the account to pursue. Update your lead selection to match this exactly.";
+const WRONG_CONTACT_NOTE =
+  "I have a strong contact for us at Summit Dental Group: Dana Reyes. Update the lead with Dana as the contact and try again.";
 
 /**
  * POST /api/student/crm-leads/:leadId/select
@@ -56,7 +56,7 @@ export async function POST(
     const attemptId = lead.attempt_id as string;
     const { data: attempt } = await supabase
       .from("attempts")
-      .select("id, lead_selection_attempts")
+      .select("id")
       .eq("id", attemptId)
       .eq("student_id", auth.session.studentId)
       .maybeSingle();
@@ -78,23 +78,8 @@ export async function POST(
     );
 
     if (!validation.success) {
-      const previous =
-        typeof attempt.lead_selection_attempts === "number"
-          ? attempt.lead_selection_attempts
-          : 0;
-      const nextCount = previous + 1;
-
-      const { error: counterError } = await supabase
-        .from("attempts")
-        .update({ lead_selection_attempts: nextCount })
-        .eq("id", attemptId);
-
-      if (counterError) {
-        console.error("[crm-leads/select] counter update failed:", counterError);
-        return NextResponse.json({ error: "Could not select lead." }, { status: 500 });
-      }
-
-      const managerNote = nextCount === 1 ? FIRST_WRONG_NOTE : REPEATED_WRONG_NOTE;
+      const managerNote =
+        validation.reason === "company" ? WRONG_COMPANY_NOTE : WRONG_CONTACT_NOTE;
       return NextResponse.json({ success: false, managerNote });
     }
 

@@ -13,7 +13,7 @@ export const CORRECT_CONTACT = "Dana Reyes";
 /** Failure shape kept loose so callers that only check success stay compatible. */
 export type LeadValidationResult =
   | { success: true }
-  | { success: false; reason?: string; managerNote?: string };
+  | { success: false; reason: "company" | "contact"; managerNote?: string };
 
 export type ConvertLeadResult = LeadValidationResult;
 
@@ -25,10 +25,10 @@ export function validateLeadIdentity(
   contactName: string
 ): LeadValidationResult {
   if (!isCloseMatch(companyName, CORRECT_COMPANY)) {
-    return { success: false };
+    return { success: false, reason: "company" };
   }
   if (!isCloseMatch(contactName, CORRECT_CONTACT)) {
-    return { success: false };
+    return { success: false, reason: "contact" };
   }
   return { success: true };
 }
