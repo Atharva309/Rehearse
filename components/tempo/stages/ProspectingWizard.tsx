@@ -261,12 +261,12 @@ export function ProspectingWizard({
             <MaterialIcon name="library_books" className="text-on-surface-variant" />
           </div>
           <div className="space-y-lg">
-            <div className="p-md bg-tertiary-fixed rounded-xl border border-tertiary-container/20">
-              <div className="flex items-center gap-sm mb-xs text-on-tertiary-fixed">
+            <div className="p-md bg-secondary-fixed rounded-xl border border-secondary-container/20">
+              <div className="flex items-center gap-sm mb-xs text-on-secondary-fixed">
                 <MaterialIcon name="lightbulb" className="text-[18px]" />
                 <span className="font-bold text-label-sm">Rehearse Tips</span>
               </div>
-              <p className="text-label-sm text-[#584400] leading-relaxed">
+              <p className="text-label-sm text-on-secondary-fixed/90 leading-relaxed">
                 Focus on pain points rather than demographics. A customer&apos;s industry matters
                 less than the specific problem they are trying to solve right now.
               </p>
