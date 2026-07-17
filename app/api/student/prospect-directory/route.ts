@@ -22,29 +22,31 @@ type StageDataBag = {
 /**
  * Maps a database row into the internal directory shape.
  */
-function mapDirectoryRow(row: Record<string, unknown>): ProspectDirectoryCompanyRow {
+function mapDirectoryRow(
+  row: Record<string, unknown>,
+  primaryContact: { name: string; title: string } | undefined
+): ProspectDirectoryCompanyRow {
   return {
     id: String(row.id),
     name: String(row.company_name ?? ""),
     industry: String(row.industry ?? ""),
     sizeLabel: String(row.size_locations ?? ""),
     signalHint: String(row.signal_hint ?? ""),
-    contactName: String(row.contact_name ?? ""),
-    contactTitle: String(row.contact_title ?? ""),
+    contactName: primaryContact?.name ?? "",
+    contactTitle: primaryContact?.title ?? "",
     isTarget: row.entry_type === "target",
   };
 }
 
 /**
- * Loads active directory rows for the attempt's simulation from Supabase.
+ * Loads active directory rows for the attempt's simulation, joining each
+ * company's primary contact from crm_prospect_contacts.
  */
 async function loadDirectoryRows(simulationId: string): Promise<ProspectDirectoryCompanyRow[]> {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("crm_prospect_directory")
-    .select(
-      "id, company_name, industry, size_locations, signal_hint, contact_name, contact_title, entry_type"
-    )
+    .select("id, company_name, industry, size_locations, signal_hint, entry_type")
     .eq("simulation_id", simulationId)
     .eq("is_active", true);
 
@@ -52,7 +54,32 @@ async function loadDirectoryRows(simulationId: string): Promise<ProspectDirector
     throw new Error(`Could not load prospect directory: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => mapDirectoryRow(row as Record<string, unknown>));
+  const companyIds = (data ?? []).map((row) => String(row.id));
+  const primaryByCompany = new Map<string, { name: string; title: string }>();
+  if (companyIds.length > 0) {
+    const { data: contacts, error: contactsError } = await supabase
+      .from("crm_prospect_contacts")
+      .select("company_id, contact_name, contact_title")
+      .in("company_id", companyIds)
+      .eq("is_correct_contact", true);
+
+    if (contactsError) {
+      throw new Error(`Could not load prospect contacts: ${contactsError.message}`);
+    }
+    for (const contact of contacts ?? []) {
+      primaryByCompany.set(String(contact.company_id), {
+        name: String(contact.contact_name ?? ""),
+        title: String(contact.contact_title ?? ""),
+      });
+    }
+  }
+
+  return (data ?? []).map((row) =>
+    mapDirectoryRow(
+      row as Record<string, unknown>,
+      primaryByCompany.get(String(row.id))
+    )
+  );
 }
 
 /**
