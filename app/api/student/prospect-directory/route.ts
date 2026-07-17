@@ -33,6 +33,8 @@ function mapDirectoryRow(
     industry: String(row.industry ?? ""),
     sizeLabel: String(row.size_locations ?? ""),
     signalHint: String(row.signal_hint ?? ""),
+    hiddenClaim:
+      typeof row.hidden_claim === "string" ? row.hidden_claim : null,
     contacts,
     isTarget: row.entry_type === "target",
   };
@@ -47,7 +49,9 @@ async function loadDirectoryRows(simulationId: string): Promise<ProspectDirector
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("crm_prospect_directory")
-    .select("id, company_name, industry, size_locations, signal_hint, entry_type")
+    .select(
+      "id, company_name, industry, size_locations, signal_hint, hidden_claim, entry_type"
+    )
     .eq("simulation_id", simulationId)
     .eq("is_active", true);
 

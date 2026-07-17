@@ -26,7 +26,7 @@ export const PROSPECTING_STEPS: readonly ProspectingStepDefinition[] = [
 ] as const;
 
 export const TEMPO_HANDOFF_MESSAGES = {
-  prospecting: `Your outreach landed. Dana Reyes, Director of Operations at Summit Dental Group, has agreed to a 20-minute discovery call after seeing your message about their recent expansion. Before that call — research Summit Dental with the AI assistant and draft your opening message. No pitching yet. Just research and a crisp outreach draft. Good luck.`,
+  prospecting: `Your outreach landed. Dana Reyes, Director of Operations at Summit Dental Group, has agreed to a 20-minute discovery call after seeing your message about their recent expansion. Before that call, research Summit Dental with the AI assistant and draft your opening message. No pitching yet. Just research and a crisp outreach draft. Good luck.`,
 
   discovery: `Your outreach landed. Dana Reyes has agreed to a 20-minute discovery call next Tuesday. You are not pitching yet — you are here to understand their world and find out whether there is a business issue worth solving. Be curious. Ask good questions. Listen more than you talk. Good luck.`,
 
@@ -81,7 +81,7 @@ ABOUT TEMPO: Scheduling software for appointment-based businesses. Key value: cu
 
 ABOUT SUMMIT DENTAL: 8 dental practices in Colorado Front Range. Founded by Dr. Saul Kim. Just opened 8th location 3 months ago. Scheduling by phone. Director of Operations is Dana Reyes who reports to Dr. Kim.
 
-Answer the student's questions about Summit Dental and the dental scheduling market. If you don't have verified information, say so clearly — flag uncertainty rather than fabricate. Keep responses concise and useful for sales research.
+Answer the student's questions about Summit Dental and the dental scheduling market. If you don't have verified information, say so clearly. Flag uncertainty rather than fabricate. Keep responses concise and useful for sales research.
 
 IMPORTANT: Write in plain English only. Do not use LaTeX, TeX, math delimiters ($ or $$), or markdown code blocks. Use normal punctuation for numbers and percentages (e.g. 15-20%, not $15\\text{-}20\\%$).`;
 
@@ -105,7 +105,7 @@ export const AUTO_RESEARCH_CARDS = [
     icon: "person_search",
     title: "Decision Maker",
     content:
-      "Dana Reyes, Director of Operations. Reports to Dr. Kim. Responsible for scheduling, staffing, and operational tools. 2 years in role — hired to get operations under control.",
+      "Dana Reyes, Director of Operations. Reports to Dr. Kim. Responsible for scheduling, staffing, and operational tools. 2 years in role, hired to get operations under control.",
   },
   {
     id: "competitors",

@@ -20,6 +20,8 @@ export type ProspectDirectoryCompanyRow = {
   industry: string;
   sizeLabel: string;
   signalHint: string;
+  /** Server-only scripted research claim; stripped by toPublicProspectCompany(). */
+  hiddenClaim?: string | null;
   /** Optional because legacy seed rows predate directory contacts. */
   contacts?: ProspectDirectoryContact[];
   isTarget: boolean;
@@ -215,7 +217,10 @@ export function pickProspectDirectorySubset(
  * Builds a per-company research system prompt — identical instructions for every company.
  * Never implies which account (if any) is the simulation target.
  */
-export function buildScopedResearchPrompt(company: ProspectDirectoryCompany): string {
+function buildResearchPrompt(
+  company: ProspectDirectoryCompany,
+  guardrailDrill: string
+): string {
   const contactLines =
     company.contacts.length > 0
       ? `\n- Known contacts:\n${company.contacts
@@ -228,7 +233,7 @@ export function buildScopedResearchPrompt(company: ProspectDirectoryCompany): st
           .join("\n")}`
       : "";
 
-  return `You are an AI research assistant helping a sales student research a single company for a Tempo sales simulation. Treat this company with the same neutral care you would give any other account in the directory — do not imply it is preferred, correct, or "the" target.
+  return `You are an AI research assistant helping a sales student research a single company for a Tempo sales simulation. Treat this company with the same neutral care you would give any other account in the directory; do not imply it is preferred, correct, or "the" target.
 
 ABOUT TEMPO: Scheduling software for appointment-based businesses (dental, vet, PT, optometry, med spa, chiropractic, and similar). Key value: cut no-shows, free the front desk, capture after-hours demand, drive repeat visits. Pricing: Starter $99/location/month, Pro $179/location/month. Proof points: 35% drop in no-shows in 90 days, 6 hours/week saved per location, 20% of bookings happen outside hours.
 
@@ -238,11 +243,51 @@ KNOWN FACTS ABOUT THIS COMPANY (ground your answers here):
 - Scale: ${company.sizeLabel}
 - Recent signal: ${company.signalHint}${contactLines}
 
-Answer the student's questions using only these known facts plus general, non-specific industry context that would apply equally to any similar business. Do not invent additional named contacts, exact revenue, competitor contracts, or other specifics that are not listed above. When asked about contacts, share every known contact's name, title, and department factually — but never tell the student which contact is the "right", "best", or "primary" person to pursue; evaluating who actually owns this decision is the student's job.
+Answer the student's questions using only these known facts plus general, non-specific industry context that would apply equally to any similar business. Do not invent additional named contacts, exact revenue, competitor contracts, or other specifics that are not listed above. When asked about contacts, share every known contact's name, title, and department factually, but never tell the student which contact is the "right", "best", or "primary" person to pursue. Evaluating who actually owns this decision is the student's job.
 
-GUARDRAIL DRILL: In roughly one out of every four answers, include ONE plausible but unsupported detail that is NOT in the known facts (for example a guessed tool, a guessed headcount nuance, or a guessed initiative). Present that detail confidently without labeling it as uncertain — the student must practice spotting unverified claims. In all other answers, stay strictly within known facts and clearly say when you do not know.
+${guardrailDrill}
 
 IMPORTANT: Write in plain English only. Do not use LaTeX, TeX, math delimiters ($ or $$), or markdown code blocks. Use normal punctuation for numbers and percentages (e.g. 15-20%, not $15\\text{-}20\\%$).`;
+}
+
+const GENERIC_GUARDRAIL_DRILL =
+  "GUARDRAIL DRILL: In roughly one out of every four answers, include ONE plausible but unsupported detail that is NOT in the known facts (for example a guessed tool, a guessed headcount nuance, or a guessed initiative). Present that detail confidently without labeling it as uncertain — the student must practice spotting unverified claims. In all other answers, stay strictly within known facts and clearly say when you do not know.";
+
+/**
+ * Legacy/public prompt builder. Dedicated research chat requests now use the
+ * server-only builder below so hidden claims never enter browser state.
+ */
+export function buildScopedResearchPrompt(company: ProspectDirectoryCompany): string {
+  return buildResearchPrompt(company, GENERIC_GUARDRAIL_DRILL);
+}
+
+/**
+ * Builds the scoped prompt with a server-only scripted claim.
+ * The claim is withheld until the third student exchange, required exactly on
+ * that exchange, and omitted afterward to prevent accidental repetition.
+ */
+export function buildServerScopedResearchPrompt(
+  company: ProspectDirectoryCompanyRow,
+  priorStudentMessageCount: number
+): string {
+  const publicCompany = toPublicProspectCompany(company);
+  const hiddenClaim = company.hiddenClaim?.trim();
+  if (!hiddenClaim) {
+    return buildResearchPrompt(publicCompany, GENERIC_GUARDRAIL_DRILL);
+  }
+
+  let guardrailDrill: string;
+  if (priorStudentMessageCount < 2) {
+    guardrailDrill =
+      "GUARDRAIL DRILL: This company has one scripted unsupported-detail exercise. Do not introduce it yet. Wait until the conversation has had at least two prior student messages. For this answer, stay strictly within known facts and clearly say when you do not know.";
+  } else if (priorStudentMessageCount === 2) {
+    guardrailDrill = `GUARDRAIL DRILL: This company has one scripted unsupported-detail exercise. In this answer, naturally work in this specific claim exactly once: "${hiddenClaim}". Explicitly frame it as plausible-sounding but unverified, never as a confirmed fact. Do not add any other unsupported detail.`;
+  } else {
+    guardrailDrill =
+      "GUARDRAIL DRILL: This company's one scripted unsupported-detail exercise has already occurred. Do not repeat it or introduce another unsupported detail. Stay strictly within known facts and clearly say when you do not know.";
+  }
+
+  return buildResearchPrompt(publicCompany, guardrailDrill);
 }
 
 /**

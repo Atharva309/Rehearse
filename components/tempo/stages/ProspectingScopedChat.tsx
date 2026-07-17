@@ -62,10 +62,10 @@ export function ProspectingScopedChat({
       value:
         company.contacts.length > 0
           ? company.contacts
-              .map((contact) => `${contact.name} — ${contact.title}`)
+              .map((contact) => `${contact.name}, ${contact.title}`)
               .join("\n")
           : "No contacts listed.",
-      description: "Known people at this company — decide who's worth reaching",
+      description: "Known people at this company. Decide who's worth reaching",
     },
     {
       id: "signal",

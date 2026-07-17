@@ -365,7 +365,7 @@ function buildUniqueFillerCompanyName(
   }
 
   for (const qualifier of NAME_COLLISION_QUALIFIERS) {
-    const qualified = `${candidate} — ${qualifier}`;
+    const qualified = `${candidate} (${qualifier})`;
     if (!usedNames.has(qualified)) {
       return qualified;
     }

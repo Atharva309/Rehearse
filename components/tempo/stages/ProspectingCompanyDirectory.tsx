@@ -232,7 +232,7 @@ export function ProspectingCompanyDirectory({
               <h3 className="font-display text-display text-primary mb-md">Ready for Analysis</h3>
               <p className="text-body-lg text-on-surface-variant mb-xl leading-relaxed">
                 Select a company from the list to begin your research. You&apos;ll dig into recent
-                signals and ask grounded questions — then decide who belongs on your Lead list.
+                signals and ask grounded questions, then decide who belongs on your Lead list.
               </p>
               <div className="grid grid-cols-2 gap-4 text-left">
                 <div className="p-4 bg-surface/80 border border-outline-variant rounded-xl">
@@ -250,7 +250,7 @@ export function ProspectingCompanyDirectory({
                     <span className="text-label-md font-bold">Verify Claims</span>
                   </div>
                   <p className="text-label-sm text-on-surface-variant">
-                    AI research can stretch beyond the brief — check what you can trust.
+                    AI research can stretch beyond the brief. Check what you can trust.
                   </p>
                 </div>
               </div>

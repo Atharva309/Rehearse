@@ -8,10 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { completeStage } from "@/lib/attempt-actions";
-import {
-  buildScopedResearchPrompt,
-  type ProspectDirectoryCompany,
-} from "@/lib/tempo-prospect-directory";
+import type { ProspectDirectoryCompany } from "@/lib/tempo-prospect-directory";
 import {
   canAdvanceProspectingStep,
   canSubmitProspectingBrief,
@@ -254,13 +251,14 @@ export function useProspectingWizard({
     setIsAILoading(true);
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/student/prospect-research-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          attemptId,
+          companyId,
           messages: nextMessages.slice(0, -1),
           newMessage: trimmed,
-          systemPrompt: buildScopedResearchPrompt(company),
         }),
       });
 
@@ -289,7 +287,7 @@ export function useProspectingWizard({
           ...nextMessages,
           {
             role: "assistant",
-            content: "Sorry — I couldn't respond right now. Try again in a moment.",
+            content: "Sorry, I couldn't respond right now. Try again in a moment.",
           },
         ];
         return {
@@ -302,6 +300,7 @@ export function useProspectingWizard({
       setIsAILoading(false);
     }
   }, [
+    attemptId,
     chatInput,
     isAILoading,
     persistState,
@@ -328,7 +327,7 @@ export function useProspectingWizard({
         attemptId,
         "prospecting",
         0,
-        "Submitted — scoring coming soon",
+        "Submitted. Scoring coming soon",
         transcript
       );
     } finally {
