@@ -5,7 +5,7 @@
  */
 
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
-import { TempoBackToDashboard } from "@/components/tempo/TempoBackToDashboard";
+import { TempoExitSimulation } from "@/components/tempo/TempoExitSimulation";
 import type { DiscoverySummaryForm } from "@/lib/tempo-discovery";
 import type { ObjectionSummaryForm } from "@/lib/tempo-objections";
 import type { PresentationForm } from "@/lib/tempo-presentation";
@@ -199,7 +199,7 @@ export function NegotiationStageLayout({
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* ── Left panel (matches Stages 2–4 mission briefing) ─── */}
         <aside className="fixed left-0 top-16 w-[280px] h-[calc(100vh-64px)] bg-primary-container text-on-primary p-6 flex flex-col gap-6 border-r border-white/5 z-40 overflow-y-auto">
-          <TempoBackToDashboard />
+          <TempoExitSimulation />
           <section>
             <h2 className="font-label-sm text-label-sm uppercase tracking-widest text-on-primary-container mb-4">
               Mission Briefing

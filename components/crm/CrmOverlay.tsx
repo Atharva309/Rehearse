@@ -216,6 +216,14 @@ function asRecordStage(stage: SimulationStage | null | undefined): CrmRecordStag
   return null;
 }
 
+/** In-CRM navigation snapshot so Back can restore record views correctly. */
+type CrmNavSnapshot = {
+  view: CrmView;
+  contactKey: CrmContactKey;
+  selectedLeadId: string | null;
+  leadFormKey: string;
+};
+
 /**
  * Full-viewport CRM overlay — covers the stage without unmounting it.
  */
@@ -232,10 +240,12 @@ export function CrmOverlay({
   onLeadsChange,
 }: CrmOverlayProps): React.ReactElement | null {
   const [closing, setClosing] = useState(false);
-  const [view, setView] = useState<CrmView>("home");
+  const [view, setViewState] = useState<CrmView>("home");
   const [contactKey, setContactKey] = useState<CrmContactKey>("dana_reyes");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [leadFormKey, setLeadFormKey] = useState("new-lead");
+  const viewHistoryRef = useRef<CrmNavSnapshot[]>([]);
+  const [canGoBack, setCanGoBack] = useState(false);
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [logEntries, setLogEntries] = useState<CrmLogEntry[]>([]);
   const [logsLoaded, setLogsLoaded] = useState(false);
@@ -245,26 +255,50 @@ export function CrmOverlay({
   const [activeDeepLink, setActiveDeepLink] = useState<CrmRecordStageId | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Wraps the raw view setter so every in-CRM navigation records where the
+  // student came from; the header Back button pops this history.
+  const setView = (next: CrmView): void => {
+    if (next !== view) {
+      viewHistoryRef.current.push({ view, contactKey, selectedLeadId, leadFormKey });
+      setCanGoBack(true);
+    }
+    setViewState(next);
+  };
+
+  const handleCrmBack = (): void => {
+    const prev = viewHistoryRef.current.pop();
+    setCanGoBack(viewHistoryRef.current.length > 0);
+    if (!prev) {
+      return;
+    }
+    setContactKey(prev.contactKey);
+    setSelectedLeadId(prev.selectedLeadId);
+    setLeadFormKey(prev.leadFormKey);
+    setViewState(prev.view);
+  };
+
   useEffect(() => {
     if (isOpen) {
       setClosing(false);
+      viewHistoryRef.current = [];
+      setCanGoBack(false);
       if (deepLinkLeads) {
         setActiveDeepLink(null);
         setSelectedLeadId(null);
-        setView("leads-list");
+        setViewState("leads-list");
         setContactKey("dana_reyes");
         return;
       }
       if (deepLinkView === "account") {
         setActiveDeepLink(null);
         setSelectedLeadId(null);
-        setView("account-record");
+        setViewState("account-record");
         setContactKey("dana_reyes");
         return;
       }
       const link = asRecordStage(deepLinkStage);
       setActiveDeepLink(link);
-      setView(link ? "record" : "home");
+      setViewState(link ? "record" : "home");
       setContactKey("dana_reyes");
     }
   }, [isOpen, deepLinkStage, deepLinkView, deepLinkLeads]);
@@ -589,12 +623,12 @@ export function CrmOverlay({
         <header className="w-full h-12 px-6 bg-[#f4fbf7] border-b border-[#bfc8c8] shadow-sm sticky top-0 z-30 flex items-center">
           <button
             type="button"
-            onClick={handleBackToSimulation}
-            disabled={closing}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#003434] hover:text-[#0f4c4c] transition-colors disabled:opacity-60"
+            onClick={handleCrmBack}
+            disabled={closing || !canGoBack}
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#003434] hover:text-[#0f4c4c] transition-colors disabled:opacity-40"
           >
             <MaterialIcon name="arrow_back" className="text-[18px]" />
-            Back to Simulation
+            Back
           </button>
         </header>
 
@@ -1019,6 +1053,18 @@ export function CrmOverlay({
           </div>
         ) : null}
       </main>
+
+      <button
+        type="button"
+        onClick={handleBackToSimulation}
+        disabled={closing}
+        className="fixed bottom-6 right-6 z-[120] inline-flex items-center gap-2 rounded-xl bg-gold px-4 py-3 text-sm font-semibold text-[#241a00] shadow-lg shadow-black/20 hover:brightness-105 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-60"
+        aria-label="Go to Simulation"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/pitchlab-logo-new.png" alt="" className="h-[18px] w-auto shrink-0" />
+        Go to Simulation
+      </button>
     </div>
   );
 }

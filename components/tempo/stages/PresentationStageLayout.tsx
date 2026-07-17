@@ -5,7 +5,7 @@
  */
 
 import { MaterialIcon } from "@/components/ui/MaterialIcon";
-import { TempoBackToDashboard } from "@/components/tempo/TempoBackToDashboard";
+import { TempoExitSimulation } from "@/components/tempo/TempoExitSimulation";
 import type { DiscoverySummaryForm } from "@/lib/tempo-discovery";
 import {
   isPresentationSectionComplete,
@@ -80,7 +80,7 @@ export function PresentationStageLayout({
         {/* ── Left column: mission ─── */}
         <aside className="w-[280px] bg-[#1a1a2e] text-white flex flex-col p-6 overflow-y-auto border-r border-outline-variant shrink-0 hidden lg:flex">
           <div className="mb-6">
-            <TempoBackToDashboard />
+            <TempoExitSimulation />
           </div>
           <div className="mb-8">
             <span className="text-[11px] font-mono-label text-blue-300 uppercase tracking-[0.2em]">
