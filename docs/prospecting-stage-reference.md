@@ -1,8 +1,10 @@
 # Prospecting Stage Reference
 
-This document describes the Prospecting stage as implemented in the current codebase. It covers both runtime mechanics and design intent. Where the implementation differs from an earlier or implied design (for example, `classifyMatch`, `needsConfirmation`, or `hidden_claim` behavior), the discrepancy is called out explicitly.
+This document describes the Prospecting stage as implemented in the current codebase. It covers both runtime mechanics and design intent. Where the implementation differs from an earlier or implied design (for example, `classifyMatch` or `needsConfirmation` behavior), the discrepancy is called out explicitly.
 
 > **Update — multi-contact model.** Each directory company now has **3 contacts** stored in a separate `crm_prospect_contacts` table, not inline `contact_name`/`contact_title` columns on `crm_prospect_directory` (those columns were dropped). The target and 3 crafted decoys each have 1 hand-authored correct contact plus 2 designed "trap" contacts, validated by the same generic axis guardrail used for company-vs-target. Filler companies get 3 auto-generated contacts from a shared, simulation-agnostic name pool. Sections 2.1, 2.3, and 7 reflect this; see also Section 2.7.
+
+> **Update — server-side research claims and CRM completion gate.** Scoped research chat now uses the authenticated `POST /api/student/prospect-research-chat` route. The browser sends only the attempt/company IDs and chat messages; the server reloads company facts, contacts, and `hidden_claim`, then builds the system prompt. Designed-company claims are scheduled for the third student exchange and explicitly framed as unverified. Selecting the correct Lead now also autofills Account/Contact records, and Stage 2 remains locked until all required Account fields plus the primary Contact's name, title, and buying role are complete.
 
 ## 1. Overall Prospecting flow
 
@@ -155,6 +157,8 @@ const completeLeadSelection = useCallback(
 );
 ```
 
+The selected (and later converted) Lead is sorted to the top of the CRM Home preview and Leads tab. Successful selection also makes a non-fatal call to `syncLeadToAccountAndContact()`, so the Account and primary Contact are available for completion before Prospecting is submitted. The Prospecting picker itself continues to display the order returned by the Leads API.
+
 ### 1.4 Step 3 — Opening Message
 
 **What the student sees:** fixed context pills for Dana Reyes, Summit Dental Group, and the eighth-location trigger; a multiline opening-message editor; a live word count; and five writing tips (`components/tempo/stages/ProspectingStepPanels.tsx:79-163`).
@@ -197,19 +201,19 @@ await completeStage(
   attemptId,
   "prospecting",
   0,
-  "Submitted — scoring coming soon",
+  "Submitted. Scoring coming soon",
   transcript
 );
 ```
 
 ### 1.5 What stage completion creates
 
-When Prospecting completes, the server looks up the attempt's Lead whose status is `selected` and calls `convertLead()` (`app/api/student/complete-stage/route.ts:53-84`).
+The first Account/Contact upsert happens immediately after successful Lead selection. When Prospecting completes, the server looks up the attempt's Lead whose status is `selected` and calls `convertLead()`, which revalidates the identity and runs the same merge-based sync again (`app/api/student/complete-stage/route.ts:53-84`; `lib/tempo-lead-conversion.ts`).
 
 On successful conversion:
 
-- `crm_account_notes` is upserted from the selected Lead's company, contact, `why_fit`, and `trigger_event`.
-- `crm_contact_notes` is upserted for `contact_key = "dana_reyes"` from the Lead's contact name/title.
+- `crm_account_notes` preserves existing student-entered fields and notes while refreshing `accountName`, `primaryContact`, `whyFit`, and `trigger` from the Lead.
+- `crm_contact_notes` preserves existing buying role, notes, and other fields while refreshing `name` and `position` for `contact_key = "dana_reyes"`.
 - The selected `crm_leads` row becomes `converted`.
 
 There is **no `crm_opportunities` insert** in this path. The CRM UI treats a converted Lead/account as the existence of an Opportunity:
@@ -221,7 +225,15 @@ const hasConverted =
 const hasOpportunity = hasConverted;
 ```
 
-The Account and Contact are populated from the student's CRM Lead, not directly from directory/chat state. Account notes, Contact role, and Contact notes are initialized blank (`lib/tempo-lead-conversion.ts:94-151`).
+The Account and Contact are populated from the student's CRM Lead, not directly from directory/chat state. On the first sync, fields not supplied by the Lead remain blank for the student to complete. Later syncs merge rather than replace, so Account notes, Contact buying role, Contact notes, and manually entered profile fields survive conversion.
+
+### 1.6 Handoff and reference-library presentation
+
+The pre-Stage-1 manager handoff is intentionally non-spoiling. It frames the task as finding one account with real buying signals and one person who owns the decision, but does not name Summit Dental Group or Dana Reyes. The student must discover both through research and Lead Selection. Later handoffs may name them because the identity exercise has already been completed.
+
+The Reference Library contains two visually matched gold cards labeled **Rehearse Tips**. One emphasizes pain over demographics; the other advises a short, trigger-led opening message. The former **Professor's Tip** label and asymmetric first-card layout were removed (`components/tempo/stages/ProspectingWizard.tsx`).
+
+Prospecting and handoff UI copy uses plain punctuation rather than em dashes. Examples include **Open CRM: Leads**, **Stage 2: Discovery**, and **Go to CRM: Add Account & Contact Notes**. This is presentation-only and does not change stage behavior.
 
 ## 2. Company Directory + Scoped Research Chat
 
@@ -259,7 +271,9 @@ const allRows = await loadDirectoryRows(String(attempt.simulation_id));
 // app/api/student/prospect-directory/route.ts:48-52
 const { data, error } = await supabase
   .from("crm_prospect_directory")
-  .select("id, company_name, industry, size_locations, signal_hint, entry_type")
+  .select(
+    "id, company_name, industry, size_locations, signal_hint, hidden_claim, entry_type"
+  )
   .eq("simulation_id", simulationId)
   .eq("is_active", true);
 ```
@@ -278,7 +292,7 @@ contactsByCompany.forEach((list) => {
 });
 ```
 
-The server retains `entry_type` only long enough to locate the target internally, and attaches the joined contacts array:
+The server retains `entry_type` and `hidden_claim` only in the internal row, and attaches the joined contacts array:
 
 ```ts
 // app/api/student/prospect-directory/route.ts:26-38
@@ -292,13 +306,15 @@ function mapDirectoryRow(
     industry: String(row.industry ?? ""),
     sizeLabel: String(row.size_locations ?? ""),
     signalHint: String(row.signal_hint ?? ""),
+    hiddenClaim:
+      typeof row.hidden_claim === "string" ? row.hidden_claim : null,
     contacts,
     isTarget: row.entry_type === "target",
   };
 }
 ```
 
-The public shape strips `isTarget`, so the client never receives `entry_type` or a target flag, but it does carry the neutral `contacts` array:
+The public shape strips both `isTarget` and `hiddenClaim`, so the directory response never exposes `entry_type`, a target flag, or a raw scripted claim. It does carry the neutral `contacts` array:
 
 ```ts
 // lib/tempo-prospect-directory.ts:171-182
@@ -316,7 +332,7 @@ export function toPublicProspectCompany(
 }
 ```
 
-Each contact is a `{ name, title, department }` triple. The `ProspectDirectoryContact` type intentionally has no correct/trap flag, so nothing that reaches the client distinguishes the right contact from the two traps (`lib/tempo-prospect-directory.ts:9-14,28-36`).
+Each contact is a `{ name, title, department }` triple. The `ProspectDirectoryContact` type intentionally has no correct/trap flag, and the public company type has no hidden-claim field. Nothing in the directory payload distinguishes the right company/contact or reveals the scripted research exercise (`lib/tempo-prospect-directory.ts`).
 
 Randomization uses Fisher–Yates. It chooses one target plus up to 24 non-target rows, then shuffles the combined result:
 
@@ -393,48 +409,47 @@ filtered.map((company) => {
 
 Because the API does not expose target/decoy/filler classification and the component has no classification branch, real, crafted-decoy, and filler rows are visually indistinguishable except for their factual content.
 
-### 2.3 Actual scoped-chat system prompt
+### 2.3 Dedicated server-side scoped chat
 
-The live prompt builder is:
+The browser no longer constructs or sends a system prompt through the generic `/api/chat` proxy. It calls the dedicated authenticated route with only attempt/company identity and that company's chat history:
 
 ```ts
-// lib/tempo-prospect-directory.ts:218-247
-export function buildScopedResearchPrompt(company: ProspectDirectoryCompany): string {
-  const contactLines =
-    company.contacts.length > 0
-      ? `\n- Known contacts:\n${company.contacts
-          .map(
-            (contact) =>
-              `  - ${contact.name}, ${contact.title}${
-                contact.department ? ` (${contact.department})` : ""
-              }`
-          )
-          .join("\n")}`
-      : "";
-
-  return `You are an AI research assistant helping a sales student research a single company for a Tempo sales simulation. Treat this company with the same neutral care you would give any other account in the directory — do not imply it is preferred, correct, or "the" target.
-
-ABOUT TEMPO: Scheduling software for appointment-based businesses (dental, vet, PT, optometry, med spa, chiropractic, and similar). Key value: cut no-shows, free the front desk, capture after-hours demand, drive repeat visits. Pricing: Starter $99/location/month, Pro $179/location/month. Proof points: 35% drop in no-shows in 90 days, 6 hours/week saved per location, 20% of bookings happen outside hours.
-
-KNOWN FACTS ABOUT THIS COMPANY (ground your answers here):
-- Name: ${company.name}
-- Industry: ${company.industry}
-- Scale: ${company.sizeLabel}
-- Recent signal: ${company.signalHint}${contactLines}
-
-Answer the student's questions using only these known facts plus general, non-specific industry context that would apply equally to any similar business. Do not invent additional named contacts, exact revenue, competitor contracts, or other specifics that are not listed above. When asked about contacts, share every known contact's name, title, and department factually — but never tell the student which contact is the "right", "best", or "primary" person to pursue; evaluating who actually owns this decision is the student's job.
-
-GUARDRAIL DRILL: In roughly one out of every four answers, include ONE plausible but unsupported detail that is NOT in the known facts (for example a guessed tool, a guessed headcount nuance, or a guessed initiative). Present that detail confidently without labeling it as uncertain — the student must practice spotting unverified claims. In all other answers, stay strictly within known facts and clearly say when you do not know.
-
-IMPORTANT: Write in plain English only. Do not use LaTeX, TeX, math delimiters ($ or $$), or markdown code blocks. Use normal punctuation for numbers and percentages (e.g. 15-20%, not $15\\text{-}20\\%$).`;
-}
+// hooks/useProspectingWizard.ts
+const res = await fetch("/api/student/prospect-research-chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    attemptId,
+    companyId,
+    messages: nextMessages.slice(0, -1),
+    newMessage: trimmed,
+  }),
+});
 ```
 
-The interpolation now covers public company facts plus the full contacts list: name, industry, `sizeLabel` (from `size_locations`), `signalHint` (from `signal_hint`), and every contact's name, title, and department.
+`POST /api/student/prospect-research-chat` verifies that the attempt belongs to the authenticated student, scopes the company query to the attempt's `simulation_id`, and rejects a company outside the attempt's cached directory. It then reloads the full company row plus the three public contact facts:
 
-The first paragraph is the anti-ranking/anti-reveal control: the assistant must treat every company neutrally and must not imply that a company is “preferred,” “correct,” or the target. A second anti-reveal control was added for contacts: the model may state all three contacts factually, but is explicitly forbidden from naming which one is the "right", "best", or "primary" person to pursue — that judgment (senior-but-wrong-department vs. right-department-but-no-authority vs. the correct owner) is the student's. The prompt also limits answers to one company's facts and general industry context; it does not provide the other directory companies for comparison.
+```ts
+// app/api/student/prospect-research-chat/route.ts
+const { data: company } = await supabase
+  .from("crm_prospect_directory")
+  .select(
+    "id, company_name, industry, size_locations, signal_hint, hidden_claim, entry_type"
+  )
+  .eq("id", companyId)
+  .eq("simulation_id", String(attempt.simulation_id))
+  .eq("is_active", true)
+  .maybeSingle();
 
-### 2.4 `hidden_claim`: configured but not implemented in chat
+const { data: contactRows } = await supabase
+  .from("crm_prospect_contacts")
+  .select("contact_name, contact_title, department")
+  .eq("company_id", companyId);
+```
+
+The contact query never selects `is_correct_contact`, `stronger_axis`, or `weaker_axis`. The prompt is built only on the server and retains the same neutral structure for every company: Tempo context, known company facts, all three contacts, no target ranking, and no recommendation of the "right," "best," or "primary" contact. The route calls the same `gpt-4o` model used by the former generic chat call and returns only `{ reply }`.
+
+### 2.4 Deterministic `hidden_claim` behavior
 
 The seed config gives the target and crafted decoys a `hiddenClaim`, and the generator inserts it into `crm_prospect_directory.hidden_claim`:
 
@@ -460,9 +475,24 @@ return {
 };
 ```
 
-However, the runtime directory query does **not** select `hidden_claim` (`app/api/student/prospect-directory/route.ts:48-52`), the public company type has no hidden-claim property (`lib/tempo-prospect-directory.ts:28-36`), and the prompt quoted above never interpolates it.
+The internal `ProspectDirectoryCompanyRow` carries `hiddenClaim`, but `toPublicProspectCompany()` deliberately omits it. Therefore the raw field never enters the directory response, browser state, or chat request body.
 
-**Implementation gap:** authored `hidden_claim` values never surface in conversation. The current “guardrail drill” instead asks the model to invent an unsupported detail probabilistically. That is not the same as revealing the row's configured `hidden_claim`.
+For a designed company with a non-empty claim, `buildServerScopedResearchPrompt()` uses the number of prior student messages to schedule the exercise:
+
+```ts
+// lib/tempo-prospect-directory.ts
+if (priorStudentMessageCount < 2) {
+  // Keep the claim text out of the prompt and stay within known facts.
+} else if (priorStudentMessageCount === 2) {
+  // Include the specific claim exactly once in this answer and label it unverified.
+} else {
+  // Do not repeat the scripted claim or introduce another unsupported detail.
+}
+```
+
+This means the claim is withheld on the first two student exchanges and supplied to the model for the third response, framed as plausible-sounding but explicitly unverified. The scheduling is deterministic in code; as with any prompt instruction, exact model compliance is not mechanically guaranteed.
+
+Fillers have `hidden_claim = null`. They retain the previous generic drill unchanged: roughly one in four answers may include one plausible unsupported detail. This preserves neutrality because both designed companies and fillers can produce questionable claims, while only designed companies use authored content.
 
 ### 2.5 Per-company history isolation
 
@@ -507,9 +537,10 @@ const prior = state.companyChats[companyId] ?? [];
 const nextMessages = [...prior, userMessage];
 
 body: JSON.stringify({
+  attemptId,
+  companyId,
   messages: nextMessages.slice(0, -1),
   newMessage: trimmed,
-  systemPrompt: buildScopedResearchPrompt(company),
 }),
 
 companyChats: { ...prev.companyChats, [companyId]: withReply },
@@ -517,33 +548,28 @@ companyChats: { ...prev.companyChats, [companyId]: withReply },
 
 Therefore switching companies does not leak one company's transcript into another company's request. `chatMessages` is a compatibility mirror of the active company's history, not a global mixed transcript.
 
-### 2.6 No research-to-Lead automation
+### 2.6 Directory-backed Lead company and contact fields
 
-There is no code path that copies the selected directory company, chat answers, or signal into a CRM Lead. Lead creation accepts student-authored fields via the CRM form/API. The only directory reuse is the Company Name dropdown, whose `onChange` updates only `companyName`:
+There is no code path that copies the selected research card, chat answers, or signal directly into a CRM Lead. The student still creates the Lead. However, the Lead form now reuses the attempt-scoped directory for both Company and Contact selection:
 
 ```tsx
-// components/crm/LeadDetailForm.tsx:259-286
-<select
-  value={values.companyName}
-  onChange={(e) =>
-    setValues((prev) => ({ ...prev, companyName: e.target.value }))
-  }
->
-  {companyOptions.map((companyName) => (
-    <option key={companyName} value={companyName}>
-      {companyName}
-    </option>
-  ))}
-</select>
+// components/crm/LeadDetailForm.tsx
+type DirectoryCompanyOption = {
+  name: string;
+  contacts: { name: string; title: string }[];
+};
+
+const contactOptions =
+  companyOptions.find((option) => option.name === values.companyName)?.contacts ?? [];
 ```
 
-The remaining fields (`contactName`, `contactTitle`, `whyFit`, `trigger`, and `nextStep`) remain independent free-text controls (`components/crm/LeadDetailForm.tsx:13-67,287-310`). This is a deliberate student transcription step: research does not automatically become CRM judgment.
+Company Name is a closed dropdown of directory companies. Contact Name is a second dropdown filtered to the selected company. Changing company clears an incompatible contact and title; choosing a contact autofills that contact's directory title into `contactTitle`. The title remains editable. `whyFit`, `trigger`, and `nextStep` remain student-authored controls, so research facts do not automatically become CRM judgment.
 
 ### 2.7 Multiple contacts per company (3-contact model)
 
 Each company exposes three contacts. Both the research chat's Known Facts panel and the AI prompt show all three, so a student can ask "who are the contacts?" and get every name.
 
-**Known Facts panel — tabbed layout.** The scoped chat renders a compact "Known Facts" card with four underlined tabs (Industry, Scale, Contacts, Trigger Signal); selecting a tab reveals that fact's full value below. The Contacts tab lists all three people, one per line, as `Name — Title`:
+**Known Facts panel — tabbed layout.** The scoped chat renders a compact "Known Facts" card with four underlined tabs (Industry, Scale, Contacts, Trigger Signal); selecting a tab reveals that fact's full value below. The Contacts tab lists all three people, one per line, as `Name, Title`:
 
 ```tsx
 // components/tempo/stages/ProspectingScopedChat.tsx:59-69
@@ -553,10 +579,10 @@ Each company exposes three contacts. Both the research chat's Known Facts panel 
   value:
     company.contacts.length > 0
       ? company.contacts
-          .map((contact) => `${contact.name} — ${contact.title}`)
+          .map((contact) => `${contact.name}, ${contact.title}`)
           .join("\n")
       : "No contacts listed.",
-  description: "Known people at this company — decide who's worth reaching",
+  description: "Known people at this company. Decide who's worth reaching",
 },
 ```
 
@@ -660,67 +686,32 @@ export function validateLeadIdentity(
   contactName: string
 ): LeadValidationResult {
   if (!isCloseMatch(companyName, CORRECT_COMPANY)) {
-    return { success: false };
+    return { success: false, reason: "company" };
   }
   if (!isCloseMatch(contactName, CORRECT_CONTACT)) {
-    return { success: false };
+    return { success: false, reason: "contact" };
   }
   return { success: true };
 }
 ```
 
-### 3.3 Failure escalation
+### 3.3 Reason-specific manager guidance
 
-The route stores a cumulative failure count in `attempts.lead_selection_attempts`:
-
-```ts
-// app/api/student/crm-leads/[leadId]/select/route.ts:80-98
-const previous =
-  typeof attempt.lead_selection_attempts === "number"
-    ? attempt.lead_selection_attempts
-    : 0;
-const nextCount = previous + 1;
-
-await supabase
-  .from("attempts")
-  .update({ lead_selection_attempts: nextCount })
-  .eq("id", attemptId);
-
-const managerNote = nextCount === 1 ? FIRST_WRONG_NOTE : REPEATED_WRONG_NOTE;
-return NextResponse.json({ success: false, managerNote });
-```
-
-The first failure is generic; failure two and every later failure reveal the expected account/contact:
+There is no longer any escalating attempt counter. Every failed validation returns one of two manager notes based on `validation.reason`:
 
 ```ts
-// app/api/student/crm-leads/[leadId]/select/route.ts:16-20
-const FIRST_WRONG_NOTE =
-  "This company isn't available to contact — check your leads and try a different one.";
+// app/api/student/crm-leads/[leadId]/select/route.ts
+const WRONG_COMPANY_NOTE =
+  "Let’s focus this opportunity on Summit Dental Group. That’s the account I want us to pursue. Update the company on your lead and try again.";
 
-const REPEATED_WRONG_NOTE =
-  "Summit Dental Group, with Dana Reyes as your contact, is the account to pursue. Update your lead selection to match this exactly.";
+const WRONG_CONTACT_NOTE =
+  "I have a strong contact for us at Summit Dental Group: Dana Reyes. Update the lead with Dana as the contact and try again.";
+
+const managerNote =
+  validation.reason === "company" ? WRONG_COMPANY_NOTE : WRONG_CONTACT_NOTE;
 ```
 
 The client displays `managerNote` in `ConvertFailureModal`; it does not perform a second classification or confirmation (`components/tempo/stages/ProspectingLeadSelectionStep.tsx:86-109`).
-
-Restart resets the counter and all Prospecting draft state:
-
-```ts
-// app/api/student/simulation/restart/route.ts:152-172
-const resetPayload: Record<string, unknown> = {
-  current_stage: "lead_gen",
-  total_score: 0,
-  status: ATTEMPT_STATUS.IN_PROGRESS,
-  completed_at: null,
-  stage_data: null,
-  lead_selection_attempts: 0,
-};
-
-await supabase
-  .from("attempts")
-  .update(resetPayload)
-  .eq("id", attemptId);
-```
 
 ### 3.4 Successful selection timing
 
@@ -739,10 +730,14 @@ await supabase
   .update({ status: "selected", updated_at: updatedAt })
   .eq("id", leadId);
 
+await syncLeadToAccountAndContact(supabase, attemptId, lead);
+
 return NextResponse.json({ success: true });
 ```
 
-This step does **not** create Account, Contact, or Opportunity data. Those writes occur only when `complete-stage` later calls `convertLead()` after Opening Message submission. The directory research selection also has no automatic connection to this Lead; the student intentionally creates and fills the Lead separately.
+After marking the Lead selected, the route non-fatally calls `syncLeadToAccountAndContact()`. This creates or updates the Account and primary Contact before the Opening Message step finishes, allowing the student to complete required CRM fields before Stage 2. If this early sync fails, the error is logged and selection still succeeds; `convertLead()` retries the same sync at Prospecting completion.
+
+CRM Home and the Leads tab sort `selected` and `converted` Leads ahead of `new` Leads, then preserve creation order within each status group (`components/crm/CrmOverlay.tsx`).
 
 ## 4. Opening Message step
 
@@ -829,7 +824,7 @@ if (stage === "prospecting") {
 }
 ```
 
-### 5.2 `convertLead()` writes
+### 5.2 Shared merge-based Account/Contact sync
 
 `convertLead()` reloads the Lead for the same attempt, returns success immediately if it is already converted, and otherwise revalidates company/contact identity:
 
@@ -852,15 +847,13 @@ if (!validation.success) {
 }
 ```
 
-It then upserts the Account:
+Both successful selection and conversion call `syncLeadToAccountAndContact()`. The helper first loads any existing Account row, spreads its fields, and overwrites only the Lead-owned values:
 
 ```ts
-// lib/tempo-lead-conversion.ts:86-117
+// lib/tempo-lead-conversion.ts
 const accountFields: Record<string, string> = {
-  accountName: companyName.trim(),
-  industry: "",
-  locations: "",
-  region: "",
+  ...((existingAccount?.fields as Record<string, string> | null) ?? {}),
+  accountName: companyName,
   primaryContact,
   whyFit,
   trigger: triggerEvent,
@@ -869,7 +862,7 @@ const accountFields: Record<string, string> = {
 await supabase.from("crm_account_notes").upsert(
   {
     attempt_id: attemptId,
-    notes: "",
+    notes: String(existingAccount?.notes ?? ""),
     fields: accountFields,
     updated_at: updatedAt,
   },
@@ -877,12 +870,13 @@ await supabase.from("crm_account_notes").upsert(
 );
 ```
 
-It upserts the Dana contact:
+It applies the same merge rule to the primary Contact:
 
 ```ts
-// lib/tempo-lead-conversion.ts:119-139
+// lib/tempo-lead-conversion.ts
 const contactFields: Record<string, string> = {
-  name: contactName.trim(),
+  ...((existingContact?.fields as Record<string, string> | null) ?? {}),
+  name: contactName,
   position: contactTitle,
 };
 
@@ -890,8 +884,8 @@ await supabase.from("crm_contact_notes").upsert(
   {
     attempt_id: attemptId,
     contact_key: "dana_reyes",
-    role: "",
-    notes: "",
+    role: String(existingContact?.role ?? ""),
+    notes: String(existingContact?.notes ?? ""),
     fields: contactFields,
     updated_at: updatedAt,
   },
@@ -899,7 +893,7 @@ await supabase.from("crm_contact_notes").upsert(
 );
 ```
 
-Finally, it marks the Lead converted:
+This preserves student-entered Account profile data and strategy notes plus the Contact's buying role and relationship notes. After the sync, `convertLead()` marks the Lead converted:
 
 ```ts
 // lib/tempo-lead-conversion.ts:141-151
@@ -909,7 +903,7 @@ await supabase
   .eq("id", leadId);
 ```
 
-No transaction wraps these three writes. A later failure can therefore leave earlier writes committed.
+No transaction wraps the Account sync, Contact sync, and Lead status write. A later failure can therefore leave earlier writes committed.
 
 ### 5.3 Failure behavior at completion
 
@@ -937,7 +931,13 @@ await supabase
   .eq("id", attemptId);
 ```
 
-This is an implementation gap relative to a strict “conversion must succeed” interpretation: current behavior is fail-open, not fail-closed. The logged message at `complete-stage/route.ts:68` still says a Discovery gate will block, but the current handoff is an optional CRM nudge rather than a conversion gate (`components/tempo/HandoffModal.tsx:64-75,185-217`).
+Conversion remains fail-open at the `complete-stage` API layer: conversion errors are logged and stage-score persistence can continue. The student-facing transition is nevertheless fail-closed for CRM profile completeness. The Prospecting-to-Discovery handoff disables **Begin Stage 2** until:
+
+- all seven Account fields are non-empty (`accountName`, `industry`, `locations`, `region`, `primaryContact`, `whyFit`, and `trigger`);
+- the primary Contact has `name` and `position`;
+- the primary Contact has a non-empty **Role in Decision**.
+
+Account strategy notes and Contact relationship notes remain optional. The green **Go to CRM: Add Account & Contact Notes** button opens CRM Home. Closing the CRM refreshes completeness, saving an Account returns to the Accounts list, and saving a Contact returns to the Contacts list (`components/tempo/HandoffModal.tsx`; `components/crm/CrmOverlay.tsx`; `lib/tempo-crm-account.ts`; `lib/tempo-crm-contact.ts`).
 
 ## 6. Badge detection tie-in
 
@@ -1367,7 +1367,7 @@ for (let attempt = 0; attempt < FILLER_GUARD_RETRY_MAX; attempt += 1) {
 }
 
 for (const qualifier of NAME_COLLISION_QUALIFIERS) {
-  const qualified = `${candidate} — ${qualifier}`;
+  const qualified = `${candidate} (${qualifier})`;
   if (!usedNames.has(qualified)) {
     return qualified;
   }
@@ -1419,7 +1419,7 @@ A single chat spanning every company invites prompts such as “rank these accou
 
 ### 8.3 Manual research-to-CRM transcription
 
-There is intentionally no button that turns AI research into a completed Lead. The learning objective includes the discipline of deciding what matters, writing a concise fit hypothesis, recording a real trigger, and naming a next step. Automatically copying AI output into CRM would remove that practice and encourage uncritical acceptance of generated claims.
+There is intentionally no button that turns AI research into a completed Lead. Company and Contact are selected from directory-backed dropdowns to prevent identity drift, and Contact Title autofills from the chosen person. The student still decides and writes the fit hypothesis, trigger, and next step. Automatically copying AI output into those judgment fields would remove that practice and encourage uncritical acceptance of generated claims.
 
 ### 8.4 One strength per crafted decoy
 
@@ -1431,7 +1431,7 @@ Size and title seniority happen to matter for Tempo, but another simulation may 
 
 ### 8.6 Deterministic string matching
 
-Lead selection compares two student-entered strings against fixed known answers. Levenshtein, prefix, and substring checks are deterministic, immediate, free, and easy to test. A GPT call would add latency, cost, nondeterminism, and prompt sensitivity to a closed-set matching problem that does not require open-ended judgment.
+Lead selection compares the Lead's stored company/contact names against fixed known answers. The current UI sources both names from directory-backed dropdowns, while the server still uses Levenshtein, prefix, and substring checks for compatibility with existing or externally edited rows. These checks are deterministic, immediate, free, and easy to test. A GPT call would add latency, cost, nondeterminism, and prompt sensitivity to a closed-set matching problem that does not require open-ended judgment.
 
 ### 8.7 Three contacts with single-axis traps
 
@@ -1440,3 +1440,11 @@ Real prospecting rarely stops at "which company"; the rep still has to pick the 
 ### 8.8 Shared, simulation-agnostic name pool
 
 Contact names were pulled out of Tempo's config into `scripts/shared/person-name-pool.ts` so any future simulation can generate plausible, culturally diverse, gender-tagged people without re-authoring a list. Keeping the pool free of Tempo-specific content is what lets the generator's filler-contact logic stay generic while the simulation-specific designed contacts remain in the Tempo config.
+
+### 8.9 Server-only deterministic claim exercise
+
+Keeping `hidden_claim` server-side prevents a student from discovering authored claims by inspecting the directory response or client state. Scheduling a designed claim on the third student exchange makes the exercise repeatable across attempts, while explicitly labeling it unverified teaches verification without teaching the model to state fabricated details as facts. Fillers retain the generic probabilistic drill so the presence of a questionable claim does not identify a designed company.
+
+### 8.10 Required CRM completion before Discovery
+
+The Account/Contact sync removes duplicate transcription for facts already captured on the selected Lead, but it deliberately leaves profile and buying-role fields for the student. The Stage 2 gate makes that CRM work consequential: students cannot begin Discovery until the Account context and primary Contact role are complete. Strategy and relationship notes stay optional so the gate enforces structured preparation without requiring speculative prose.
