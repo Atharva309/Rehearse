@@ -6,6 +6,13 @@
 
 import type { ChatMessage } from "@/types";
 
+/** One named person at a directory company (no correct/trap flag — never sent to clients). */
+export type ProspectDirectoryContact = {
+  name: string;
+  title: string;
+  department: string;
+};
+
 /** Full directory row including target flag (server-only; never send isTarget to clients). */
 export type ProspectDirectoryCompanyRow = {
   id: string;
@@ -14,8 +21,7 @@ export type ProspectDirectoryCompanyRow = {
   sizeLabel: string;
   signalHint: string;
   /** Optional because legacy seed rows predate directory contacts. */
-  contactName?: string;
-  contactTitle?: string;
+  contacts?: ProspectDirectoryContact[];
   isTarget: boolean;
 };
 
@@ -26,8 +32,7 @@ export type ProspectDirectoryCompany = {
   industry: string;
   sizeLabel: string;
   signalHint: string;
-  contactName: string;
-  contactTitle: string;
+  contacts: ProspectDirectoryContact[];
 };
 
 /** Show every non-target company in the 25-company Tempo directory. */
@@ -172,8 +177,7 @@ export function toPublicProspectCompany(
     industry: row.industry,
     sizeLabel: row.sizeLabel,
     signalHint: row.signalHint,
-    contactName: row.contactName ?? "",
-    contactTitle: row.contactTitle ?? "",
+    contacts: row.contacts ?? [],
   };
 }
 
@@ -212,11 +216,17 @@ export function pickProspectDirectorySubset(
  * Never implies which account (if any) is the simulation target.
  */
 export function buildScopedResearchPrompt(company: ProspectDirectoryCompany): string {
-  const contactLine = company.contactName.trim()
-    ? `\n- Primary contact: ${company.contactName.trim()}${
-        company.contactTitle.trim() ? `, ${company.contactTitle.trim()}` : ""
-      }`
-    : "";
+  const contactLines =
+    company.contacts.length > 0
+      ? `\n- Known contacts:\n${company.contacts
+          .map(
+            (contact) =>
+              `  - ${contact.name}, ${contact.title}${
+                contact.department ? ` (${contact.department})` : ""
+              }`
+          )
+          .join("\n")}`
+      : "";
 
   return `You are an AI research assistant helping a sales student research a single company for a Tempo sales simulation. Treat this company with the same neutral care you would give any other account in the directory — do not imply it is preferred, correct, or "the" target.
 
@@ -226,9 +236,9 @@ KNOWN FACTS ABOUT THIS COMPANY (ground your answers here):
 - Name: ${company.name}
 - Industry: ${company.industry}
 - Scale: ${company.sizeLabel}
-- Recent signal: ${company.signalHint}${contactLine}
+- Recent signal: ${company.signalHint}${contactLines}
 
-Answer the student's questions using only these known facts plus general, non-specific industry context that would apply equally to any similar business. Do not invent additional named contacts, exact revenue, competitor contracts, or other specifics that are not listed above.
+Answer the student's questions using only these known facts plus general, non-specific industry context that would apply equally to any similar business. Do not invent additional named contacts, exact revenue, competitor contracts, or other specifics that are not listed above. When asked about contacts, share every known contact's name, title, and department factually — but never tell the student which contact is the "right", "best", or "primary" person to pursue; evaluating who actually owns this decision is the student's job.
 
 GUARDRAIL DRILL: In roughly one out of every four answers, include ONE plausible but unsupported detail that is NOT in the known facts (for example a guessed tool, a guessed headcount nuance, or a guessed initiative). Present that detail confidently without labeling it as uncertain — the student must practice spotting unverified claims. In all other answers, stay strictly within known facts and clearly say when you do not know.
 

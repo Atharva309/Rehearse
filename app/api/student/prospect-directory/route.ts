@@ -12,6 +12,7 @@ import {
   pickProspectDirectorySubset,
   toPublicProspectCompany,
   type ProspectDirectoryCompanyRow,
+  type ProspectDirectoryContact,
 } from "@/lib/tempo-prospect-directory";
 
 type StageDataBag = {
@@ -24,7 +25,7 @@ type StageDataBag = {
  */
 function mapDirectoryRow(
   row: Record<string, unknown>,
-  primaryContact: { name: string; title: string } | undefined
+  contacts: ProspectDirectoryContact[]
 ): ProspectDirectoryCompanyRow {
   return {
     id: String(row.id),
@@ -32,15 +33,15 @@ function mapDirectoryRow(
     industry: String(row.industry ?? ""),
     sizeLabel: String(row.size_locations ?? ""),
     signalHint: String(row.signal_hint ?? ""),
-    contactName: primaryContact?.name ?? "",
-    contactTitle: primaryContact?.title ?? "",
+    contacts,
     isTarget: row.entry_type === "target",
   };
 }
 
 /**
- * Loads active directory rows for the attempt's simulation, joining each
- * company's primary contact from crm_prospect_contacts.
+ * Loads active directory rows for the attempt's simulation, joining every
+ * company's contacts from crm_prospect_contacts. Contacts are alphabetized
+ * (and never carry the correct/trap flag) so nothing hints at the right one.
  */
 async function loadDirectoryRows(simulationId: string): Promise<ProspectDirectoryCompanyRow[]> {
   const supabase = createServiceClient();
@@ -55,29 +56,35 @@ async function loadDirectoryRows(simulationId: string): Promise<ProspectDirector
   }
 
   const companyIds = (data ?? []).map((row) => String(row.id));
-  const primaryByCompany = new Map<string, { name: string; title: string }>();
+  const contactsByCompany = new Map<string, ProspectDirectoryContact[]>();
   if (companyIds.length > 0) {
     const { data: contacts, error: contactsError } = await supabase
       .from("crm_prospect_contacts")
-      .select("company_id, contact_name, contact_title")
-      .in("company_id", companyIds)
-      .eq("is_correct_contact", true);
+      .select("company_id, contact_name, contact_title, department")
+      .in("company_id", companyIds);
 
     if (contactsError) {
       throw new Error(`Could not load prospect contacts: ${contactsError.message}`);
     }
     for (const contact of contacts ?? []) {
-      primaryByCompany.set(String(contact.company_id), {
+      const companyId = String(contact.company_id);
+      const list = contactsByCompany.get(companyId) ?? [];
+      list.push({
         name: String(contact.contact_name ?? ""),
         title: String(contact.contact_title ?? ""),
+        department: String(contact.department ?? ""),
       });
+      contactsByCompany.set(companyId, list);
     }
+    contactsByCompany.forEach((list) => {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    });
   }
 
   return (data ?? []).map((row) =>
     mapDirectoryRow(
       row as Record<string, unknown>,
-      primaryByCompany.get(String(row.id))
+      contactsByCompany.get(String(row.id)) ?? []
     )
   );
 }

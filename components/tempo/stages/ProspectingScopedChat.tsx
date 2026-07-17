@@ -58,13 +58,14 @@ export function ProspectingScopedChat({
     },
     {
       id: "contact",
-      label: "Primary Contact",
-      value: company.contactName.trim()
-        ? `${company.contactName}${
-            company.contactTitle.trim() ? ` — ${company.contactTitle}` : ""
-          }`
-        : "No primary contact listed.",
-      description: "Best known contact for initial outreach",
+      label: "Contacts",
+      value:
+        company.contacts.length > 0
+          ? company.contacts
+              .map((contact) => `${contact.name} — ${contact.title}`)
+              .join("\n")
+          : "No contacts listed.",
+      description: "Known people at this company — decide who's worth reaching",
     },
     {
       id: "signal",
@@ -131,7 +132,7 @@ export function ProspectingScopedChat({
               </div>
               <div className="min-h-[40px] flex items-center" role="tabpanel">
                 <div className="flex flex-col min-w-0">
-                  <span className="text-body-md font-medium text-on-surface break-words">
+                  <span className="text-body-md font-medium text-on-surface break-words whitespace-pre-line">
                     {activeFact.value}
                   </span>
                   <span className="text-label-sm text-on-surface-variant">
