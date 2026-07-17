@@ -58,42 +58,34 @@ export function ProspectingScopedChat({
               <MaterialIcon name="fact_check" className="text-[20px]" />
               <span className="text-label-md font-bold uppercase tracking-wider">Known Facts</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="flex flex-col sm:col-span-2 min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <div className="flex flex-col rounded-lg border border-outline-variant bg-surface p-3">
                 <span className="text-label-sm text-on-surface-variant mb-1">Industry</span>
-                <span className="text-xs font-medium truncate">{company.industry}</span>
+                <span className="text-xs font-medium break-words">{company.industry}</span>
               </div>
-              <div className="flex flex-col sm:col-span-2 min-w-0">
+              <div className="flex flex-col rounded-lg border border-outline-variant bg-surface p-3">
                 <span className="text-label-sm text-on-surface-variant mb-1">Scale</span>
-                <span className="text-xs font-medium truncate">{company.sizeLabel}</span>
+                <span className="text-xs font-medium break-words">{company.sizeLabel}</span>
               </div>
               {company.contactName.trim() ? (
-                <div className="flex flex-col sm:col-span-3 min-w-0">
+                <div className="flex flex-col rounded-lg border border-outline-variant bg-surface p-3">
                   <span className="text-label-sm text-on-surface-variant mb-1">
                     Primary Contact
                   </span>
-                  <span
-                    className="text-xs font-medium truncate"
-                    title={`${company.contactName}${
-                      company.contactTitle.trim() ? ` — ${company.contactTitle}` : ""
-                    }`}
-                  >
+                  <span className="text-xs font-medium break-words">
                     {company.contactName}
                     {company.contactTitle.trim() ? ` — ${company.contactTitle}` : ""}
                   </span>
                 </div>
               ) : null}
-              <div
-                className={`flex flex-col min-w-0 ${
-                  company.contactName.trim() ? "sm:col-span-5" : "sm:col-span-8"
-                }`}
-              >
+              <div className="flex flex-col rounded-lg border border-outline-variant bg-surface p-3">
                 <span className="text-label-sm text-on-surface-variant mb-1">Trigger Signal</span>
-                <div className="flex items-center gap-1 min-w-0">
-                  <MaterialIcon name="rss_feed" className="text-[14px] text-secondary shrink-0" />
-                  <span className="text-xs truncate" title={company.signalHint}>
-                    {company.signalHint}
-                  </span>
+                <div className="flex items-start gap-1">
+                  <MaterialIcon
+                    name="rss_feed"
+                    className="text-[14px] text-secondary mt-0.5 shrink-0"
+                  />
+                  <span className="text-xs leading-snug break-words">{company.signalHint}</span>
                 </div>
               </div>
             </div>
