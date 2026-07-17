@@ -16,7 +16,7 @@ type TempoEntryFreshStartProps = {
 
 const FRESH_TIMELINE_STAGES = [
   { icon: "search", modality: "Written", title: "Prospecting", desc: "Craft a cold outreach sequence.", time: "10 MIN" },
-  { icon: "forum", modality: "Live Call", title: "Discovery", desc: "Uncover Dana's true pain points.", time: "15 MIN" },
+  { icon: "forum", modality: "Live Call", title: "Discovery", desc: "Uncover your prospect's true pain points.", time: "15 MIN" },
   { icon: "present_to_all", modality: "Structured", title: "Presentation", desc: "Deliver the value proposition.", time: "12 MIN" },
   { icon: "shield", modality: "Live Call", title: "Objections", desc: "Handle technical pushback.", time: "10 MIN" },
   { icon: "handshake", modality: "Negotiation", title: "The Close", desc: "Lock in the annual contract.", time: "15 MIN" },
@@ -49,16 +49,17 @@ export function TempoEntryFreshStart({
             </div>
             <h1 className="text-[48px] leading-[56px] font-bold tracking-tight mb-4">
               Sell Tempo to <br />
-              <span className="text-tertiary-fixed">Summit Dental Group</span>
+              <span className="text-tertiary-fixed">Your Target Account</span>
             </h1>
             <p className="text-body-lg text-white/60 mb-8 max-w-xl">
-              Summit Dental is struggling with operational inefficiencies. Your goal is to guide
-              their Director of Operations through a full sales cycle, from prospecting to close.
+              Somewhere in your prospect directory, one account is struggling with operational
+              inefficiencies. Your goal is to find it and guide its decision maker through a full
+              sales cycle, from prospecting to close.
             </p>
             <div className="flex flex-wrap gap-3">
               {[
-                { icon: "location_on", text: "Denver, CO" },
-                { icon: "corporate_fare", text: "8 dental practices" },
+                { icon: "location_on", text: "Mountain West territory" },
+                { icon: "corporate_fare", text: "25 candidate accounts" },
                 { icon: "schedule", text: "~60 minutes total" },
               ].map((pill) => (
                 <div
@@ -83,12 +84,12 @@ export function TempoEntryFreshStart({
               <div className="space-y-4 mb-8">
                 <div>
                   <div className="text-white/40 text-[11px] mb-1">INDUSTRY</div>
-                  <div className="text-white">Healthcare / Dentistry</div>
+                  <div className="text-white">Appointment-based services</div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-white/40 text-[11px] mb-1">FOUNDED</div>
-                    <div className="text-white">2014</div>
+                    <div className="text-white/40 text-[11px] mb-1">ACCOUNT</div>
+                    <div className="text-white">To be identified</div>
                   </div>
                   <div>
                     <div className="text-white/40 text-[11px] mb-1">REGION</div>
@@ -106,8 +107,8 @@ export function TempoEntryFreshStart({
                     <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0f172a] animate-pulse" />
                   </div>
                   <div>
-                    <div className="text-white font-bold">Dana Reyes</div>
-                    <div className="text-white/50 text-[13px]">Director of Operations</div>
+                    <div className="text-white font-bold">Not yet identified</div>
+                    <div className="text-white/50 text-[13px]">Find who owns this decision</div>
                   </div>
                 </div>
               </div>
@@ -129,13 +130,13 @@ export function TempoEntryFreshStart({
               <div className="space-y-4 text-on-surface-variant text-body-lg">
                 <p>
                   You are a Senior Account Executive at Tempo, the leading automation platform for
-                  dental practices. Your mission is to land Summit Dental Group as a regional anchor
-                  client.
+                  appointment-based practices. Your mission is to find the right account in your
+                  territory and land it as a regional anchor client.
                 </p>
                 <p>
-                  Dana Reyes is your key stakeholder. She&apos;s focused on &quot;Operational
-                  Excellence&quot; but is currently underwater managing staffing shortages and high
-                  patient churn across her 8 locations.
+                  One decision maker at that account owns this purchase. They care about operational
+                  excellence but are underwater on day-to-day scheduling problems. Identifying the
+                  account and that person is your first job.
                 </p>
               </div>
             </div>
@@ -270,7 +271,7 @@ export function TempoEntryFreshStart({
               {
                 icon: "smart_toy",
                 title: "AI Preparation",
-                body: "Our AI acts as Dana. She remembers what you say across all 5 stages.",
+                body: "Our AI plays your buyer and remembers what you say across all 5 stages.",
               },
               {
                 icon: "volume_off",

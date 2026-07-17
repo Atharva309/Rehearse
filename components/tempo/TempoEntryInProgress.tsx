@@ -37,13 +37,13 @@ type StageObjective = {
 const TEMPO_STAGE_OBJECTIVES: Record<SimulationStage, StageObjective> = {
   lead_gen: {
     objective:
-      "Define your ideal customer profile, research Summit Dental Group, qualify the account, and craft your opening outreach to Dana Reyes.",
+      "Define your ideal customer profile, research the candidate directory, qualify the strongest account, and craft your opening outreach to the decision maker who owns this purchase.",
     kpiLabel: "ICP Fit Score",
     simTime: "15 Minutes",
   },
   prospecting: {
     objective:
-      "Define your ideal customer profile, research Summit Dental Group, qualify the account, and craft your opening outreach to Dana Reyes.",
+      "Define your ideal customer profile, research the candidate directory, qualify the strongest account, and craft your opening outreach to the decision maker who owns this purchase.",
     kpiLabel: "ICP Fit Score",
     simTime: "15 Minutes",
   },
@@ -216,7 +216,7 @@ export function TempoEntryInProgress({
               <p className="text-body-lg text-white/70 max-w-lg">
                 {stageNumber > 1
                   ? `You have successfully completed the ${TEMPO_STAGES[stageNumber - 2]?.title ?? "previous"} phase. Now, engage with your prospect to advance the deal.`
-                  : "Your simulation is underway. Complete Stage 1 to unlock your discovery call with Dana Reyes."}
+                  : "Your simulation is underway. Complete Stage 1 to identify your target account and unlock your discovery call."}
               </p>
             </div>
 
@@ -225,7 +225,7 @@ export function TempoEntryInProgress({
               <div className="flex items-center justify-between mb-6 border-b border-outline-variant pb-4">
                 <div className="flex items-center gap-3">
                   <MaterialIcon name="hub" className="text-secondary" />
-                  <span className="font-bold text-on-surface">CRM Context: Summit Dental Group</span>
+                  <span className="font-bold text-on-surface">CRM Context: Your Active Deal</span>
                 </div>
                 <span className="font-code-md text-outline uppercase tracking-tighter text-[13px]">
                   Deal ID: 8849-B
@@ -233,9 +233,9 @@ export function TempoEntryInProgress({
               </div>
               <div className="space-y-4">
                 {[
-                  { label: "Lead Name", value: "Dana Reyes" },
-                  { label: "Role", value: "Director of Operations" },
-                  { label: "Industry", value: "Healthcare / Dentistry" },
+                  { label: "Lead Name", value: "Tracked in your CRM" },
+                  { label: "Role", value: "Tracked in your CRM" },
+                  { label: "Industry", value: "Appointment-based services" },
                   { label: "Region", value: "Mountain West" },
                   { label: "Est. Deal Value", value: "$14,600/yr", highlight: true },
                   { label: "Product", value: "Tempo" },
