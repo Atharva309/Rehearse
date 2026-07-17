@@ -73,7 +73,19 @@ export function ProspectingWizard({
     setForceHandoffOpen(false);
   };
 
-  const handleDiscoveryBegin = (): void => {
+  const handleDiscoveryBegin = async (): Promise<void> => {
+    // Record the acknowledgement so re-entering the sim does not re-show
+    // the gated Discovery handoff (student already clicked Begin Stage 2).
+    try {
+      await fetch("/api/student/discovery-handoff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attemptId }),
+        keepalive: true,
+      });
+    } catch {
+      // Non-fatal: the Discovery page will just re-show the handoff.
+    }
     window.location.assign(
       `/student/simulation/${simulationId}?classId=${classId}&attempt=${attemptId}`
     );

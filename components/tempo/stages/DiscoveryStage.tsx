@@ -35,6 +35,8 @@ type DiscoveryStageProps = {
   classId: string;
   simulationTitle: string;
   simliFaceId?: string;
+  /** Show the manager handoff on mount (student has not clicked Begin Stage 2 yet). */
+  initialShowHandoff?: boolean;
 };
 
 /**
@@ -46,6 +48,7 @@ export function DiscoveryStage({
   classId,
   simulationTitle,
   simliFaceId,
+  initialShowHandoff = false,
 }: DiscoveryStageProps): React.ReactElement {
   const router = useRouter();
   const [phase, setPhase] = useState<DiscoveryPhase>("lobby");
@@ -55,7 +58,7 @@ export function DiscoveryStage({
   const [transcript, setTranscript] = useState<DiscoveryTranscriptEntry[]>([]);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showHandoff, setShowHandoff] = useState(false);
+  const [showHandoff, setShowHandoff] = useState(initialShowHandoff);
   const [showPresentationHandoff, setShowPresentationHandoff] = useState(false);
 
   const submittingRef = useRef(false);
@@ -180,7 +183,14 @@ export function DiscoveryStage({
           stageIcon={discoveryMeta.stageIcon}
           message={TEMPO_HANDOFF_MESSAGES.discovery}
           hasAIRestriction={discoveryMeta.hasAIRestriction}
-          onBegin={() => setShowHandoff(false)}
+          onBegin={() => {
+            setShowHandoff(false);
+            void fetch("/api/student/discovery-handoff", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ attemptId }),
+            }).catch(() => undefined);
+          }}
           onDismiss={() => setShowHandoff(false)}
         />
       )}

@@ -173,6 +173,13 @@ export default async function StudentSimulationPage({
     isTempoDefault &&
     (testStageDiscovery || (!hasTestStageJump && attempt.current_stage === "discovery"));
 
+  // Re-show the gated Discovery handoff on re-entry until the student
+  // explicitly clicks "Begin Stage 2" (flag written to attempts.stage_data).
+  const attemptStageData =
+    ((attempt as unknown as { stage_data?: Record<string, unknown> | null }).stage_data ??
+      {}) as Record<string, unknown>;
+  const discoveryHandoffSeen = attemptStageData.discoveryHandoffSeen === true;
+
   const discoveryScore = scores.find((s) => s.stage === "discovery");
   const discoverySummary = parseDiscoverySummaryFromTranscript(discoveryScore?.transcript);
 
@@ -213,6 +220,7 @@ export default async function StudentSimulationPage({
         classId={classId}
         simulationTitle={simulation.title}
         simliFaceId={simulation.simli_face_id}
+        initialShowHandoff={!discoveryHandoffSeen}
       />
     );
   } else if (showTempoPresentation) {
