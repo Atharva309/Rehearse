@@ -41,6 +41,7 @@ export interface DirectoryConfig {
   namePrefixPool: string[];
   suffixByIndustry: Record<string, string[]>;
   contactTitlePool: string[];
+  contactFirstNamePool: string[];
   contactLastNamePool: string[];
   contactTitleSeniorityRank: string[];
   comparableAxes: ComparableAxis[];
@@ -283,13 +284,13 @@ function buildFillerEntries(config: DirectoryConfig): DirectoryEntry[] {
     const companyName = buildUniqueFillerCompanyName(config, suffixes, usedCompanyNames);
     usedCompanyNames.add(companyName);
 
+    const firstName = pickRandom(config.contactFirstNamePool);
     const lastName = pickRandom(config.contactLastNamePool);
-    const initial = String.fromCharCode(65 + Math.floor(Math.random() * 26));
 
     const candidate: DirectoryEntry = {
       ...config.target,
       companyName,
-      contactName: `${initial}. ${lastName}`,
+      contactName: `${firstName} ${lastName}`,
       industry,
       signalHint: pickRandom(FILLER_SIGNAL_HINTS),
       hiddenClaim: undefined,

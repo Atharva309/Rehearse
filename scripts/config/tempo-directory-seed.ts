@@ -25,7 +25,7 @@ export const tempoDirectorySeed: DirectoryConfig = {
   craftedDecoys: [
     {
       companyName: "BrightSmile Dental Partners",
-      contactName: "J. Alvarez",
+      contactName: "Jordan Alvarez",
       contactTitle: "Office Manager",
       industry: "Dental",
       sizeLocations: "6 locations",
@@ -39,7 +39,7 @@ export const tempoDirectorySeed: DirectoryConfig = {
     },
     {
       companyName: "Northview Family Dentistry",
-      contactName: "R. Chen",
+      contactName: "Rachel Chen",
       contactTitle: "Practice Manager",
       industry: "Dental",
       sizeLocations: "3 locations",
@@ -52,7 +52,7 @@ export const tempoDirectorySeed: DirectoryConfig = {
     },
     {
       companyName: "Golden State Dental Alliance",
-      contactName: "M. Torres",
+      contactName: "Miguel Torres",
       contactTitle: "Practice Manager",
       industry: "Dental",
       sizeLocations: "12 locations",
@@ -162,6 +162,28 @@ export const tempoDirectorySeed: DirectoryConfig = {
         return { contactTitle: pick };
       },
     },
+  ],
+  contactFirstNamePool: [
+    "Jordan",
+    "Rachel",
+    "Miguel",
+    "Priya",
+    "Marcus",
+    "Elena",
+    "David",
+    "Sofia",
+    "Nathan",
+    "Grace",
+    "Omar",
+    "Lily",
+    "Victor",
+    "Amara",
+    "Caleb",
+    "Nina",
+    "Derek",
+    "Maya",
+    "Trevor",
+    "Iris",
   ],
   contactLastNamePool: [
     "Alvarez",

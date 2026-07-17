@@ -13,6 +13,9 @@ export type ProspectDirectoryCompanyRow = {
   industry: string;
   sizeLabel: string;
   signalHint: string;
+  /** Optional because legacy seed rows predate directory contacts. */
+  contactName?: string;
+  contactTitle?: string;
   isTarget: boolean;
 };
 
@@ -23,6 +26,8 @@ export type ProspectDirectoryCompany = {
   industry: string;
   sizeLabel: string;
   signalHint: string;
+  contactName: string;
+  contactTitle: string;
 };
 
 /** Show every non-target company in the 25-company Tempo directory. */
@@ -167,6 +172,8 @@ export function toPublicProspectCompany(
     industry: row.industry,
     sizeLabel: row.sizeLabel,
     signalHint: row.signalHint,
+    contactName: row.contactName ?? "",
+    contactTitle: row.contactTitle ?? "",
   };
 }
 
@@ -205,6 +212,12 @@ export function pickProspectDirectorySubset(
  * Never implies which account (if any) is the simulation target.
  */
 export function buildScopedResearchPrompt(company: ProspectDirectoryCompany): string {
+  const contactLine = company.contactName.trim()
+    ? `\n- Primary contact: ${company.contactName.trim()}${
+        company.contactTitle.trim() ? `, ${company.contactTitle.trim()}` : ""
+      }`
+    : "";
+
   return `You are an AI research assistant helping a sales student research a single company for a Tempo sales simulation. Treat this company with the same neutral care you would give any other account in the directory — do not imply it is preferred, correct, or "the" target.
 
 ABOUT TEMPO: Scheduling software for appointment-based businesses (dental, vet, PT, optometry, med spa, chiropractic, and similar). Key value: cut no-shows, free the front desk, capture after-hours demand, drive repeat visits. Pricing: Starter $99/location/month, Pro $179/location/month. Proof points: 35% drop in no-shows in 90 days, 6 hours/week saved per location, 20% of bookings happen outside hours.
@@ -213,9 +226,9 @@ KNOWN FACTS ABOUT THIS COMPANY (ground your answers here):
 - Name: ${company.name}
 - Industry: ${company.industry}
 - Scale: ${company.sizeLabel}
-- Recent signal: ${company.signalHint}
+- Recent signal: ${company.signalHint}${contactLine}
 
-Answer the student's questions using only these known facts plus general, non-specific industry context that would apply equally to any similar business. Do not invent named contacts, exact revenue, competitor contracts, or other specifics that are not listed above.
+Answer the student's questions using only these known facts plus general, non-specific industry context that would apply equally to any similar business. Do not invent additional named contacts, exact revenue, competitor contracts, or other specifics that are not listed above.
 
 GUARDRAIL DRILL: In roughly one out of every four answers, include ONE plausible but unsupported detail that is NOT in the known facts (for example a guessed tool, a guessed headcount nuance, or a guessed initiative). Present that detail confidently without labeling it as uncertain — the student must practice spotting unverified claims. In all other answers, stay strictly within known facts and clearly say when you do not know.
 

@@ -67,6 +67,17 @@ export function ProspectingScopedChat({
                 <span className="text-label-sm text-on-surface-variant mb-1">Scale</span>
                 <span className="text-body-md font-medium">{company.sizeLabel}</span>
               </div>
+              {company.contactName.trim() ? (
+                <div className="flex flex-col">
+                  <span className="text-label-sm text-on-surface-variant mb-1">
+                    Primary Contact
+                  </span>
+                  <span className="text-body-md font-medium">
+                    {company.contactName}
+                    {company.contactTitle.trim() ? ` — ${company.contactTitle}` : ""}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex flex-col sm:col-span-1">
                 <span className="text-label-sm text-on-surface-variant mb-1">Trigger Signal</span>
                 <div className="flex items-start gap-1">
