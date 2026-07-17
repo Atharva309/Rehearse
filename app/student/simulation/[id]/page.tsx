@@ -162,23 +162,29 @@ export default async function StudentSimulationPage({
     testStageObjections ||
     testStageNegotiation;
 
+  // Completing Stage 1 advances current_stage immediately, but Stage 2 should
+  // not render until the student explicitly accepts its manager handoff.
+  const attemptStageData =
+    ((attempt as unknown as { stage_data?: Record<string, unknown> | null }).stage_data ??
+      {}) as Record<string, unknown>;
+  const discoveryHandoffSeen = attemptStageData.discoveryHandoffSeen === true;
+  const isDiscoveryHandoffPending =
+    attempt.current_stage === "discovery" && !discoveryHandoffSeen;
+
   const showTempoProspectingWizard =
     isTempoDefault &&
     (testStageProspecting ||
+      (!hasTestStageJump && isDiscoveryHandoffPending) ||
       (!hasTestStageJump &&
         !hasProspectingScore &&
         (attempt.current_stage === "lead_gen" || attempt.current_stage === "prospecting")));
 
   const showTempoDiscovery =
     isTempoDefault &&
-    (testStageDiscovery || (!hasTestStageJump && attempt.current_stage === "discovery"));
-
-  // Re-show the gated Discovery handoff on re-entry until the student
-  // explicitly clicks "Begin Stage 2" (flag written to attempts.stage_data).
-  const attemptStageData =
-    ((attempt as unknown as { stage_data?: Record<string, unknown> | null }).stage_data ??
-      {}) as Record<string, unknown>;
-  const discoveryHandoffSeen = attemptStageData.discoveryHandoffSeen === true;
+    (testStageDiscovery ||
+      (!hasTestStageJump &&
+        attempt.current_stage === "discovery" &&
+        discoveryHandoffSeen));
 
   const discoveryScore = scores.find((s) => s.stage === "discovery");
   const discoverySummary = parseDiscoverySummaryFromTranscript(discoveryScore?.transcript);
@@ -210,6 +216,7 @@ export default async function StudentSimulationPage({
         simulationId={simulation.id}
         classId={classId}
         simulationTitle={simulation.title}
+        initialDiscoveryHandoff={!hasTestStageJump && isDiscoveryHandoffPending}
       />
     );
   } else if (showTempoDiscovery) {

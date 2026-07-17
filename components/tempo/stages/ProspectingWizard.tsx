@@ -26,6 +26,8 @@ type ProspectingWizardProps = {
   simulationId: string;
   classId: string;
   simulationTitle: string;
+  /** Re-show the Stage 2 handoff over Stage 1 after returning mid-handoff. */
+  initialDiscoveryHandoff?: boolean;
 };
 
 /**
@@ -36,10 +38,13 @@ export function ProspectingWizard({
   simulationId,
   classId,
   simulationTitle,
+  initialDiscoveryHandoff = false,
 }: ProspectingWizardProps): React.ReactElement {
   const router = useRouter();
   const wizard = useProspectingWizard({ attemptId });
-  const [postSubmitHandoff, setPostSubmitHandoff] = useState<TempoHandoffStageKey | null>(null);
+  const [postSubmitHandoff, setPostSubmitHandoff] = useState<TempoHandoffStageKey | null>(
+    initialDiscoveryHandoff ? "discovery" : null
+  );
   const [forceHandoffOpen, setForceHandoffOpen] = useState(false);
 
   const { state } = wizard;

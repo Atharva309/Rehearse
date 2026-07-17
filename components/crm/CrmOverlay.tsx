@@ -606,6 +606,19 @@ export function CrmOverlay({
             );
           })}
         </nav>
+        <div className="px-4 pb-4">
+          <button
+            type="button"
+            onClick={handleBackToSimulation}
+            disabled={closing}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-[#241a00] shadow-md shadow-black/20 hover:brightness-105 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-60"
+            aria-label="Go to Simulation"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/pitchlab-logo-new.png" alt="" className="h-[18px] w-auto shrink-0" />
+            Go to Simulation
+          </button>
+        </div>
         <div className="p-4 border-t border-[#171b2b]">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full border border-[#bfc8c8] bg-[#0f4c4c] flex items-center justify-center text-white text-sm font-bold shrink-0">
@@ -1053,18 +1066,6 @@ export function CrmOverlay({
           </div>
         ) : null}
       </main>
-
-      <button
-        type="button"
-        onClick={handleBackToSimulation}
-        disabled={closing}
-        className="fixed bottom-6 right-6 z-[120] inline-flex items-center gap-2 rounded-xl bg-gold px-4 py-3 text-sm font-semibold text-[#241a00] shadow-lg shadow-black/20 hover:brightness-105 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-60"
-        aria-label="Go to Simulation"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/pitchlab-logo-new.png" alt="" className="h-[18px] w-auto shrink-0" />
-        Go to Simulation
-      </button>
     </div>
   );
 }
