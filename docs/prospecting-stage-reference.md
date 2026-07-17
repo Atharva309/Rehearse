@@ -2,6 +2,8 @@
 
 This document describes the Prospecting stage as implemented in the current codebase. It covers both runtime mechanics and design intent. Where the implementation differs from an earlier or implied design (for example, `classifyMatch`, `needsConfirmation`, or `hidden_claim` behavior), the discrepancy is called out explicitly.
 
+> **Update — multi-contact model.** Each directory company now has **3 contacts** stored in a separate `crm_prospect_contacts` table, not inline `contact_name`/`contact_title` columns on `crm_prospect_directory` (those columns were dropped). The target and 3 crafted decoys each have 1 hand-authored correct contact plus 2 designed "trap" contacts, validated by the same generic axis guardrail used for company-vs-target. Filler companies get 3 auto-generated contacts from a shared, simulation-agnostic name pool. Sections 2.1, 2.3, and 7 reflect this; see also Section 2.7.
+
 ## 1. Overall Prospecting flow
 
 ### 1.1 Implemented step order
@@ -254,7 +256,7 @@ const allRows = await loadDirectoryRows(String(attempt.simulation_id));
 ```
 
 ```ts
-// app/api/student/prospect-directory/route.ts:39-51
+// app/api/student/prospect-directory/route.ts:48-52
 const { data, error } = await supabase
   .from("crm_prospect_directory")
   .select("id, company_name, industry, size_locations, signal_hint, entry_type")
@@ -262,24 +264,44 @@ const { data, error } = await supabase
   .eq("is_active", true);
 ```
 
-The server retains `entry_type` only long enough to locate the target internally:
+Contacts live in a separate table now, so the loader makes a second query against `crm_prospect_contacts`, groups by `company_id`, and alphabetizes each company's list. It deliberately does **not** select `is_correct_contact`, `stronger_axis`, or `weaker_axis`, so the ordering and payload never hint which contact is the right one:
 
 ```ts
-// app/api/student/prospect-directory/route.ts:25-33
-return {
-  id: String(row.id),
-  name: String(row.company_name ?? ""),
-  industry: String(row.industry ?? ""),
-  sizeLabel: String(row.size_locations ?? ""),
-  signalHint: String(row.signal_hint ?? ""),
-  isTarget: row.entry_type === "target",
-};
+// app/api/student/prospect-directory/route.ts:61-82
+const { data: contacts, error: contactsError } = await supabase
+  .from("crm_prospect_contacts")
+  .select("company_id, contact_name, contact_title, department")
+  .in("company_id", companyIds);
+// ...group into contactsByCompany, then:
+contactsByCompany.forEach((list) => {
+  list.sort((a, b) => a.name.localeCompare(b.name));
+});
 ```
 
-The public shape strips `isTarget`, so the client never receives `entry_type` or a target flag:
+The server retains `entry_type` only long enough to locate the target internally, and attaches the joined contacts array:
 
 ```ts
-// lib/tempo-prospect-directory.ts:158-170
+// app/api/student/prospect-directory/route.ts:26-38
+function mapDirectoryRow(
+  row: Record<string, unknown>,
+  contacts: ProspectDirectoryContact[]
+): ProspectDirectoryCompanyRow {
+  return {
+    id: String(row.id),
+    name: String(row.company_name ?? ""),
+    industry: String(row.industry ?? ""),
+    sizeLabel: String(row.size_locations ?? ""),
+    signalHint: String(row.signal_hint ?? ""),
+    contacts,
+    isTarget: row.entry_type === "target",
+  };
+}
+```
+
+The public shape strips `isTarget`, so the client never receives `entry_type` or a target flag, but it does carry the neutral `contacts` array:
+
+```ts
+// lib/tempo-prospect-directory.ts:171-182
 export function toPublicProspectCompany(
   row: ProspectDirectoryCompanyRow
 ): ProspectDirectoryCompany {
@@ -289,9 +311,12 @@ export function toPublicProspectCompany(
     industry: row.industry,
     sizeLabel: row.sizeLabel,
     signalHint: row.signalHint,
+    contacts: row.contacts ?? [],
   };
 }
 ```
+
+Each contact is a `{ name, title, department }` triple. The `ProspectDirectoryContact` type intentionally has no correct/trap flag, so nothing that reaches the client distinguishes the right contact from the two traps (`lib/tempo-prospect-directory.ts:9-14,28-36`).
 
 Randomization uses Fisher–Yates. It chooses one target plus up to 24 non-target rows, then shuffles the combined result:
 
@@ -373,8 +398,20 @@ Because the API does not expose target/decoy/filler classification and the compo
 The live prompt builder is:
 
 ```ts
-// lib/tempo-prospect-directory.ts:203-222
+// lib/tempo-prospect-directory.ts:218-247
 export function buildScopedResearchPrompt(company: ProspectDirectoryCompany): string {
+  const contactLines =
+    company.contacts.length > 0
+      ? `\n- Known contacts:\n${company.contacts
+          .map(
+            (contact) =>
+              `  - ${contact.name}, ${contact.title}${
+                contact.department ? ` (${contact.department})` : ""
+              }`
+          )
+          .join("\n")}`
+      : "";
+
   return `You are an AI research assistant helping a sales student research a single company for a Tempo sales simulation. Treat this company with the same neutral care you would give any other account in the directory — do not imply it is preferred, correct, or "the" target.
 
 ABOUT TEMPO: Scheduling software for appointment-based businesses (dental, vet, PT, optometry, med spa, chiropractic, and similar). Key value: cut no-shows, free the front desk, capture after-hours demand, drive repeat visits. Pricing: Starter $99/location/month, Pro $179/location/month. Proof points: 35% drop in no-shows in 90 days, 6 hours/week saved per location, 20% of bookings happen outside hours.
@@ -383,9 +420,9 @@ KNOWN FACTS ABOUT THIS COMPANY (ground your answers here):
 - Name: ${company.name}
 - Industry: ${company.industry}
 - Scale: ${company.sizeLabel}
-- Recent signal: ${company.signalHint}
+- Recent signal: ${company.signalHint}${contactLines}
 
-Answer the student's questions using only these known facts plus general, non-specific industry context that would apply equally to any similar business. Do not invent named contacts, exact revenue, competitor contracts, or other specifics that are not listed above.
+Answer the student's questions using only these known facts plus general, non-specific industry context that would apply equally to any similar business. Do not invent additional named contacts, exact revenue, competitor contracts, or other specifics that are not listed above. When asked about contacts, share every known contact's name, title, and department factually — but never tell the student which contact is the "right", "best", or "primary" person to pursue; evaluating who actually owns this decision is the student's job.
 
 GUARDRAIL DRILL: In roughly one out of every four answers, include ONE plausible but unsupported detail that is NOT in the known facts (for example a guessed tool, a guessed headcount nuance, or a guessed initiative). Present that detail confidently without labeling it as uncertain — the student must practice spotting unverified claims. In all other answers, stay strictly within known facts and clearly say when you do not know.
 
@@ -393,16 +430,16 @@ IMPORTANT: Write in plain English only. Do not use LaTeX, TeX, math delimiters (
 }
 ```
 
-The interpolation is limited to public company facts: name, industry, `sizeLabel` (from `size_locations`), and `signalHint` (from `signal_hint`).
+The interpolation now covers public company facts plus the full contacts list: name, industry, `sizeLabel` (from `size_locations`), `signalHint` (from `signal_hint`), and every contact's name, title, and department.
 
-The first paragraph is the anti-ranking/anti-reveal control: the assistant must treat every company neutrally and must not imply that a company is “preferred,” “correct,” or the target. The prompt also limits answers to one company's facts and general industry context; it does not provide the other directory companies for comparison.
+The first paragraph is the anti-ranking/anti-reveal control: the assistant must treat every company neutrally and must not imply that a company is “preferred,” “correct,” or the target. A second anti-reveal control was added for contacts: the model may state all three contacts factually, but is explicitly forbidden from naming which one is the "right", "best", or "primary" person to pursue — that judgment (senior-but-wrong-department vs. right-department-but-no-authority vs. the correct owner) is the student's. The prompt also limits answers to one company's facts and general industry context; it does not provide the other directory companies for comparison.
 
 ### 2.4 `hidden_claim`: configured but not implemented in chat
 
 The seed config gives the target and crafted decoys a `hiddenClaim`, and the generator inserts it into `crm_prospect_directory.hidden_claim`:
 
 ```ts
-// scripts/config/tempo-directory-seed.ts:14-23
+// scripts/config/tempo-directory-seed.ts:15-25
 target: {
   companyName: "Summit Dental Group",
   // ...
@@ -412,7 +449,7 @@ target: {
 ```
 
 ```ts
-// scripts/generate-prospect-directory.ts:204-220
+// scripts/generate-prospect-directory.ts:329-344
 return {
   simulation_id: simulationId,
   company_name: entry.companyName,
@@ -423,7 +460,7 @@ return {
 };
 ```
 
-However, the runtime directory query does **not** select `hidden_claim` (`app/api/student/prospect-directory/route.ts:39-45`), the public company type has no hidden-claim property (`lib/tempo-prospect-directory.ts:19-26`), and the prompt quoted above never interpolates it.
+However, the runtime directory query does **not** select `hidden_claim` (`app/api/student/prospect-directory/route.ts:48-52`), the public company type has no hidden-claim property (`lib/tempo-prospect-directory.ts:28-36`), and the prompt quoted above never interpolates it.
 
 **Implementation gap:** authored `hidden_claim` values never surface in conversation. The current “guardrail drill” instead asks the model to invent an unsupported detail probabilistically. That is not the same as revealing the row's configured `hidden_claim`.
 
@@ -501,6 +538,31 @@ There is no code path that copies the selected directory company, chat answers, 
 ```
 
 The remaining fields (`contactName`, `contactTitle`, `whyFit`, `trigger`, and `nextStep`) remain independent free-text controls (`components/crm/LeadDetailForm.tsx:13-67,287-310`). This is a deliberate student transcription step: research does not automatically become CRM judgment.
+
+### 2.7 Multiple contacts per company (3-contact model)
+
+Each company exposes three contacts. Both the research chat's Known Facts panel and the AI prompt show all three, so a student can ask "who are the contacts?" and get every name.
+
+**Known Facts panel — tabbed layout.** The scoped chat renders a compact "Known Facts" card with four underlined tabs (Industry, Scale, Contacts, Trigger Signal); selecting a tab reveals that fact's full value below. The Contacts tab lists all three people, one per line, as `Name — Title`:
+
+```tsx
+// components/tempo/stages/ProspectingScopedChat.tsx:59-69
+{
+  id: "contact",
+  label: "Contacts",
+  value:
+    company.contacts.length > 0
+      ? company.contacts
+          .map((contact) => `${contact.name} — ${contact.title}`)
+          .join("\n")
+      : "No contacts listed.",
+  description: "Known people at this company — decide who's worth reaching",
+},
+```
+
+**Correct vs. trap contacts (designed companies).** For the target and each crafted decoy, one contact is the correct owner of the scheduling decision and the other two are designed traps: one that out-ranks the correct contact but sits in the wrong department (e.g. VP of Finance), and one that is in the right department but too junior to have purchasing authority (e.g. Front Desk Lead). The correct/trap distinction lives only in `crm_prospect_contacts` (`is_correct_contact`, `stronger_axis`, `weaker_axis`) and is never sent to the client (Section 2.1). Filler companies get three undesigned contacts with no correct answer to find.
+
+**Design intent.** Splitting each company into three contacts turns "who do I actually reach out to?" into a second reasoning exercise layered on top of "which company?". Because the traps each beat the correct contact on exactly one axis (seniority *or* department relevance, never both), the student must weigh authority against relevance rather than picking the most senior or the most operationally-adjacent name by reflex. The neutral, alphabetized, flag-free payload and the anti-reveal prompt control (Section 2.3) keep the AI and UI from short-circuiting that judgment.
 
 ## 3. Lead Selection step
 
@@ -995,34 +1057,68 @@ return new Set(Array.from(base).filter((id) => !excluded.has(id)));
 
 ### 7.1 How generic is it?
 
-The core generation API accepts a `DirectoryConfig` with target, decoys, pools, and arbitrary numeric comparison axes:
+The core generation API accepts a `DirectoryConfig` with target, decoys, pools, and arbitrary numeric comparison axes. `ComparableAxis` is now generic over its subject type, so the same shape describes both company-level axes (`ComparableAxis<DirectoryEntry>`) and contact-level axes (`ComparableAxis<ContactEntry>`):
 
 ```ts
-// scripts/generate-prospect-directory.ts:27-47
-export interface ComparableAxis {
+// scripts/generate-prospect-directory.ts:64-86
+export interface ComparableAxis<TSubject> {
   name: string;
   keywords: string[];
-  getValue: (entry: DirectoryEntry, config: DirectoryConfig) => number | null;
-  regenerateFillerValue?: (config: DirectoryConfig) => Partial<DirectoryEntry>;
+  getValue: (subject: TSubject, config: DirectoryConfig) => number | null;
+  regenerateFillerValue?: (config: DirectoryConfig) => Partial<TSubject>;
 }
 
 export interface DirectoryConfig {
   simulationId: string;
-  target: DirectoryEntry;
+  target: DesignedDirectoryEntry;
   craftedDecoys: CraftedDecoyEntry[];
   // pools...
-  comparableAxes: ComparableAxis[];
+  contactDepartmentPool: string[];
+  contactTitleSeniorityRank: string[];
+  corePainDepartment: string;
+  comparableAxes: ComparableAxis<DirectoryEntry>[];
+  contactComparableAxes: ComparableAxis<ContactEntry>[];
 }
 ```
 
-The core comparison loops do not branch on axis name; they iterate `config.comparableAxes` (`scripts/generate-prospect-directory.ts:98-151,167-197`).
+The core comparison loops do not branch on axis name; they iterate `config.comparableAxes` (companies) or `config.contactComparableAxes` (contacts) (`scripts/generate-prospect-directory.ts:164-218,225-323`).
 
-However, the statement “zero hardcoded Tempo-specific content” is **not fully true**:
+**Shared, simulation-agnostic name pool.** Diverse first names (with gender tags) and last names now live in `scripts/shared/person-name-pool.ts`, which contains zero Tempo-specific content and is meant to be reused by any future simulation:
+
+```ts
+// scripts/shared/person-name-pool.ts:8-11,113-121
+export interface NamedPerson {
+  firstName: string;
+  gender: "male" | "female";
+}
+
+export function randomPerson(): NamedPerson & { lastName: string } {
+  const person = pickRandom(FIRST_NAME_POOL);
+  return { firstName: person.firstName, gender: person.gender, lastName: pickRandom(LAST_NAME_POOL) };
+}
+```
+
+The generator imports `randomPerson()` and produces full first-and-last filler contact names (no more single-initial format):
+
+```ts
+// scripts/generate-prospect-directory.ts:382-390
+function buildFillerContact(config: DirectoryConfig): ContactEntry {
+  const person = randomPerson();
+  return {
+    contactName: `${person.firstName} ${person.lastName}`,
+    contactTitle: pickRandom(config.contactTitlePool),
+    department: pickRandom(config.contactDepartmentPool),
+    gender: person.gender,
+  };
+}
+```
+
+However, the statement “zero hardcoded Tempo-specific content” is still **not fully true** of the generator itself (only the name pool is fully generic):
 
 1. The CLI entry imports `tempoDirectorySeed` directly:
 
    ```ts
-   // scripts/generate-prospect-directory.ts:382-396
+   // scripts/generate-prospect-directory.ts:650-652
    const { tempoDirectorySeed } = await import("./config/tempo-directory-seed");
    const result = await generateProspectDirectory(supabase, tempoDirectorySeed);
    ```
@@ -1030,24 +1126,23 @@ However, the statement “zero hardcoded Tempo-specific content” is **not full
 2. Generic filler signal text is hardcoded in the generator rather than supplied by config:
 
    ```ts
-   // scripts/generate-prospect-directory.ts:64-70
+   // scripts/generate-prospect-directory.ts:117-123
    const FILLER_SIGNAL_HINTS = [
      "Steady operations with no notable public updates recently.",
      // ...
    ];
    ```
 
-3. Filler contact formatting is hardcoded as a random initial plus configured surname (`scripts/generate-prospect-directory.ts:286-295`).
-4. The exported parser is named `parseSizeNumber`, and `DirectoryConfig` still exposes `contactTitleSeniorityRank` (`scripts/generate-prospect-directory.ts:35-46,84-92`). The axis loop itself remains generic, but these names are concrete concepts in the generator's public surface.
+3. The exported parser is named `parseSizeNumber`, and `DirectoryConfig` still exposes `contactTitleSeniorityRank`/`corePainDepartment` (`scripts/generate-prospect-directory.ts:81-83,137-145`). The axis loops remain generic, but these names are concrete concepts in the generator's public surface.
 
-The actual Tempo target, decoy descriptions, industry/name pools, and axis definitions live in `scripts/config/tempo-directory-seed.ts`.
+The actual Tempo target, decoy descriptions, industry/name pools, contact sets, and axis definitions live in `scripts/config/tempo-directory-seed.ts`.
 
 ### 7.2 Comparable axes
 
 For each filler and each axis, the generator compares the candidate with the target. If the filler is at or above the target, it invokes that axis's regeneration strategy up to ten times:
 
 ```ts
-// scripts/generate-prospect-directory.ts:104-148
+// scripts/generate-prospect-directory.ts:170-215
 for (const axis of config.comparableAxes) {
   const targetValue = axis.getValue(config.target, config);
   let fillerValue = axis.getValue(cappedCandidate, config);
@@ -1074,10 +1169,10 @@ for (const axis of config.comparableAxes) {
 }
 ```
 
-Tempo defines two axes:
+Tempo defines two **company** axes. The `seniority` axis now reads the company's primary contact title through the `resolvePrimaryContactTitle()` helper (which returns `contactSet.correct.contactTitle` for designed companies, or the inline `contactTitle` for fillers), since directory rows no longer carry a contact title column:
 
 ```ts
-// scripts/config/tempo-directory-seed.ts:137-165
+// scripts/config/tempo-directory-seed.ts:265-293
 comparableAxes: [
   {
     name: "size",
@@ -1094,10 +1189,10 @@ comparableAxes: [
     name: "seniority",
     keywords: ["senior", "director", "title", "seniority", "authority"],
     getValue: (entry, config) =>
-      config.contactTitleSeniorityRank.indexOf(entry.contactTitle),
+      config.contactTitleSeniorityRank.indexOf(resolvePrimaryContactTitle(entry)),
     regenerateFillerValue: (config) => {
       const targetRank = config.contactTitleSeniorityRank.indexOf(
-        config.target.contactTitle
+        resolvePrimaryContactTitle(config.target)
       );
       const validTitles = config.contactTitlePool.filter(
         (title) => config.contactTitleSeniorityRank.indexOf(title) < targetRank
@@ -1110,6 +1205,33 @@ comparableAxes: [
 ```
 
 For the current Tempo config, both regeneration strategies produce values below the target: 1–7 locations versus 8, and a title ranked below Director of Operations.
+
+Tempo also defines two **contact** axes, used to validate each designed company's two trap contacts against its correct contact. These axes have no `regenerateFillerValue` because filler contacts are undesigned and never validated. The `department_relevance` axis returns 0 outside the core-pain department, 1 for an in-department manager, and 2 for an in-department front-line role — so the "right department but too junior" trap can win relevance alone while the correct contact still wins on the seniority axis:
+
+```ts
+// scripts/config/tempo-directory-seed.ts:294-317
+contactComparableAxes: [
+  {
+    name: "seniority",
+    keywords: ["senior", "seniority", "vp", "director", "title", "authority", "outrank"],
+    getValue: (contact, config) =>
+      config.contactTitleSeniorityRank.indexOf(contact.contactTitle),
+  },
+  {
+    name: "department_relevance",
+    keywords: ["department", "operations", "relevant", "relevance", "pain"],
+    getValue: (contact, config) => {
+      if (contact.department !== config.corePainDepartment) {
+        return 0;
+      }
+      if (contact.contactTitle === "Front Desk Lead") {
+        return 2;
+      }
+      return 1;
+    },
+  },
+],
+```
 
 ### 7.3 Enforced guardrails and their limits
 
@@ -1131,43 +1253,80 @@ if (!isCapped) {
 }
 ```
 
-**Required rationale fields:** every crafted decoy must have non-empty `strongerAxis` and `weakerAxis`; missing either throws:
+**One shared validator for companies and contacts.** The win-count logic now lives in a single generic function, `validateCompetitorsAgainstCanonical<TSubject>()`, that accepts any "candidates vs. canonical" pair and any axis list. It is called twice: once for company decoys vs. the target (`validateCraftedDecoys`, using `config.comparableAxes`) and once per designed company for its two trap contacts vs. its correct contact (`validateDesignedContactSets`, using `config.contactComparableAxes`):
 
 ```ts
-// scripts/generate-prospect-directory.ts:157-165
-if (!decoy.strongerAxis?.trim()) {
-  throw new Error(`Crafted decoy "${label}" is missing required field strongerAxis.`);
+// scripts/generate-prospect-directory.ts:284-323
+export function validateCraftedDecoys(config: DirectoryConfig): void {
+  validateCompetitorsAgainstCanonical({
+    candidates: config.craftedDecoys,
+    canonical: config.target,
+    axes: config.comparableAxes,
+    config,
+    labelFor: (decoy) => decoy.companyName.trim() || "(unnamed crafted decoy)",
+  });
 }
-if (!decoy.weakerAxis?.trim()) {
-  throw new Error(`Crafted decoy "${label}" is missing required field weakerAxis.`);
+
+export function validateDesignedContactSets(config: DirectoryConfig): void {
+  const designedCompanies = [config.target, ...config.craftedDecoys];
+  for (const company of designedCompanies) {
+    // requires contactSet.correct + exactly 2 traps, then:
+    validateCompetitorsAgainstCanonical({
+      candidates: company.contactSet.traps,
+      canonical: company.contactSet.correct,
+      axes: config.contactComparableAxes,
+      config,
+      labelFor: (trap) => `${company.companyName} / ${trap.contactName}`,
+    });
+  }
 }
 ```
 
-**At most one measurable win:** wins are axes where `decoyValue > targetValue`. More than one throws and names every winning axis:
+`generateProspectDirectory()` runs both validators before any insert (`scripts/generate-prospect-directory.ts:549-550`).
+
+**Required rationale fields:** every competitor (company decoy or trap contact) must have non-empty `strongerAxis` and `weakerAxis`; missing either throws:
 
 ```ts
-// scripts/generate-prospect-directory.ts:167-179
-const winningAxes = config.comparableAxes.filter((axis) => {
-  const decoyValue = axis.getValue(decoy, config);
-  const targetValue = axis.getValue(config.target, config);
-  return decoyValue !== null && targetValue !== null && decoyValue > targetValue;
+// scripts/generate-prospect-directory.ts:236-241
+if (!candidate.strongerAxis?.trim()) {
+  throw new Error(`Competitor "${label}" is missing required field strongerAxis.`);
+}
+if (!candidate.weakerAxis?.trim()) {
+  throw new Error(`Competitor "${label}" is missing required field weakerAxis.`);
+}
+```
+
+**Exactly-2-traps shape check:** each designed company must declare a correct contact and exactly two traps, or `validateDesignedContactSets` throws (`scripts/generate-prospect-directory.ts:305-312`).
+
+**At most one measurable win:** wins are axes where `candidateValue > canonicalValue`. More than one throws and names every winning axis:
+
+```ts
+// scripts/generate-prospect-directory.ts:243-259
+const winningAxes = axes.filter((axis) => {
+  const candidateValue = axis.getValue(candidate, config);
+  const canonicalValue = axis.getValue(canonical, config);
+  return (
+    candidateValue !== null && canonicalValue !== null && candidateValue > canonicalValue
+  );
 });
 
 if (winningAxes.length > 1) {
   throw new Error(
-    `Crafted decoy "${label}" out-performs the target on multiple axes: ${winningAxes
+    `Competitor "${label}" out-performs the canonical subject on multiple axes: ${winningAxes
       .map((axis) => axis.name)
       .join(", ")}.`
   );
 }
 ```
 
+This is the same rule that keeps each company decoy to one strength, now also guaranteeing that neither trap contact beats the correct contact on both seniority and department relevance.
+
 **Declared-vs-measured strength:** when there is exactly one measurable win, the generator checks whether `strongerAxis` contains any configured keyword for that winning axis. A mismatch logs a warning; it does not throw:
 
 ```ts
-// scripts/generate-prospect-directory.ts:188-197
+// scripts/generate-prospect-directory.ts:268-277
 const winningAxis = winningAxes[0];
-const declaredStrength = decoy.strongerAxis.toLowerCase();
+const declaredStrength = candidate.strongerAxis.toLowerCase();
 const referencesWinningAxis = winningAxis.keywords.some((keyword) =>
   declaredStrength.includes(keyword.toLowerCase())
 );
@@ -1176,14 +1335,14 @@ if (!referencesWinningAxis) {
 }
 ```
 
-Zero measurable wins also produce only a warning (`scripts/generate-prospect-directory.ts:181-185`). `weakerAxis` is required to be present but is not semantically compared with axis values.
+Zero measurable wins also produce only a warning (`scripts/generate-prospect-directory.ts:261-266`). `weakerAxis` is required to be present but is not semantically compared with axis values. Note that Tempo's `Office Manager`/`Practice Manager` correct contacts do not out-rank their own company decoy status, so `validateCraftedDecoys` emits the expected "does not measurably out-perform… on any configured axis" warning for the two decoys that win via trigger/scale narrative rather than a numeric axis.
 
 ### 7.4 Duplicate company-name prevention
 
 The used-name set starts with the target and every crafted decoy, preventing fillers from exactly duplicating any of them:
 
 ```ts
-// scripts/generate-prospect-directory.ts:260-284
+// scripts/generate-prospect-directory.ts:403-414
 const usedCompanyNames = new Set<string>([
   config.target.companyName,
   ...config.craftedDecoys.map((decoy) => decoy.companyName),
@@ -1196,7 +1355,7 @@ usedCompanyNames.add(companyName);
 For a collision, the generator rerolls the prefix and later the suffix up to ten times. It then tries directional qualifiers before throwing:
 
 ```ts
-// scripts/generate-prospect-directory.ts:228-257
+// scripts/generate-prospect-directory.ts:357-377
 for (let attempt = 0; attempt < FILLER_GUARD_RETRY_MAX; attempt += 1) {
   if (!usedNames.has(candidate)) {
     return candidate;
@@ -1217,37 +1376,36 @@ for (const qualifier of NAME_COLLISION_QUALIFIERS) {
 
 This is exact, case-sensitive string uniqueness. It does not normalize case/whitespace, test similar-looking names, or validate that target and crafted-decoy names are mutually unique.
 
-### 7.5 Manual, one-time seeding
+### 7.5 Manual seeding — companies idempotent, contacts always resynced
 
-The generator is a manual CLI, not a gameplay service:
+The generator is a manual CLI, not a gameplay service (`scripts/generate-prospect-directory.ts:1-5,640-668`).
+
+Its idempotency changed with the multi-contact work. **Company rows** are still inserted only when the directory is empty for the `simulation_id`; if any company already exists, the company insert is skipped. **Contacts, however, are always resynced** on every run — the generator loads the current companies and calls `syncProspectContacts()` regardless of whether companies were freshly inserted:
 
 ```ts
-// scripts/generate-prospect-directory.ts:1-4,382-408
- * Runnable via: npx tsx scripts/generate-prospect-directory.ts
-// ...
-if (isMain) {
-  runCli().catch((err: unknown) => {
-    console.error(err);
-    process.exit(1);
-  });
+// scripts/generate-prospect-directory.ts:561-599
+let insertedCompanies = 0;
+if ((count ?? 0) === 0) {
+  // ...insert target + decoys + fillers
+  insertedCompanies = rows.length;
+} else {
+  console.log(`Directory already has ${count} row(s) ...; syncing contacts only.`);
 }
-```
 
-It is idempotent at the simulation level: if any row already exists for `simulation_id`, it skips the whole seed:
-
-```ts
-// scripts/generate-prospect-directory.ts:306-325
-const { count } = await supabase
+const { data: directoryRows } = await supabase
   .from("crm_prospect_directory")
-  .select("id", { count: "exact", head: true })
-  .eq("simulation_id", config.simulationId);
+  .select("id, company_name, entry_type")
+  .eq("simulation_id", config.simulationId)
+  .eq("is_active", true);
 
-if ((count ?? 0) > 0) {
-  return { inserted: 0 };
-}
+const insertedContacts = await syncProspectContacts(supabase, config, directoryRows);
 ```
 
-No Next.js route, component, hook, package script, or build hook invokes it. `package.json:5-9` contains only `dev`, `build`, `start`, and `lint`. Live gameplay only reads the rows already present in Supabase.
+`syncProspectContacts()` is destructive-then-rebuild: it deletes every existing `crm_prospect_contacts` row for the current company IDs, then inserts a fresh 3-contact set per company — designed sets for the target/decoys, generated sets for fillers (`scripts/generate-prospect-directory.ts:493-540`). This means re-running the generator regenerates all filler contacts (new random names) while keeping company rows stable, and it is how existing single-contact placeholder rows were corrected to the full 3-contact model. Because company IDs are preserved, attempt-cached `directoryCompanyIds` stay valid.
+
+Each designed company inserts exactly one `is_correct_contact: true` row and two trap rows carrying `stronger_axis`/`weaker_axis`; fillers insert three rows with the first arbitrarily flagged `is_correct_contact: true` for schema consistency and no axis metadata (`scripts/generate-prospect-directory.ts:435-488`).
+
+No Next.js route, component, hook, package script, or build hook invokes the generator. `package.json` contains only `dev`, `build`, `start`, and `lint`. Live gameplay only reads the rows already present in Supabase.
 
 ## 8. Design rationale
 
@@ -1274,3 +1432,11 @@ Size and title seniority happen to matter for Tempo, but another simulation may 
 ### 8.6 Deterministic string matching
 
 Lead selection compares two student-entered strings against fixed known answers. Levenshtein, prefix, and substring checks are deterministic, immediate, free, and easy to test. A GPT call would add latency, cost, nondeterminism, and prompt sensitivity to a closed-set matching problem that does not require open-ended judgment.
+
+### 8.7 Three contacts with single-axis traps
+
+Real prospecting rarely stops at "which company"; the rep still has to pick the right person. Giving each designed company one correct contact and two traps — one senior-but-wrong-department, one right-department-but-too-junior — forces the student to separate authority from relevance instead of defaulting to the most impressive title or the person closest to the pain. Reusing the same single-win axis rule (Section 8.4) at the contact level keeps each trap teaching one clean misconception rather than being dismissible on multiple grounds. The correct/trap flags stay server-side and the payload is alphabetized so neither the UI nor the AI can shortcut the decision (Sections 2.1, 2.3).
+
+### 8.8 Shared, simulation-agnostic name pool
+
+Contact names were pulled out of Tempo's config into `scripts/shared/person-name-pool.ts` so any future simulation can generate plausible, culturally diverse, gender-tagged people without re-authoring a list. Keeping the pool free of Tempo-specific content is what lets the generator's filler-contact logic stay generic while the simulation-specific designed contacts remain in the Tempo config.
