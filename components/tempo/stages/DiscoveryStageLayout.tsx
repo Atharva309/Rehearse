@@ -44,7 +44,7 @@ export function DiscoveryStageLayout({
   const isCallPhase = phase === "connecting" || phase === "active";
 
   return (
-    <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
+    <div className="fixed inset-0 z-[45] flex flex-col pt-20 overflow-hidden bg-surface">
       <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* ── Left panel ─── */}
         <aside className="w-60 xl:w-72 bg-primary-container text-on-primary p-lg flex flex-col gap-lg border-r border-white/5 shrink-0 hidden lg:flex overflow-y-auto">

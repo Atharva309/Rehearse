@@ -75,7 +75,7 @@ export function PresentationStageLayout({
   const readyToSubmit = canSubmit;
 
   return (
-    <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
+    <div className="fixed inset-0 z-[45] flex flex-col pt-20 overflow-hidden bg-surface">
       <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* ── Left column: mission ─── */}
         <aside className="w-[280px] bg-[#1a1a2e] text-white flex flex-col p-6 overflow-y-auto border-r border-outline-variant shrink-0 hidden lg:flex">

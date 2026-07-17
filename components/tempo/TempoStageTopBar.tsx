@@ -38,7 +38,7 @@ export function TempoStageTopBar({
   onBackToDashboard,
 }: TempoStageTopBarProps): React.ReactElement {
   return (
-    <header className="fixed top-0 left-0 right-0 z-[50] h-16 border-b border-border bg-page shrink-0">
+    <header className="fixed top-0 left-0 right-0 z-[50] h-20 border-b border-border bg-page shrink-0">
       <div className="h-full flex items-stretch min-w-0">
         {/* Left zone — matches stage blue column width */}
         <div className="hidden lg:flex w-60 xl:w-[280px] shrink-0 items-center gap-3 px-4 lg:px-6 border-r border-transparent">
@@ -80,7 +80,7 @@ export function TempoStageTopBar({
         </div>
 
         {/* Middle zone — same flex space as the stage center column */}
-        <div className="flex-1 min-w-0 flex items-center px-3 sm:px-4">
+        <div className="flex-1 min-w-0 flex items-center px-3 sm:px-4 py-2">
           <TempoProjectFlow currentIndex={flowIndex} />
         </div>
 

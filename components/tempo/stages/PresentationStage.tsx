@@ -80,7 +80,7 @@ export function PresentationStage({
             router.push(`/student/simulation/${simulationId}/entry?classId=${classId}`)
           }
         />
-        <div className="fixed inset-x-0 bottom-0 top-16 z-[45] flex items-center justify-center bg-surface">
+        <div className="fixed inset-x-0 bottom-0 top-20 z-[45] flex items-center justify-center bg-surface">
           <p className="text-on-surface-variant font-body-md">Loading your presentation...</p>
         </div>
       </>

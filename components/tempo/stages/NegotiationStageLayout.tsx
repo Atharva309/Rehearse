@@ -195,10 +195,10 @@ export function NegotiationStageLayout({
   );
 
   return (
-    <div className="fixed inset-0 z-[45] flex flex-col pt-16 overflow-hidden bg-surface">
+    <div className="fixed inset-0 z-[45] flex flex-col pt-20 overflow-hidden bg-surface">
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* ── Left panel (matches Stages 2–4 mission briefing) ─── */}
-        <aside className="fixed left-0 top-16 w-[280px] h-[calc(100vh-64px)] bg-primary-container text-on-primary p-6 flex flex-col gap-6 border-r border-white/5 z-40 overflow-y-auto">
+        <aside className="fixed left-0 top-20 w-[280px] h-[calc(100vh-80px)] bg-primary-container text-on-primary p-6 flex flex-col gap-6 border-r border-white/5 z-40 overflow-y-auto">
           <TempoExitSimulation />
           <section>
             <h2 className="font-label-sm text-label-sm uppercase tracking-widest text-on-primary-container mb-4">
@@ -613,7 +613,7 @@ export function NegotiationStageLayout({
         </section>
 
         {/* ── Right panel ─── */}
-        <aside className="fixed right-0 top-16 h-[calc(100vh-64px)] w-[320px] bg-surface-container border-l border-outline-variant flex flex-col z-30">
+        <aside className="fixed right-0 top-20 h-[calc(100vh-80px)] w-[320px] bg-surface-container border-l border-outline-variant flex flex-col z-30">
           <div className="p-6 border-b border-outline-variant bg-surface shrink-0">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center">

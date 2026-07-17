@@ -495,6 +495,23 @@ body {
     }
   }
 
+  .tempo-flow-pulse {
+    box-shadow: 0 0 0 0 rgba(0, 91, 191, 0.4);
+    animation: tempo-flow-pulse 2s infinite;
+  }
+
+  @keyframes tempo-flow-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(0, 91, 191, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 8px rgba(0, 91, 191, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(0, 91, 191, 0);
+    }
+  }
+
   .crm-needs-logging-pulse {
     animation: crm-needs-logging-pulse 1.8s ease-in-out infinite;
   }
