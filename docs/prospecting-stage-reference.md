@@ -6,6 +6,8 @@ This document describes the Prospecting stage as implemented in the current code
 
 > **Update — server-side research claims and CRM completion gate.** Scoped research chat now uses the authenticated `POST /api/student/prospect-research-chat` route. The browser sends only the attempt/company IDs and chat messages; the server reloads company facts, contacts, and `hidden_claim`, then builds the system prompt. Designed-company claims are scheduled for the third student exchange and explicitly framed as unverified. Selecting the correct Lead now also autofills Account/Contact records, and Stage 2 remains locked until all required Account fields plus the primary Contact's name, title, and buying role are complete.
 
+> **Update — persistent Stage 1-to-2 transition.** Completing Prospecting still writes its score and advances `attempts.current_stage` to `discovery`, but that database advancement no longer makes Discovery visible by itself. The student must explicitly click **Begin Stage 2** on the gated manager handoff. That acknowledgement is persisted as `attempts.stage_data.discoveryHandoffSeen`; until it exists, the entry page says **Continue Stage 1: Prospecting**, the Prospecting wizard remains behind the handoff, and leaving/re-entering cannot bypass the CRM completion gate.
+
 ## 1. Overall Prospecting flow
 
 ### 1.1 Implemented step order
@@ -159,11 +161,15 @@ const completeLeadSelection = useCallback(
 
 The selected (and later converted) Lead is sorted to the top of the CRM Home preview and Leads tab. Successful selection also makes a non-fatal call to `syncLeadToAccountAndContact()`, so the Account and primary Contact are available for completion before Prospecting is submitted. The Prospecting picker itself continues to display the order returned by the Leads API.
 
+The Lead list sits in a fixed-height scroll container below the **Open CRM: Leads** and **Refresh list** controls. Its footer is always rendered, including while loading or when no Leads exist, so the layout does not jump when data arrives. **Select as Target** is disabled until a Lead is picked rather than being conditionally mounted (`components/tempo/stages/ProspectingLeadSelectionStep.tsx`).
+
 ### 1.4 Step 3 — Opening Message
 
 **What the student sees:** fixed context pills for Dana Reyes, Summit Dental Group, and the eighth-location trigger; a multiline opening-message editor; a live word count; and five writing tips (`components/tempo/stages/ProspectingStepPanels.tsx:79-163`).
 
 **What the student does:** writes an outreach message.
+
+The explicit **Save Draft** button appears only in this Opening Message step. Company Directory and Select Target Lead continue to autosave through the shared wizard persistence path, but they do not show a redundant manual-save action (`components/tempo/stages/ProspectingWizard.tsx`; `hooks/useProspectingWizard.ts`).
 
 **Validation before completion:** the message must be **20 through 120 words inclusive**. The visible tips (specific trigger, business issue, CTA, professional tone) are not programmatically enforced:
 
@@ -231,9 +237,42 @@ The Account and Contact are populated from the student's CRM Lead, not directly 
 
 The pre-Stage-1 manager handoff is intentionally non-spoiling. It frames the task as finding one account with real buying signals and one person who owns the decision, but does not name Summit Dental Group or Dana Reyes. The student must discover both through research and Lead Selection. Later handoffs may name them because the identity exercise has already been completed.
 
-The Reference Library contains two visually matched gold cards labeled **Rehearse Tips**. One emphasizes pain over demographics; the other advises a short, trigger-led opening message. The former **Professor's Tip** label and asymmetric first-card layout were removed (`components/tempo/stages/ProspectingWizard.tsx`).
+The Reference Library contains two cards labeled **Rehearse Tips** with the same structure but deliberately different colors. The pain-over-demographics tip is blue (`bg-secondary-fixed`); the short, trigger-led opening-message tip is gold (`bg-tertiary-fixed`). The former **Professor's Tip** label and asymmetric first-card layout were removed (`components/tempo/stages/ProspectingWizard.tsx`).
 
 Prospecting and handoff UI copy uses plain punctuation rather than em dashes. Examples include **Open CRM: Leads**, **Stage 2: Discovery**, and **Go to CRM: Add Account & Contact Notes**. This is presentation-only and does not change stage behavior.
+
+### 1.7 Entry, exit, and CRM navigation
+
+Clicking **Begin** on a fresh Tempo entry creates or resumes an attempt whose initial `current_stage` is `lead_gen`. Because that value remains in place throughout Stage 1, the entry route also reads `attempts.stage_data`: null stage data means the fresh-start briefing, while any persisted Stage 1 object (including cached directory IDs or a wizard draft) means the in-progress briefing. Therefore, returning after the first Stage 1 visit no longer shows the new-attempt screen (`app/student/simulation/[id]/entry/page.tsx`).
+
+The stage control previously labeled **Back to Dashboard** is now **Exit Simulation**. `TempoExitSimulation` preserves the current simulation ID and `classId` and routes to `/student/simulation/[id]/entry`, so exiting gameplay returns to the briefing/resume screen rather than the student dashboard. Mobile top-bar exit handlers use the same destination (`components/tempo/TempoExitSimulation.tsx`; Tempo stage components).
+
+CRM navigation now separates internal history from closing the overlay:
+
+- The CRM header **Back** button pops an in-memory `CrmNavSnapshot` containing `view`, `contactKey`, `selectedLeadId`, and `leadFormKey`. For example, navigating Contacts → Accounts → Back restores Contacts instead of leaving CRM.
+- History resets whenever CRM opens or deep-links to a new starting view. Back is disabled when no prior CRM view exists.
+- The gold **Go to Simulation** button is located in the left CRM sidebar immediately above the student profile. It uses the Rehearse logo and closes the CRM overlay through the existing slide-out path, so it does not cover record actions in the main content area.
+
+```ts
+// components/crm/CrmOverlay.tsx
+const setView = (next: CrmView): void => {
+  if (next !== view) {
+    viewHistoryRef.current.push({ view, contactKey, selectedLeadId, leadFormKey });
+    setCanGoBack(true);
+  }
+  setViewState(next);
+};
+
+const handleCrmBack = (): void => {
+  const prev = viewHistoryRef.current.pop();
+  setCanGoBack(viewHistoryRef.current.length > 0);
+  if (!prev) return;
+  setContactKey(prev.contactKey);
+  setSelectedLeadId(prev.selectedLeadId);
+  setLeadFormKey(prev.leadFormKey);
+  setViewState(prev.view);
+};
+```
 
 ## 2. Company Directory + Scoped Research Chat
 
@@ -939,6 +978,42 @@ Conversion remains fail-open at the `complete-stage` API layer: conversion error
 
 Account strategy notes and Contact relationship notes remain optional. The green **Go to CRM: Add Account & Contact Notes** button opens CRM Home. Closing the CRM refreshes completeness, saving an Account returns to the Accounts list, and saving a Contact returns to the Contacts list (`components/tempo/HandoffModal.tsx`; `components/crm/CrmOverlay.tsx`; `lib/tempo-crm-account.ts`; `lib/tempo-crm-contact.ts`).
 
+The handoff can be visually dismissed by clicking its backdrop, including while CRM completion is still gated, but dismissal is not stage acceptance. **Begin Stage 2** is the only action that persists acceptance. It calls the authenticated `POST /api/student/discovery-handoff` endpoint, which merges `discoveryHandoffSeen: true` into the existing `attempts.stage_data` object:
+
+```ts
+// app/api/student/discovery-handoff/route.ts
+const existing = (attempt.stage_data ?? {}) as Record<string, unknown>;
+await supabase
+  .from("attempts")
+  .update({ stage_data: { ...existing, discoveryHandoffSeen: true } })
+  .eq("id", attemptId);
+```
+
+This separate acknowledgement closes the gap between database progression and student-visible progression:
+
+1. Prospecting submission writes the `stage_scores` row and advances `current_stage` to `discovery`.
+2. If `discoveryHandoffSeen` is absent, the simulation route renders `ProspectingWizard` with `initialDiscoveryHandoff`, not `DiscoveryStage`. Stage 2 therefore cannot appear behind the modal.
+3. Leaving for the entry screen or dashboard does not bypass the handoff. The entry screen continues to display **Continue Stage 1: Prospecting**, removes Prospecting from the displayed completed-stage set, and returns to the same gated handoff.
+4. After the student completes required CRM fields and clicks **Begin Stage 2**, the acknowledgement flag is saved and the browser enters Discovery. Future entry screens then display **Continue Stage 2: Discovery**.
+
+```ts
+// app/student/simulation/[id]/page.tsx
+const discoveryHandoffSeen = attemptStageData.discoveryHandoffSeen === true;
+const isDiscoveryHandoffPending =
+  attempt.current_stage === "discovery" && !discoveryHandoffSeen;
+
+const showTempoProspectingWizard =
+  isTempoDefault && (!hasTestStageJump && isDiscoveryHandoffPending /* ... */);
+
+const showTempoDiscovery =
+  isTempoDefault &&
+  (!hasTestStageJump &&
+    attempt.current_stage === "discovery" &&
+    discoveryHandoffSeen);
+```
+
+The restart endpoint clears `stage_data`, which also clears this acknowledgement and restores the correct fresh-run behavior.
+
 ## 6. Badge detection tie-in
 
 All five Prospecting badges are GPT-judged. The route calls `detectTempoBadges()`, then stores returned IDs in `stage_scores.badges_earned`:
@@ -1448,3 +1523,7 @@ Keeping `hidden_claim` server-side prevents a student from discovering authored 
 ### 8.10 Required CRM completion before Discovery
 
 The Account/Contact sync removes duplicate transcription for facts already captured on the selected Lead, but it deliberately leaves profile and buying-role fields for the student. The Stage 2 gate makes that CRM work consequential: students cannot begin Discovery until the Account context and primary Contact role are complete. Strategy and relationship notes stay optional so the gate enforces structured preparation without requiring speculative prose.
+
+### 8.11 Explicit handoff acknowledgement
+
+`attempts.current_stage` is advanced when Stage 1 is scored so completion data and downstream stage routing remain consistent, but that server-side value is not treated as proof that the student accepted the next-stage handoff. Persisting `discoveryHandoffSeen` separately preserves the distinction between **finishing Prospecting work** and **choosing to begin Discovery**. It also makes the CRM gate durable across navigation: reloading, exiting to the entry screen, or visiting the dashboard cannot reveal or enter Stage 2 before the student completes the required preparation and clicks **Begin Stage 2**.
