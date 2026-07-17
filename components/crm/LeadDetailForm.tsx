@@ -19,6 +19,11 @@ type LeadFormValues = {
   nextStep: string;
 };
 
+type DirectoryCompanyOption = {
+  name: string;
+  contactNames: string[];
+};
+
 type LeadDetailFormProps = {
   attemptId: string;
   /** Null = create a new Lead. */
@@ -116,7 +121,7 @@ export function LeadDetailForm({
   const [values, setValues] = useState<LeadFormValues>(() => valuesFromLead(lead));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [companyOptions, setCompanyOptions] = useState<string[]>([]);
+  const [companyOptions, setCompanyOptions] = useState<DirectoryCompanyOption[]>([]);
   const [isDirectoryLoading, setIsDirectoryLoading] = useState(true);
   const [directoryError, setDirectoryError] = useState<string | null>(null);
 
@@ -125,6 +130,13 @@ export function LeadDetailForm({
   const canSave = useMemo(
     () => !isReadOnly && !isSaving,
     [isReadOnly, isSaving]
+  );
+  /** Contacts belong to the selected company; empty until one is chosen. */
+  const contactOptions = useMemo(
+    () =>
+      companyOptions.find((option) => option.name === values.companyName)
+        ?.contactNames ?? [],
+    [companyOptions, values.companyName]
   );
 
   useEffect(() => {
@@ -141,16 +153,22 @@ export function LeadDetailForm({
           throw new Error("Directory request failed");
         }
         const body = (await res.json()) as {
-          companies?: { name?: string }[];
+          companies?: { name?: string; contacts?: { name?: string }[] }[];
         };
-        const names = (body.companies ?? [])
-          .map((company) => company.name?.trim() ?? "")
-          .filter((name): name is string => Boolean(name));
+        const options = (body.companies ?? [])
+          .map((company) => ({
+            name: company.name?.trim() ?? "",
+            contactNames: (company.contacts ?? [])
+              .map((contact) => contact.name?.trim() ?? "")
+              .filter((name): name is string => Boolean(name)),
+          }))
+          .filter((option) => Boolean(option.name));
         if (!cancelled) {
-          setCompanyOptions(names);
+          setCompanyOptions(options);
           if (!isReadOnly) {
             setValues((prev) =>
-              !prev.companyName || names.includes(prev.companyName)
+              !prev.companyName ||
+              options.some((option) => option.name === prev.companyName)
                 ? prev
                 : { ...prev, companyName: "" }
             );
@@ -268,27 +286,73 @@ export function LeadDetailForm({
                       </div>
                     ) : field.key === "companyName" ? (
                       <>
-                        <select
-                          className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all disabled:opacity-60"
-                          value={values.companyName}
-                          disabled={isDirectoryLoading}
-                          onChange={(e) =>
-                            setValues((prev) => ({ ...prev, companyName: e.target.value }))
-                          }
-                        >
-                          <option value="">
-                            {isDirectoryLoading ? "Loading companies…" : "Select a company"}
-                          </option>
-                          {companyOptions.map((companyName) => (
-                            <option key={companyName} value={companyName}>
-                              {companyName}
+                        <div className="relative">
+                          <select
+                            className="w-full appearance-none bg-[#eef5f2] border border-[#bfc8c8] rounded-md pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all disabled:opacity-60"
+                            value={values.companyName}
+                            disabled={isDirectoryLoading}
+                            onChange={(e) => {
+                              const nextCompany = e.target.value;
+                              const nextContacts =
+                                companyOptions.find(
+                                  (option) => option.name === nextCompany
+                                )?.contactNames ?? [];
+                              setValues((prev) => ({
+                                ...prev,
+                                companyName: nextCompany,
+                                // Contacts are per-company; drop a stale pick.
+                                contactName: nextContacts.includes(prev.contactName)
+                                  ? prev.contactName
+                                  : "",
+                              }));
+                            }}
+                          >
+                            <option value="">
+                              {isDirectoryLoading ? "Loading companies…" : "Select a company"}
                             </option>
-                          ))}
-                        </select>
+                            {companyOptions.map((option) => (
+                              <option key={option.name} value={option.name}>
+                                {option.name}
+                              </option>
+                            ))}
+                          </select>
+                          <MaterialIcon
+                            name="keyboard_arrow_down"
+                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[20px] text-[#404848]"
+                          />
+                        </div>
                         {directoryError ? (
                           <p className="text-[12px] text-[#ba1a1a]">{directoryError}</p>
                         ) : null}
                       </>
+                    ) : field.key === "contactName" ? (
+                      <div className="relative">
+                        <select
+                          className="w-full appearance-none bg-[#eef5f2] border border-[#bfc8c8] rounded-md pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all disabled:opacity-60"
+                          value={values.contactName}
+                          disabled={isDirectoryLoading || !values.companyName}
+                          onChange={(e) =>
+                            setValues((prev) => ({ ...prev, contactName: e.target.value }))
+                          }
+                        >
+                          <option value="">
+                            {isDirectoryLoading
+                              ? "Loading contacts…"
+                              : values.companyName
+                                ? "Select a contact"
+                                : "Select a company first"}
+                          </option>
+                          {contactOptions.map((contactName) => (
+                            <option key={contactName} value={contactName}>
+                              {contactName}
+                            </option>
+                          ))}
+                        </select>
+                        <MaterialIcon
+                          name="keyboard_arrow_down"
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[20px] text-[#404848]"
+                        />
+                      </div>
                     ) : field.multiline ? (
                       <textarea
                         className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all placeholder:text-[#bfc8c8] resize-none"
