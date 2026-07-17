@@ -739,6 +739,7 @@ export function CrmOverlay({
             onSaved={(record) => {
               setAccountRecord(record);
               setHasAccountRow(true);
+              setView("accounts-list");
             }}
           />
         ) : null}
@@ -757,6 +758,7 @@ export function CrmOverlay({
                 const without = prev.filter((row) => row.contactKey !== contactKey);
                 return [...without, record];
               });
+              setView("contacts-list");
             }}
           />
         ) : null}
