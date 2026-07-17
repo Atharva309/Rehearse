@@ -259,15 +259,15 @@ export function ProspectingWizard({
             <MaterialIcon name="library_books" className="text-on-surface-variant" />
           </div>
           <div className="space-y-lg">
-            <div className="bg-secondary-fixed text-on-secondary-fixed p-md rounded-lg flex gap-md items-start shadow-sm border border-secondary-container/20">
-              <MaterialIcon name="lightbulb" className="text-secondary font-bold shrink-0" />
-              <div className="space-y-xs min-w-0">
-                <h4 className="font-bold text-label-sm">Professor&apos;s Tip</h4>
-                <p className="text-label-sm leading-relaxed opacity-90">
-                  Focus on pain points rather than demographics. A customer&apos;s industry matters
-                  less than the specific problem they are trying to solve right now.
-                </p>
+            <div className="p-md bg-tertiary-fixed rounded-xl border border-tertiary-container/20">
+              <div className="flex items-center gap-sm mb-xs text-on-tertiary-fixed">
+                <MaterialIcon name="lightbulb" className="text-[18px]" />
+                <span className="font-bold text-label-sm">Rehearse Tips</span>
               </div>
+              <p className="text-label-sm text-[#584400] leading-relaxed">
+                Focus on pain points rather than demographics. A customer&apos;s industry matters
+                less than the specific problem they are trying to solve right now.
+              </p>
             </div>
             <div>
               <h4 className="font-label-sm text-on-surface-variant uppercase tracking-tighter mb-sm">
@@ -325,7 +325,7 @@ export function ProspectingWizard({
             <div className="p-md bg-tertiary-fixed rounded-xl border border-tertiary-container/20">
               <div className="flex items-center gap-sm mb-xs text-on-tertiary-fixed">
                 <MaterialIcon name="lightbulb" className="text-[18px]" />
-                <span className="font-bold text-label-sm">Professor&apos;s Tip</span>
+                <span className="font-bold text-label-sm">Rehearse Tips</span>
               </div>
               <p className="text-label-sm text-[#584400] leading-relaxed">
                 Keep the opening message under 120 words. Lead with their business issue and a
