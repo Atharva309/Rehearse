@@ -37,10 +37,15 @@ import {
   primaryContactFromLogs,
   type ContactNotesSnapshot,
 } from "@/components/crm/crm-display";
-import { accountHasProfile, type CrmAccountRecord } from "@/lib/tempo-crm-account";
+import {
+  accountHasProfile,
+  canSaveAccountFields,
+  type CrmAccountRecord,
+} from "@/lib/tempo-crm-account";
 import {
   CRM_CONTACT_SLOTS,
   contactDisplayName,
+  contactRecordComplete,
   emptyContactFields,
   type CrmContactKey,
 } from "@/lib/tempo-crm-contact";
@@ -108,6 +113,8 @@ type TempoCrmGateContextValue = {
   openCrmLeads: () => void;
   openCrmAccount: () => void;
   hasConvertedLead: boolean;
+  /** True when Account + primary Contact have every required field filled (Stage 2 gate). */
+  prospectingCrmComplete: boolean;
   refreshCrmLogs: () => Promise<void>;
   /** Registers a stage as completed for gate/blink (e.g. right after submit, before page reload). */
   noteCompletedStage: (stage: string) => void;
@@ -120,6 +127,7 @@ const TempoCrmGateContext = createContext<TempoCrmGateContextValue>({
   openCrmLeads: () => undefined,
   openCrmAccount: () => undefined,
   hasConvertedLead: false,
+  prospectingCrmComplete: false,
   refreshCrmLogs: async () => undefined,
   noteCompletedStage: () => undefined,
 });
@@ -173,6 +181,24 @@ function activeNavForView(view: CrmView): SidebarNavId {
     return "opportunities";
   }
   return "home";
+}
+
+const LEAD_STATUS_ORDER: Record<CrmLead["status"], number> = {
+  selected: 0,
+  converted: 0,
+  new: 1,
+};
+
+/**
+ * Display order for leads — the selected/converted target lead floats to the
+ * top of Home and the Leads tab; the rest keep creation order.
+ */
+function sortLeadsForDisplay(rows: CrmLead[]): CrmLead[] {
+  return [...rows].sort(
+    (a, b) =>
+      (LEAD_STATUS_ORDER[a.status] ?? 1) - (LEAD_STATUS_ORDER[b.status] ?? 1) ||
+      a.created_at.localeCompare(b.created_at)
+  );
 }
 
 /**
@@ -278,7 +304,7 @@ export function CrmOverlay({
         return;
       }
       const body = (await res.json()) as { leads?: CrmLead[] };
-      const next = body.leads ?? [];
+      const next = sortLeadsForDisplay(body.leads ?? []);
       setLeads(next);
       onLeadsChange?.(next);
     } catch {
@@ -501,9 +527,7 @@ export function CrmOverlay({
   const handleLeadSaved = (lead: CrmLead): void => {
     setLeads((prev) => {
       const without = prev.filter((row) => row.id !== lead.id);
-      const next = [...without, lead].sort((a, b) =>
-        a.created_at.localeCompare(b.created_at)
-      );
+      const next = sortLeadsForDisplay([...without, lead]);
       onLeadsChange?.(next);
       return next;
     });
@@ -886,10 +910,17 @@ export function CrmOverlay({
                     </div>
                   </>
                 ) : (
-                  <div className="px-6 py-12 text-center">
+                  <div className="px-6 py-12 text-center space-y-4">
                     <p className="text-sm text-[#707978]">
-                      No contacts yet. Add buying-committee members as you meet them.
+                      No contacts yet — select your target Lead to unlock the primary contact.
                     </p>
+                    <button
+                      type="button"
+                      onClick={openLeadsList}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#0f4c4c] text-white text-[12px] font-medium tracking-wide hover:brightness-110"
+                    >
+                      Go to Leads
+                    </button>
                   </div>
                 )}
               </div>
@@ -1013,6 +1044,7 @@ export function CrmAccess({
   const [loggedStageIds, setLoggedStageIds] = useState<string[]>(initialLoggedStages);
   const [liveCompleted, setLiveCompleted] = useState<string[]>(completedStages);
   const [hasConvertedLead, setHasConvertedLead] = useState(false);
+  const [prospectingCrmComplete, setProspectingCrmComplete] = useState(false);
 
   useEffect(() => {
     setIsPageReady(true);
@@ -1056,13 +1088,44 @@ export function CrmAccess({
     }
   }, [attemptId]);
 
+  const refreshCrmProfile = useCallback(async (): Promise<void> => {
+    try {
+      const [accountRes, contactRes] = await Promise.all([
+        fetch(`/api/student/crm-account?attemptId=${encodeURIComponent(attemptId)}`),
+        fetch(
+          `/api/student/crm-contact?attemptId=${encodeURIComponent(attemptId)}&contactKey=dana_reyes`
+        ),
+      ]);
+
+      let accountComplete = false;
+      if (accountRes.ok) {
+        const body = (await accountRes.json()) as { fields?: Record<string, string> };
+        accountComplete = canSaveAccountFields(body.fields ?? {});
+      }
+
+      let contactComplete = false;
+      if (contactRes.ok) {
+        const body = (await contactRes.json()) as {
+          fields?: Record<string, string>;
+          role?: string;
+        };
+        contactComplete = contactRecordComplete(body.fields ?? {}, body.role ?? "");
+      }
+
+      setProspectingCrmComplete(accountComplete && contactComplete);
+    } catch {
+      /* keep prior */
+    }
+  }, [attemptId]);
+
   useEffect(() => {
     if (!isPageReady) {
       return;
     }
     void refreshCrmLogs();
     void refreshLeads();
-  }, [isPageReady, refreshCrmLogs, refreshLeads]);
+    void refreshCrmProfile();
+  }, [isPageReady, refreshCrmLogs, refreshLeads, refreshCrmProfile]);
 
   const loggedStages = useMemo(() => new Set(loggedStageIds), [loggedStageIds]);
 
@@ -1109,7 +1172,8 @@ export function CrmAccess({
     setDeepLinkLeads(false);
     void refreshCrmLogs();
     void refreshLeads();
-  }, [refreshCrmLogs, refreshLeads]);
+    void refreshCrmProfile();
+  }, [refreshCrmLogs, refreshLeads, refreshCrmProfile]);
 
   const handleLogEntriesChange = useCallback((entries: CrmLogEntry[]): void => {
     setLoggedStageIds(entries.map((e) => e.stage));
@@ -1127,6 +1191,7 @@ export function CrmAccess({
       openCrmLeads,
       openCrmAccount,
       hasConvertedLead,
+      prospectingCrmComplete,
       refreshCrmLogs,
       noteCompletedStage,
     }),
@@ -1137,6 +1202,7 @@ export function CrmAccess({
       openCrmLeads,
       openCrmAccount,
       hasConvertedLead,
+      prospectingCrmComplete,
       refreshCrmLogs,
       noteCompletedStage,
     ]

@@ -69,8 +69,13 @@ export function ContactRecordView({
   const title = (fields.name ?? "").trim() || "New contact";
   const accountSuffix = accountLabel.trim() || "—";
   const canSave = useMemo(
-    () => isUnlocked && canSaveContactFields(fields) && !isSaving && !isLoading,
-    [isUnlocked, fields, isSaving, isLoading]
+    () =>
+      isUnlocked &&
+      canSaveContactFields(fields) &&
+      role.trim().length > 0 &&
+      !isSaving &&
+      !isLoading,
+    [isUnlocked, fields, role, isSaving, isLoading]
   );
 
   useEffect(() => {
@@ -242,13 +247,15 @@ export function ContactRecordView({
           <div className="p-6 border-b border-[#bfc8c8] bg-[#eef5f2]/20">
             <h3 className="text-lg font-semibold text-[#003434]">Relationship Profile</h3>
             <p className="text-sm text-[#404848] mt-1">
-              Optional buying role and notes — not tied to opportunity stage logs.
+              Buying role is required; relationship notes are optional and not tied to
+              opportunity stage logs.
             </p>
           </div>
           <div className="p-6 space-y-6">
             <div className="space-y-2 max-w-md">
-              <label className="text-[12px] font-medium tracking-wide text-[#404848]">
+              <label className="text-[12px] font-medium tracking-wide text-[#404848] flex items-center gap-1">
                 Role in Decision
+                <span className="text-[#ba1a1a]">*</span>
               </label>
               <select
                 className="w-full bg-[#eef5f2] border border-[#bfc8c8] rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all disabled:opacity-50"

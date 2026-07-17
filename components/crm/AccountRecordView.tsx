@@ -188,7 +188,8 @@ export function AccountRecordView({
           <div className="p-6 border-b border-[#bfc8c8] bg-[#eef5f2]/20">
             <h3 className="text-lg font-semibold text-[#003434]">Account Details</h3>
             <p className="text-sm text-[#404848] mt-1">
-              Account fields are created when you convert a Lead. Edit details and strategy notes here.
+              Key fields autofill when you select your target Lead. Complete the remaining
+              required fields before Stage 2.
             </p>
           </div>
           <div className="p-6">

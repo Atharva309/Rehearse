@@ -7,7 +7,10 @@
 import { NextResponse } from "next/server";
 import { requireStudentApi } from "@/lib/api-auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { validateLeadIdentity } from "@/lib/tempo-lead-conversion";
+import {
+  syncLeadToAccountAndContact,
+  validateLeadIdentity,
+} from "@/lib/tempo-lead-conversion";
 
 type RouteContext = {
   params: { leadId: string };
@@ -41,7 +44,9 @@ export async function POST(
 
     const { data: lead, error: loadError } = await supabase
       .from("crm_leads")
-      .select("id, attempt_id, status, company_name, contact_name")
+      .select(
+        "id, attempt_id, status, company_name, contact_name, contact_title, why_fit, trigger_event"
+      )
       .eq("id", leadId)
       .maybeSingle();
 
@@ -112,6 +117,15 @@ export async function POST(
         },
         { status: 500 }
       );
+    }
+
+    try {
+      // Early autofill: Account + Contact records mirror the selected lead so
+      // the student can complete the remaining required fields before Stage 2.
+      await syncLeadToAccountAndContact(supabase, attemptId, lead);
+    } catch (syncError) {
+      // Non-fatal — conversion at prospecting completion retries the same sync.
+      console.error("[crm-leads/select] account/contact autofill failed:", syncError);
     }
 
     return NextResponse.json({ success: true });

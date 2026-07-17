@@ -19,9 +19,14 @@ type LeadFormValues = {
   nextStep: string;
 };
 
+type DirectoryContactOption = {
+  name: string;
+  title: string;
+};
+
 type DirectoryCompanyOption = {
   name: string;
-  contactNames: string[];
+  contacts: DirectoryContactOption[];
 };
 
 type LeadDetailFormProps = {
@@ -135,7 +140,7 @@ export function LeadDetailForm({
   const contactOptions = useMemo(
     () =>
       companyOptions.find((option) => option.name === values.companyName)
-        ?.contactNames ?? [],
+        ?.contacts ?? [],
     [companyOptions, values.companyName]
   );
 
@@ -153,14 +158,20 @@ export function LeadDetailForm({
           throw new Error("Directory request failed");
         }
         const body = (await res.json()) as {
-          companies?: { name?: string; contacts?: { name?: string }[] }[];
+          companies?: {
+            name?: string;
+            contacts?: { name?: string; title?: string }[];
+          }[];
         };
         const options = (body.companies ?? [])
           .map((company) => ({
             name: company.name?.trim() ?? "",
-            contactNames: (company.contacts ?? [])
-              .map((contact) => contact.name?.trim() ?? "")
-              .filter((name): name is string => Boolean(name)),
+            contacts: (company.contacts ?? [])
+              .map((contact) => ({
+                name: contact.name?.trim() ?? "",
+                title: contact.title?.trim() ?? "",
+              }))
+              .filter((contact) => Boolean(contact.name)),
           }))
           .filter((option) => Boolean(option.name));
         if (!cancelled) {
@@ -296,15 +307,19 @@ export function LeadDetailForm({
                               const nextContacts =
                                 companyOptions.find(
                                   (option) => option.name === nextCompany
-                                )?.contactNames ?? [];
-                              setValues((prev) => ({
-                                ...prev,
-                                companyName: nextCompany,
-                                // Contacts are per-company; drop a stale pick.
-                                contactName: nextContacts.includes(prev.contactName)
-                                  ? prev.contactName
-                                  : "",
-                              }));
+                                )?.contacts ?? [];
+                              setValues((prev) => {
+                                const keepContact = nextContacts.some(
+                                  (contact) => contact.name === prev.contactName
+                                );
+                                return {
+                                  ...prev,
+                                  companyName: nextCompany,
+                                  // Contacts are per-company; drop a stale pick.
+                                  contactName: keepContact ? prev.contactName : "",
+                                  contactTitle: keepContact ? prev.contactTitle : "",
+                                };
+                              });
                             }}
                           >
                             <option value="">
@@ -331,9 +346,18 @@ export function LeadDetailForm({
                           className="w-full appearance-none bg-[#eef5f2] border border-[#bfc8c8] rounded-md pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-[#0f4c4c] focus:border-[#0f4c4c] outline-none transition-all disabled:opacity-60"
                           value={values.contactName}
                           disabled={isDirectoryLoading || !values.companyName}
-                          onChange={(e) =>
-                            setValues((prev) => ({ ...prev, contactName: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            const nextName = e.target.value;
+                            const picked = contactOptions.find(
+                              (contact) => contact.name === nextName
+                            );
+                            setValues((prev) => ({
+                              ...prev,
+                              contactName: nextName,
+                              // Autofill the role from the directory contact.
+                              contactTitle: picked?.title ?? prev.contactTitle,
+                            }));
+                          }}
                         >
                           <option value="">
                             {isDirectoryLoading
@@ -342,9 +366,9 @@ export function LeadDetailForm({
                                 ? "Select a contact"
                                 : "Select a company first"}
                           </option>
-                          {contactOptions.map((contactName) => (
-                            <option key={contactName} value={contactName}>
-                              {contactName}
+                          {contactOptions.map((contact) => (
+                            <option key={contact.name} value={contact.name}>
+                              {contact.name}
                             </option>
                           ))}
                         </select>

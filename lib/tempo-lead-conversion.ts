@@ -33,6 +33,96 @@ export function validateLeadIdentity(
   return { success: true };
 }
 
+/** Lead columns needed to build Account + Contact records. */
+export type LeadRecordForSync = {
+  company_name?: unknown;
+  contact_name?: unknown;
+  contact_title?: unknown;
+  why_fit?: unknown;
+  trigger_event?: unknown;
+};
+
+/**
+ * Autofills the Account + Dana Contact records from a Lead's fields.
+ * Merges into any existing rows so student-entered fields (industry, region,
+ * strategy notes, buying role, …) are preserved. Used both when the target
+ * lead is selected (early autofill) and at conversion.
+ */
+export async function syncLeadToAccountAndContact(
+  supabase: SupabaseClient,
+  attemptId: string,
+  lead: LeadRecordForSync
+): Promise<void> {
+  const companyName = String(lead.company_name ?? "").trim();
+  const contactName = String(lead.contact_name ?? "").trim();
+  const contactTitle = String(lead.contact_title ?? "").trim();
+  const whyFit = String(lead.why_fit ?? "").trim();
+  const triggerEvent = String(lead.trigger_event ?? "").trim();
+  const primaryContact = contactTitle
+    ? `${contactName}, ${contactTitle}`
+    : contactName;
+  const updatedAt = new Date().toISOString();
+
+  const { data: existingAccount } = await supabase
+    .from("crm_account_notes")
+    .select("notes, fields")
+    .eq("attempt_id", attemptId)
+    .maybeSingle();
+
+  const accountFields: Record<string, string> = {
+    ...((existingAccount?.fields as Record<string, string> | null) ?? {}),
+    accountName: companyName,
+    primaryContact,
+    whyFit,
+    trigger: triggerEvent,
+  };
+
+  const { error: accountError } = await supabase.from("crm_account_notes").upsert(
+    {
+      attempt_id: attemptId,
+      notes: String(existingAccount?.notes ?? ""),
+      fields: accountFields,
+      updated_at: updatedAt,
+    },
+    { onConflict: "attempt_id" }
+  );
+
+  if (accountError) {
+    console.error("[syncLeadToAccountAndContact] account upsert failed:", accountError);
+    throw new Error("Could not create account from lead.");
+  }
+
+  const { data: existingContact } = await supabase
+    .from("crm_contact_notes")
+    .select("role, notes, fields")
+    .eq("attempt_id", attemptId)
+    .eq("contact_key", "dana_reyes")
+    .maybeSingle();
+
+  const contactFields: Record<string, string> = {
+    ...((existingContact?.fields as Record<string, string> | null) ?? {}),
+    name: contactName,
+    position: contactTitle,
+  };
+
+  const { error: contactError } = await supabase.from("crm_contact_notes").upsert(
+    {
+      attempt_id: attemptId,
+      contact_key: "dana_reyes",
+      role: String(existingContact?.role ?? ""),
+      notes: String(existingContact?.notes ?? ""),
+      fields: contactFields,
+      updated_at: updatedAt,
+    },
+    { onConflict: "attempt_id,contact_key" }
+  );
+
+  if (contactError) {
+    console.error("[syncLeadToAccountAndContact] contact upsert failed:", contactError);
+    throw new Error("Could not create contact from lead.");
+  }
+}
+
 /**
  * Converts a Lead into Account + Dana Contact and marks the Lead converted.
  * Validates identity first; idempotent if this lead is already converted.
@@ -83,61 +173,9 @@ export async function convertLead(
     throw new Error("A lead has already been converted for this deal.");
   }
 
-  const contactTitle = String(lead.contact_title ?? "").trim();
-  const whyFit = String(lead.why_fit ?? "").trim();
-  const triggerEvent = String(lead.trigger_event ?? "").trim();
-  const primaryContact = contactTitle
-    ? `${contactName.trim()}, ${contactTitle}`
-    : contactName.trim();
+  await syncLeadToAccountAndContact(supabase, attemptId, lead);
+
   const updatedAt = new Date().toISOString();
-
-  const accountFields: Record<string, string> = {
-    accountName: companyName.trim(),
-    industry: "",
-    locations: "",
-    region: "",
-    primaryContact,
-    whyFit,
-    trigger: triggerEvent,
-  };
-
-  const { error: accountError } = await supabase.from("crm_account_notes").upsert(
-    {
-      attempt_id: attemptId,
-      notes: "",
-      fields: accountFields,
-      updated_at: updatedAt,
-    },
-    { onConflict: "attempt_id" }
-  );
-
-  if (accountError) {
-    console.error("[convertLead] account upsert failed:", accountError);
-    throw new Error("Could not create account from lead.");
-  }
-
-  const contactFields: Record<string, string> = {
-    name: contactName.trim(),
-    position: contactTitle,
-  };
-
-  const { error: contactError } = await supabase.from("crm_contact_notes").upsert(
-    {
-      attempt_id: attemptId,
-      contact_key: "dana_reyes",
-      role: "",
-      notes: "",
-      fields: contactFields,
-      updated_at: updatedAt,
-    },
-    { onConflict: "attempt_id,contact_key" }
-  );
-
-  if (contactError) {
-    console.error("[convertLead] contact upsert failed:", contactError);
-    throw new Error("Could not create contact from lead.");
-  }
-
   const { error: leadError } = await supabase
     .from("crm_leads")
     .update({ status: "converted", updated_at: updatedAt })

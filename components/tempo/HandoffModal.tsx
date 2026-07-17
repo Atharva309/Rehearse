@@ -50,7 +50,13 @@ export function HandoffModal({
 }: HandoffModalProps): React.ReactElement {
   const [entered, setEntered] = useState(false);
   const gate = useTempoCrmGate();
-  const { noteCompletedStage, loggedStages, openCrmForStage, openCrmAccount } = gate;
+  const {
+    noteCompletedStage,
+    loggedStages,
+    openCrmForStage,
+    openCrmAccount,
+    prospectingCrmComplete,
+  } = gate;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setEntered(true), 100);
@@ -73,6 +79,8 @@ export function HandoffModal({
 
   const isGated = requiresLog && !crmLogExists;
   const showAccountNudge = !isGated && justCompleted === "prospecting";
+  // Stage 2 gate: Account + primary Contact required fields must be complete.
+  const isProfileGated = showAccountNudge && !prospectingCrmComplete;
 
   useEffect(() => {
     if (isGated && justCompleted) {
@@ -94,7 +102,7 @@ export function HandoffModal({
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay animate-overlay-in"
-      onClick={onDismiss}
+      onClick={isProfileGated ? undefined : onDismiss}
       role="presentation"
     >
       <div
@@ -185,10 +193,10 @@ export function HandoffModal({
               </>
             ) : (
               <>
-                {showAccountNudge ? (
+                {isProfileGated ? (
                   <p className="text-body-md text-on-surface-variant text-center">
-                    Auto-filled facts are in your CRM now, but your strategy and contact-role notes
-                    are still empty. Worth a quick visit before your call.
+                    Your Account and Contact records still have required fields to fill in.
+                    Complete them in the CRM before starting Stage {stageNumber}.
                   </p>
                 ) : null}
                 <div className={showAccountNudge ? "grid gap-3 sm:grid-cols-2" : ""}>
@@ -196,7 +204,7 @@ export function HandoffModal({
                     <button
                       type="button"
                       onClick={openCrmAccount}
-                      className="w-full min-h-12 px-3 py-2 rounded-lg font-headline-md flex items-center justify-center gap-2 border border-primary-container text-primary font-bold hover:bg-surface-container-low transition-all active:scale-[0.98]"
+                      className="w-full min-h-12 px-3 py-2 rounded-lg flex items-center justify-center gap-2 bg-[#0f4c4c] text-white text-[13px] leading-tight font-bold hover:brightness-110 transition-all active:scale-[0.98]"
                     >
                       <MaterialIcon name="business_center" />
                       Go to CRM — Add Account &amp; Contact Notes
@@ -205,7 +213,13 @@ export function HandoffModal({
                   <button
                     type="button"
                     onClick={onBegin}
-                    className="w-full h-12 rounded-lg font-headline-md flex items-center justify-center gap-2 bg-primary-container text-white font-bold hover:bg-primary transition-all active:scale-[0.98]"
+                    disabled={isProfileGated}
+                    aria-disabled={isProfileGated}
+                    className={`w-full min-h-12 rounded-lg font-headline-md flex items-center justify-center gap-2 font-bold transition-all ${
+                      isProfileGated
+                        ? "bg-outline-variant text-on-surface-variant opacity-50 cursor-not-allowed"
+                        : "bg-primary-container text-white hover:bg-primary active:scale-[0.98]"
+                    }`}
                   >
                     Begin Stage {stageNumber}
                     <MaterialIcon name="arrow_forward" />

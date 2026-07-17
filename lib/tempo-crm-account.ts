@@ -11,7 +11,7 @@ export type CrmAccountFieldDef = {
   required?: boolean;
 };
 
-/** Fields stored on the CRM Account record (student creates these via Add account). */
+/** Fields stored on the CRM Account record. All are required before Stage 2. */
 export const CRM_ACCOUNT_FIELD_SCHEMA: CrmAccountFieldDef[] = [
   {
     key: "accountName",
@@ -23,32 +23,38 @@ export const CRM_ACCOUNT_FIELD_SCHEMA: CrmAccountFieldDef[] = [
     key: "industry",
     label: "Industry",
     placeholder: "e.g. Healthcare / Dentistry",
+    required: true,
   },
   {
     key: "locations",
     label: "Locations / Size",
     placeholder: "e.g. 8 practices",
+    required: true,
   },
   {
     key: "region",
     label: "Region",
     placeholder: "e.g. Denver, CO",
+    required: true,
   },
   {
     key: "primaryContact",
     label: "Primary Contact",
     placeholder: "e.g. Dana Reyes, Director of Operations",
+    required: true,
   },
   {
     key: "whyFit",
     label: "Why This Account Is a Fit",
     placeholder: "Why does this account match your ICP?",
     multiline: true,
+    required: true,
   },
   {
     key: "trigger",
     label: "Trigger Event",
     placeholder: "e.g. Opening an 8th location",
+    required: true,
   },
 ];
 

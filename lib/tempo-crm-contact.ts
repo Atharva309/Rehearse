@@ -26,6 +26,7 @@ export const CRM_CONTACT_FIELD_SCHEMA: CrmContactFieldDef[] = [
     key: "position",
     label: "Position / Title",
     placeholder: "e.g. Director of Operations",
+    required: true,
   },
 ];
 
@@ -63,6 +64,17 @@ export function canSaveContactFields(fields: Record<string, string>): boolean {
   return CRM_CONTACT_FIELD_SCHEMA.filter((f) => f.required).every(
     (f) => (fields[f.key] ?? "").trim().length > 0
   );
+}
+
+/**
+ * True when a contact record is fully complete — all required profile fields
+ * plus a buying role. Used by the Stage 2 handoff gate.
+ */
+export function contactRecordComplete(
+  fields: Record<string, string>,
+  role: string
+): boolean {
+  return canSaveContactFields(fields) && role.trim().length > 0;
 }
 
 /**

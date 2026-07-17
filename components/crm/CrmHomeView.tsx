@@ -243,7 +243,13 @@ export function CrmHomeView({
               </h4>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              {availableContactKeys.length > 0 ? (
+              {previewContacts.length === 0 ? (
+                <SectionActionButton
+                  icon="person_search"
+                  label="Go to Leads"
+                  onClick={onBrowseLeads}
+                />
+              ) : availableContactKeys.length > 0 ? (
                 <SectionActionButton
                   icon="add"
                   label="Add contact"
@@ -261,7 +267,7 @@ export function CrmHomeView({
           </div>
           <div className="px-5 py-4 flex-1">
             {previewContacts.length === 0 ? (
-              <EmptyHint message="No contacts yet. Add buying-committee members as you meet them." />
+              <EmptyHint message="No contacts yet — select your target Lead to unlock the primary contact." />
             ) : (
               <ul className="divide-y divide-[#bfc8c8]/60">
                 {previewContacts.map((c) => (
