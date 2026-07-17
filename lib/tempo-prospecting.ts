@@ -26,7 +26,7 @@ export const PROSPECTING_STEPS: readonly ProspectingStepDefinition[] = [
 ] as const;
 
 export const TEMPO_HANDOFF_MESSAGES = {
-  prospecting: `Your outreach landed. Dana Reyes, Director of Operations at Summit Dental Group, has agreed to a 20-minute discovery call after seeing your message about their recent expansion. Before that call, research Summit Dental with the AI assistant and draft your opening message. No pitching yet. Just research and a crisp outreach draft. Good luck.`,
+  prospecting: `Time to build your pipeline. I have loaded a directory of appointment-based businesses into your research workspace. One of those accounts is showing real buying signals right now, and only one person there truly owns this decision. Research the candidates, verify what the AI tells you before you trust it, work up your leads in the CRM, and pick your target. Then draft a crisp opening message. No pitching yet. Just sharp research and a strong first touch. Good luck.`,
 
   discovery: `Your outreach landed. Dana Reyes has agreed to a 20-minute discovery call next Tuesday. You are not pitching yet — you are here to understand their world and find out whether there is a business issue worth solving. Be curious. Ask good questions. Listen more than you talk. Good luck.`,
 
