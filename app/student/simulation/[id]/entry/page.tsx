@@ -116,6 +116,13 @@ export default async function TempoSimulationEntryPage({
   // Stage 1 keeps current_stage at "lead_gen" until completion, so use wizard
   // draft state (written as soon as the student begins) to detect progress.
   const hasStartedStageOne = Boolean(inProgressAttempt?.stage_data);
+  const stageData = (inProgressAttempt?.stage_data ?? {}) as Record<string, unknown>;
+  // Until the student clicks "Begin Stage 2" on the Discovery handoff, they are
+  // still wrapping up Stage 1 (required CRM fields), so keep the entry screen
+  // presenting Stage 1 rather than jumping ahead to Stage 2.
+  const discoveryHandoffSeen = stageData.discoveryHandoffSeen === true;
+  const displayStage: SimulationStage | null =
+    currentStage === "discovery" && !discoveryHandoffSeen ? "prospecting" : currentStage;
   const isFreshStart =
     !inProgressAttempt ||
     currentStage === null ||
@@ -147,6 +154,11 @@ export default async function TempoSimulationEntryPage({
     }
   }
 
+  if (displayStage === "prospecting" && currentStage === "discovery") {
+    // Presenting Stage 1 as still in progress; keep the roadmap consistent.
+    completedStageKeys.delete("prospecting");
+  }
+
   const ctaHref = buildTempoEntryCtaHref(
     params.id,
     classId,
@@ -160,8 +172,8 @@ export default async function TempoSimulationEntryPage({
     );
   }
 
-  if (isMidSimulation && currentStage) {
-    const currentTempoStage = getCurrentTempoStage(currentStage);
+  if (isMidSimulation && displayStage) {
+    const currentTempoStage = getCurrentTempoStage(displayStage);
     const ctaLabel = currentTempoStage
       ? `Continue Stage ${currentTempoStage.number}: ${currentTempoStage.title}`
       : "Continue →";
@@ -173,7 +185,7 @@ export default async function TempoSimulationEntryPage({
         simulationTitle={simulation.title}
         ctaHref={ctaHref}
         ctaLabel={ctaLabel}
-        currentStage={currentStage}
+        currentStage={displayStage}
         completedStageKeys={completedStageKeys}
         lastStageScore={lastStageScore}
         restartAttemptId={attemptId}
