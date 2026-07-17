@@ -102,7 +102,7 @@ export function HandoffModal({
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay animate-overlay-in"
-      onClick={isProfileGated ? undefined : onDismiss}
+      onClick={onDismiss}
       role="presentation"
     >
       <div
